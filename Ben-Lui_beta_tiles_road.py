@@ -1,3 +1,24 @@
+#TODO: Reorganise code into smaller functions.
+#TODO: Add cognitive load.
+
+
+rootpath = 'C:\VENLAB data\shared_modules\Logitech_force_feedback'
+sys.path.append(rootpath)
+rootpath = 'C:\VENLAB data\shared_modules'
+sys.path.append(rootpath)
+rootpath = 'C:/VENLAB data/shared_modules/pupil/capture_settings/plugins/drivinglab_pupil/'
+sys.path.append(rootpath)
+
+AUTOWHEEL = True
+EYETRACKING = False
+PRACTICE = True #flag for whether in practice mode or not.
+TILING = True
+
+if PRACTICE: #HACK
+	EYETRACKING = False
+
+# if AUTOWHEEL: 
+# 	import logitech_wheel_threaded
 import viz # vizard library
 import numpy as np # numpy library - such as matrix calculation
 import random # python library
@@ -5,11 +26,57 @@ import vizdriver_BenLui as vizdriver # vizard library
 import viztask # vizard library
 import math as mt # python library
 import vizshape
+import vizact
+import vizmat
+#import myCave #these should be in shared modules
+#import PPinput
+
+
+if EYETRACKING:
+	from eyetrike_calibration_standard import Markers, run_calibration
+	from eyetrike_accuracy_standard import run_accuracy
+	from UDP_comms import pupil_comms
+
+if EYETRACKING: 
+	###Connect over network to eyetrike and check the connection
+	comms = pupil_comms() #Initiate a communication with eyetrike	
+	#Check the connection is live
+	connected = comms.check_connection()
+
+	if not connected:
+		print("Cannot connect to Eyetrike. Check network")
+		raise Exception("Could not connect to Eyetrike")
+	else:
+		pass	
+	#markers = Markers() #this now gets added during run_calibration	
+		
+else:
+	comms = []
+
+if EYETRACKING:
+	filename = str(ExpID) + "_Calibration" #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
+	print (filename)
+	yield run_calibration(comms, filename)
+	yield run_accuracy(comms, filename)		
+
+if AUTOWHEEL:
+	#Create a steeringWheel instance
+	mywheel = logitech_wheel_threaded.steeringWheelThreaded(handle)	
+	mywheel.init() #Initialise the wheel
+	mywheel.start() #Start the wheels thread
+
+	#centre the wheel at start of experiment
+	mywheel.set_position(0) #Set the pd control target
+	mywheel.control_on()
+else:
+	mywheel = None
+
 
 ##Code will be the threshold vs accumulator pop up bends experiment.
 
-global driver, out # global variable
+global driver, out, ExpID # global variable
 driver = vizdriver.Driver()
+ExpID = "BenLui17"
 
 out = "-1"
 # start empty world
@@ -75,17 +142,17 @@ def setStage():
 	gplane1.texture(gtexture)
 	gplane1.visible(1)
 #
-#
-#	gplane2 = gplane1.copy() #create duplicate.
-#	gplane2.setScale(tilesize, tilesize*2, tilesize)
-#	gplane2.setEuler((0, 90, 0),viz.REL_LOCAL)
-#	#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much.
-#	gplane2.texmat( matrix )
-#	#gplane1.texture(gtexture)
-#	gplane2.texture(gtexture)
-#	gplane2.visible(1)
-#	gplane2.setPosition(0,0,tilesize*2)
-#	gplane2.zoffset(-1)
+	if TILING:
+		gplane2 = gplane1.copy() #create duplicate.
+		gplane2.setScale(tilesize, tilesize*2, tilesize)
+		gplane2.setEuler((0, 90, 0),viz.REL_LOCAL)
+		#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much.
+		gplane2.texmat( matrix )
+		#gplane1.texture(gtexture)
+		gplane2.texture(gtexture)
+		gplane2.visible(1)
+		gplane2.setPosition(0,0,tilesize*2)
+		gplane2.zoffset(-1)
 	
 	
 #	##To save CPU I could move a small quad with the person.
@@ -150,23 +217,6 @@ def BendMaker(radlist):
 		z2 = np.zeros(rdsize)	
 			
 		i = 0
-#		viz.startlayer(viz.LINE_STRIP) 
-#		#viz.linewidth(5)
-#		viz.linewidth(3)
-#		viz.vertexColor(grey)
-#		viz.vertex(0, .1, 0) #START AT ORIGIN
-#		
-#		if r > 0:	#r=-1 means it is a straight.
-#			while i < rdsize:			
-#				x1[i] = (r*np.cos(right_array[i])) + r
-#				z1[i] = (r*np.sin(right_array[i]))
-#				#print (z1[i])
-#				viz.vertexColor(grey)
-#				viz.vertex(x1[i], .1, z1[i] )		
-#				
-#				i += 1
-#		else:
-#			viz.vertex(0,.1,100.0) #100m straight
 
 		##try using quad-strip for roads.
 		viz.startLayer(viz.QUAD_STRIP)
@@ -199,24 +249,6 @@ def BendMaker(radlist):
 		rightbend.visible(0)
 		rightbend.dynamic()
 			
-		# left bend of a given radii
-		#viz.startlayer(viz.LINE_STRIP)
-#		#viz.linewidth(5)
-#		viz.linewidth(3)
-#		viz.vertexColor(grey)
-#		viz.vertex(0, .1, 0) #START AT ORIGIN
-#		i = 0
-#		if r > 0:	#r=-1 means it is a straight.
-#			while i < rdsize:			
-#				x1[i] = (r*np.cos(left_array[i])) - r
-#				z1[i] = (r*np.sin(left_array[i]))
-#				viz.vertexColor(grey)
-#				viz.vertex(x1[i], .1, z1[i] )				
-#				i += 1
-#		else:
-#			viz.vertex(0,.1,100.0) #100m straight
-
-		#with quad
 		i=0
 		viz.startLayer(viz.QUAD_STRIP)
 		width = .1 #road width/2
@@ -288,45 +320,42 @@ def runtrials():
 		#what data do we want? RoadVisibility Flag. SWA. Time, TrialType. x,z of that trial These can be reset in processing by subtracting the initial position and reorienting.
 		SaveData(pos[0], pos[2], ori, steeringWheel) ##.
 	
-		###UNCOMMENT FOR TILING
+		if TILING:
 		
-#		#check if groundplane is culled, and update it if it is. 
-#		if viz.MainWindow.isCulled(gplane1):
-#			#if it's not visible, move ahead 50m from the driver.
-#			
-#			print 'attempting to shift gplane1'
-#			#translate bend to driver position.
-#			driverpos = viz.MainView.getPosition()
-#			gplane1.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
-#			
-#			#now need to set orientation
-#			#driverEuler = viz.MainView.getEuler()
-#			gplane1.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
-#			
-#			gplane1.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize * 3
-#			
-#			
-#			gplane1.setEuler(0,90,0, viz.REL_LOCAL) #rotate to ground plane	
-#			
-#		if viz.MainWindow.isCulled(gplane2):
-#			#if it's not visible, move ahead 50m from the driver.
-#			
-#			print 'attempting to shift gplane2'
-#			#translate bend to driver position.
-#			driverpos = viz.MainView.getPosition()
-#			gplane2.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
-#			
-#			#now need to set orientation
-#			#driverEuler = viz.MainView.getEuler()
-#			gplane2.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
-#			
-#			gplane2.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize y size of the other tile.
-#			
-#			gplane2.setEuler(0,90,0, viz.REL_LOCAL) #rotate to ground plane	
-			
-		
-			
-	
+			#check if groundplane is culled, and update it if it is. 
+			if viz.MainWindow.isCulled(gplane1):
+				#if it's not visible, move ahead 50m from the driver.
+				
+				print 'attempting to shift gplane1'
+				#translate bend to driver position.
+				driverpos = viz.MainView.getPosition()
+				gplane1.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
+				
+				#now need to set orientation
+				#driverEuler = viz.MainView.getEuler()
+				gplane1.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
+				
+				gplane1.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize * 3
+				
+				
+				gplane1.setEuler(0,90,0, viz.REL_LOCAL) #rotate to ground plane	
+				
+			if viz.MainWindow.isCulled(gplane2):
+				#if it's not visible, move ahead 50m from the driver.
+				
+				print 'attempting to shift gplane2'
+				#translate bend to driver position.
+				driverpos = viz.MainView.getPosition()
+				gplane2.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
+				
+				#now need to set orientation
+				#driverEuler = viz.MainView.getEuler()
+				gplane2.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
+				
+				gplane2.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize y size of the other tile.
+				
+				gplane2.setEuler(0,90,0, viz.REL_LOCAL) #rotate to ground plane	
+
 	vizact.ontimer((1.0/60.0),updatePositionLabel)
 	
 
@@ -344,6 +373,7 @@ def runtrials():
 			global out
 			
 			#what data do we want? RoadVisibility Flag. SWA. Time, TrialType. x,z of that trial These can be reset in processing by subtracting the initial position and reorienting.
+			#TODO: Change to Pandas Dataframe.
 			if out != '-1':
 				# Create the output string
 				currTime = viz.tick()										
@@ -418,6 +448,8 @@ def runtrials():
 		
 		##wait a while
 		print "waiting"
+		#TODO: Recentre the wheel on automation.
+
 		yield viztask.waitDirector(checkCentred)
 		print "waited"
 		

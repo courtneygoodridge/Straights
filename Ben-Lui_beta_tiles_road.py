@@ -37,7 +37,7 @@ radiiPool = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360,-1] #13 rad
 occlPool = [0, .5, 1] #3 occlusion conditions
 
 N = len(radiiPool) * len(occlPool) ###Number of conditions.
-TRIALS = 10 #is this enough? Let's see.
+TRIALS = 10 #is this enough? Let's see after piloting.
 TotalN = N*TRIALS
 TRIALSEQ = range(1,N+1)*TRIALS
 direc = [1,-1]*(TotalN/2)
@@ -62,6 +62,7 @@ def setStage():
 	
 	#add groundplane (wrap mode)
 ###UNCOMMENT FOR TILING
+# Tiling saves memory by using two groundplane tiles instead of a massive groundplane. Since the drivers are essentially driving linearly forward, they cover a lot of distance across the z axis.
 	gplane1 = viz.addTexQuad() ##
 	tilesize = 1000 #half a km wide
 	#planesize = tilesize/5
@@ -127,10 +128,10 @@ def setStage():
 #	dots.visible(1)
 
 	
-# road edge setting. Make at start of trial.
+# function to make Bends.
 def BendMaker(radlist):
 	
-	#make left and right road edges for for a given radii and return them in a list.
+	"""makes left and right road edges for for a given radii and return them in a list"""
 	
 	#needs to work with an array of radii
 
@@ -403,8 +404,9 @@ def runtrials():
 		trialbend.visible(0)
 		driver.setSWA_visible()
 		
+		
 		def checkCentred():
-			
+			"""checks if the steering wheel has been re-centred"""
 			centred = False
 			#while not centred:
 			x = driver.getPos()

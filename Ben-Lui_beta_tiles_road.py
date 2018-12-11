@@ -11,11 +11,9 @@ For eyetracking - eyetrike_calibration_standard.py; eyetrike_accuracy_standard.p
 
 For perspective correct rendering - myCave.py
 
-For motion through the virtual world - vizDriver.py
+For motion through the virtual world - vizdriver.py
 
 """
-
-
 import sys
 
 rootpath = 'C:\\VENLAB data\\shared_modules\\Logitech_force_feedback'
@@ -42,13 +40,12 @@ import vizshape
 import vizact
 import vizmat
 import myCave
-#import myCave #these should be in shared modules
 #import PPinput
-
 
 if EYETRACKING:
 	from eyetrike_calibration_standard import Markers, run_calibration
 	from eyetrike_accuracy_standard import run_accuracy
+	from UDP_comms import pupil_comms
 
 if EYETRACKING: 
 	###Connect over network to eyetrike and check the connection
@@ -66,16 +63,7 @@ if EYETRACKING:
 else:
 	comms = []
 
-if EYETRACKING:
-	filename = str(ExpID) + "_Calibration" #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
-	print (filename)
-	yield run_calibration(comms, filename)
-	yield run_accuracy(comms, filename)		
-
-
-
 ##Code will be the threshold vs accumulator pop up bends experiment.
-
 global driver, out, ExpID # global variable
 driver = vizdriver.Driver()
 ExpID = "BenLui17"
@@ -83,11 +71,8 @@ ExpID = "BenLui17"
 out = "-1"
 # start empty world
 ###################  PERSPECTIVE CORRECT  ##################
-###SET UP PHYSICAL DIMENSIONS OF SCREEN####
-###################  PERSPECTIVE CORRECT  ##################
 cave = myCave.initCave()
 caveview = cave.getCaveView()
-
 
 ##Create array of trials.
 global radiiPool,occlPool
@@ -114,7 +99,7 @@ def setStage():
 	
 	#CODE UP TILE-WORK WITH GROUNDPLANE.	
 	##should set this up so it builds new tiles if you are reaching the boundary.
-	fName = 'textures\strong_edge.bmp'
+	fName = 'textures\\strong_edge.bmp'
 	gtexture = viz.addTexture(fName)
 	gtexture.wrap(viz.WRAP_T, viz.REPEAT)
 	gtexture.wrap(viz.WRAP_S, viz.REPEAT)
@@ -281,16 +266,21 @@ def BendMaker(radlist):
 
 def runtrials():
 	
-	global trialtype, trialtype_signed, groundplane, radiiPool, out
+	global trialtype, trialtype_signed, radiiPool, out
 	
 	#yield viztask.waitTime(5.0) #allow me to get into the seat.
+
+	if EYETRACKING:
+		filename = str(ExpID) + "_Calibration" #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
+		print (filename)
+		yield run_calibration(comms, filename)
+		yield run_accuracy(comms, filename)		
+
 	
 	setStage() # texture setting. #likely to have to be expanded.
 	driver.reset() # initialization of driver
 	[leftbends,rightbends] = BendMaker(radiiPool)
-	viz.MainScene.visible(viz.ON,viz.WORLD)
-	
-	
+	viz.MainScene.visible(viz.ON,viz.WORLD)		
 	
 	#add text to denote conditons.
 	txtCondt = viz.addText("Condition",parent = viz.SCREEN)

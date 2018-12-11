@@ -8,7 +8,6 @@ sys.path.append(rootpath)
 rootpath = 'C:\\VENLAB data\\shared_modules\\pupil\\capture_settings\\plugins\\drivinglab_pupil\\'
 sys.path.append(rootpath)
 
-AUTOWHEEL = True
 EYETRACKING = False
 PRACTICE = True #flag for whether in practice mode or not.
 TILING = True
@@ -16,8 +15,6 @@ TILING = True
 if PRACTICE: #HACK
 	EYETRACKING = False
 
-# if AUTOWHEEL: 
-# 	import logitech_wheel_threaded
 import viz # vizard library
 import numpy as np # numpy library - such as matrix calculation
 import random # python library
@@ -59,17 +56,6 @@ if EYETRACKING:
 	yield run_calibration(comms, filename)
 	yield run_accuracy(comms, filename)		
 
-if AUTOWHEEL:
-	#Create a steeringWheel instance
-	mywheel = logitech_wheel_threaded.steeringWheelThreaded(handle)	
-	mywheel.init() #Initialise the wheel
-	mywheel.start() #Start the wheels thread
-
-	#centre the wheel at start of experiment
-	mywheel.set_position(0) #Set the pd control target
-	mywheel.control_on()
-else:
-	mywheel = None
 
 
 ##Code will be the threshold vs accumulator pop up bends experiment.

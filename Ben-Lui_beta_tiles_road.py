@@ -1,5 +1,22 @@
-import sys
+"""
+Script to run threshold vs accumulator experiment. The participant experiences vection across a textured ground-plane. 
+After a few seconds a straight road appears with a experimentally controlled deflection angle. The participants task is to steer so as to try and stay on the straight road.
+A further few seconds elapses. The road disapears. The participant experiences a few seconds of vection without a road, then a new straight appears with a different deflection angle.
 
+The main script to run the experiment is Ben-Lui_beta_tiles_road.py
+
+This script relies on the following modules:
+
+For eyetracking - eyetrike_calibration_standard.py; eyetrike_accuracy_standard.py; also the drivinglab_pupil plugin.
+
+For perspective correct rendering - myCave.py
+
+For motion through the virtual world - vizDriver.py
+
+"""
+
+
+import sys
 
 rootpath = 'C:\\VENLAB data\\shared_modules\\Logitech_force_feedback'
 sys.path.append(rootpath)

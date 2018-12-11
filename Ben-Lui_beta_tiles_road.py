@@ -28,6 +28,7 @@ import math as mt # python library
 import vizshape
 import vizact
 import vizmat
+import myCave
 #import myCave #these should be in shared modules
 #import PPinput
 
@@ -82,19 +83,10 @@ out = "-1"
 # start empty world
 ###################  PERSPECTIVE CORRECT  ##################
 ###SET UP PHYSICAL DIMENSIONS OF SCREEN####
-EH = 1.2 #metres from ground.
-Eye_ScreenDist = 1 #distance from screen of ocular point
-Proj_V = 1.115 #vertical extent of projection (m)
-Proj_H = 1.965 #horizontal extent of projection (m)
+###################  PERSPECTIVE CORRECT  ##################
+cave = myCave.initCave()
+caveview = cave.getCaveView()
 
-# setting Field-of-View fov(vertical degree, horizontal ratio(vertical*ratio[deg]))
-vfov = ((np.arctan((Proj_V/2)/Eye_ScreenDist))*2) * (180/np.pi)
-h2v = Proj_H/Proj_V
-viz.setMultiSample(4) #makes road smooth.
-viz.go()
-viz.fov(vfov,h2v) #sets window aspect ratio.
-viz.eyeheight(1.2)#viz.MainView.setPosition(0,EH,0) 
-viz.clip(1,150) #Further clip means higher band of dots. 
 
 ##Create array of trials.
 global radiiPool,occlPool

@@ -32,7 +32,6 @@ import myCave
 if EYETRACKING:
 	from eyetrike_calibration_standard import Markers, run_calibration
 	from eyetrike_accuracy_standard import run_accuracy
-	from UDP_comms import pupil_comms
 
 if EYETRACKING: 
 	###Connect over network to eyetrike and check the connection

@@ -75,6 +75,7 @@ class Driver(viz.EventClass):
 		elapsedTime = viz.elapsed()
 	
 		dt = elapsedTime
+		dt = 1.0/60.0 #not sure why but it's perceptually smoother with a constant. This shouldn't be the case.
 
 		#Get steering wheel and gas position
 		data = joy.getPosition()
@@ -107,6 +108,7 @@ class Driver(viz.EventClass):
 			if self.__pause > 0:
 								
 				distance = self.__speed * dt
+
 				#posnew = (0,0,self.__speed)
 				posnew = (0,0,distance)
 				eulernew = (self.__heading,0,0)	

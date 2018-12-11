@@ -15,7 +15,7 @@ class Driver(viz.EventClass):
 				
 		#self.__speed = 0.223 #metres per frame. equates to 13.4 m/s therefore 30mph.
 		#8ms = 8/60 = .1333
-		self.__speed = .1333
+		self.__speed = 8.0 #m./s
 		self.__heading = 0.0
 		self.__pause = -50 #pauses for 50 frames at the start of each trial
 		

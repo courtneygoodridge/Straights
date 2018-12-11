@@ -10,7 +10,7 @@ KEY_FIRE_BUTTONS = [' ']
 KEY_DIR_SWITCH_BUTTON = viz.KEY_DELETE
 
 class Driver(viz.EventClass):
-	def __init__(self):
+	def __init__(self, Cave):
 		viz.EventClass.__init__(self)
 				
 		#self.__speed = 0.223 #metres per frame. equates to 13.4 m/s therefore 30mph.
@@ -19,10 +19,13 @@ class Driver(viz.EventClass):
 		self.__heading = 0.0
 		self.__pause = -50 #pauses for 50 frames at the start of each trial
 		
-		self.__view = viz.MainView.setPosition(0,1.20,0) #Grabs the main graphics window
-		self.__view = viz.MainView
-		self.__view.moverelative(viz.BODY_ORI)
+		self.__view = Cave
+		# self.__view = viz.MainView.setPosition(0,1.20,0) #Grabs the main graphics window
+		# self.__view = viz.MainView
+		# self.__view.moverelative(viz.BODY_ORI)
 		
+		self.__automation = False
+
 		self.__dir = 1.0 # direction of the vehicle (+: )
 			
 		self.callback(viz.TIMER_EVENT,self.__ontimer)
@@ -60,9 +63,9 @@ class Driver(viz.EventClass):
 		self.__pause = -50
 		
 		#self.__view = viz.MainView.setPosition(0,1.20,0) ##CHANGE EYE-HEIGHT FROM HERE
-		self.__view = viz.MainView.setPosition(0,1.20,0) ##CHANGE EYE-HEIGHT FROM HERE
-		self.__view = viz.MainView
-		self.__view.moverelative(viz.BODY_ORI)
+		# self.__view = viz.MainView.setPosition(0,1.20,0) ##CHANGE EYE-HEIGHT FROM HERE
+		# self.__view = viz.MainView
+		# self.__view.moverelative(viz.BODY_ORI)
 		data = joy.getPosition()
 		data[0] = 0
 		
@@ -71,38 +74,50 @@ class Driver(viz.EventClass):
 	def __ontimer(self,num):
 		elapsedTime = viz.elapsed()
 	
+		dt = elapsedTime
+
 		#Get steering wheel and gas position
 		data = joy.getPosition()
 		gas = data[1]
 
+		if self.__automation:
+			#keep heading up to date.
+			ori = self.__view.getEuler()
+			self.__heading = ori[0]
+
+		elif not self.__automation:
+			if viz.key.isDown(viz.KEY_UP):
+				gas = -5
+			elif viz.key.isDown(viz.KEY_DOWN):
+				gas = 5
+			if viz.key.isDown(viz.KEY_LEFT): #rudimentary control with the left/right arrows. 
+				data[0] = -1
+			elif viz.key.isDown(viz.KEY_RIGHT):
+				data[0] = 1
 		
-		if viz.key.isDown(viz.KEY_UP):
-			gas = -5
-		elif viz.key.isDown(viz.KEY_DOWN):
-			gas = 5
-		if viz.key.isDown(viz.KEY_LEFT): #rudimentary control with the left/right arrows. 
-			data[0] = -1
-		elif viz.key.isDown(viz.KEY_RIGHT):
-			data[0] = 1
+	#		#Compute drag
+	#		drag = self.__speed / 300.0
+			self.__dir = 1
+			yawrate = self.__dir * (data[0])  * 35 #max wheel lock is 35degrees per s yawrate
+			turnrate = yawrate * dt
+			self.__heading += turnrate
 		
-#		#Compute drag
-#		drag = self.__speed / 300.0
-		self.__dir = 1
-		turnrate = self.__dir * (data[0])  * elapsedTime * 35
-		self.__heading += turnrate
-	
-		self.__pause = self.__pause+1
-		#Update the viewpoint
-		if self.__pause > 0:
-			posnew = (0,0,self.__speed)
-			eulernew = (self.__heading,0,0)
-			self.__view.setPosition(posnew, viz.REL_LOCAL)
-			self.__view.setEuler(eulernew, viz.REL_LOCAL)
+			self.__pause = self.__pause+1
+			#Update the viewpoint
+			if self.__pause > 0:
+								
+				distance = self.__speed * dt
+				#posnew = (0,0,self.__speed)
+				posnew = (0,0,distance)
+				eulernew = (self.__heading,0,0)	
 				
-		else:
-			self.__heading = 0.0
-			self.__dir = 1.0
-			turnrate = 0.0
+				self.__view.setPosition(posnew, viz.REL_LOCAL)
+				self.__view.setEuler(eulernew, viz.ABS_GLOBAL) #surely this should be global rather than local? 
+				
+			else:
+				self.__heading = 0.0
+				self.__dir = 1.0
+				turnrate = 0.0
 
 	def keyDown(self,button):
 		if button == KEY_DIR_SWITCH_BUTTON:
@@ -114,9 +129,20 @@ class Driver(viz.EventClass):
 		if e.button in JOY_FIRE_BUTTONS:
 			button = e.button # do nothing
 
+	def resetHeading(self):
+		self.__heading = 0.0
+
+	def setAutomation(self,Auto):
+
+		"""flag to disconnect wheel and visuals"""
+		self.__automation = Auto
+
+	def getSpeed(self):
+		return self.__speed
+
 	def getPos(self):
 		xPos = joy.getPosition()
-		return xPos[0]*90.0 ##degrees of steering wheel rotation 
+		return xPos[0]#*90.0 ##degrees of steering wheel rotation 
 		
 	def getPause(self): ###added for flow manipulations
 		return self.__pause

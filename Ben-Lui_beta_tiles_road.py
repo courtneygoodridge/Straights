@@ -65,7 +65,6 @@ else:
 
 ##Code will be the threshold vs accumulator pop up bends experiment.
 global driver, out, ExpID # global variable
-driver = vizdriver.Driver()
 ExpID = "BenLui17"
 
 out = "-1"
@@ -266,7 +265,7 @@ def BendMaker(radlist):
 
 def runtrials():
 	
-	global trialtype, trialtype_signed, radiiPool, out
+	global trialtype, trialtype_signed, radiiPool, out, driver
 	
 	#yield viztask.waitTime(5.0) #allow me to get into the seat.
 
@@ -278,7 +277,7 @@ def runtrials():
 
 	
 	setStage() # texture setting. #likely to have to be expanded.
-	driver.reset() # initialization of driver
+	driver = vizdriver.Driver(caveview)
 	[leftbends,rightbends] = BendMaker(radiiPool)
 	viz.MainScene.visible(viz.ON,viz.WORLD)		
 	

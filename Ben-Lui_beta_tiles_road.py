@@ -32,7 +32,8 @@ viz.clip(1,150) #Further clip means higher band of dots.
 ##Create array of trials.
 global radiiPool,occlPool
 #radiiPool = [50, 150, 250, 900, 1100, 1300, 2500, 3000, 3500, -1] #This was the selection used for Pilot.
-radiiPool = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600,-1] #13 radii conditions. 300m steps.
+#radiiPool = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600,-1] #13 radii conditions. 300m steps.
+radiiPool = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360,-1] #13 radii conditions. 300m steps.
 occlPool = [0, .5, 1] #3 occlusion conditions
 
 N = len(radiiPool) * len(occlPool) ###Number of conditions.
@@ -400,16 +401,17 @@ def runtrials():
 		yield viztask.waitTime(2.5-occlusion) #after the occlusion add the road again. 2.5s to avoid ceiling effects.
 		
 		trialbend.visible(0)
-		#driver.setSWA_visible()
+		driver.setSWA_visible()
 		
 		def checkCentred():
 			
 			centred = False
-			while not centred:
-				x = driver.getPos()
-				if abs(x) < .5:
-					centred = True
-					break
+			#while not centred:
+			x = driver.getPos()
+			if abs(x) < .5:
+				centred = True
+				
+			return (centred)
 			
 #		centred = False
 #		while not centred:
@@ -418,7 +420,8 @@ def runtrials():
 		
 		##wait a while
 		print "waiting"
-		yield viztask.waitDirector(checkCentred)
+		#yield viztask.waitDirector(checkCentred)
+		yield viztask.waitTrue(checkCentred)
 		print "waited"
 		
 		driver.setSWA_visible()

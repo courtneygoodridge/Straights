@@ -1,12 +1,11 @@
-#TODO: Reorganise code into smaller functions.
-#TODO: Add cognitive load.
+import sys
 
 
-rootpath = 'C:\VENLAB data\shared_modules\Logitech_force_feedback'
+rootpath = 'C:\\VENLAB data\\shared_modules\\Logitech_force_feedback'
 sys.path.append(rootpath)
-rootpath = 'C:\VENLAB data\shared_modules'
+rootpath = 'C:\\VENLAB data\\shared_modules'
 sys.path.append(rootpath)
-rootpath = 'C:/VENLAB data/shared_modules/pupil/capture_settings/plugins/drivinglab_pupil/'
+rootpath = 'C:\\VENLAB data\\shared_modules\\pupil\\capture_settings\\plugins\\drivinglab_pupil\\'
 sys.path.append(rootpath)
 
 AUTOWHEEL = True

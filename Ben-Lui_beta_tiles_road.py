@@ -35,6 +35,7 @@ import vizshape
 import vizact
 import vizmat
 import myCave
+import pandas as pd
 #import PPinput
 
 def LoadEyetrackingModules():
@@ -96,13 +97,15 @@ def setStage(TILING = True):
 	
 	"""Creates grass textured groundplane"""
 	
+	# background color
+	viz.clearcolor(viz.SKYBLUE)
+	
 	#CODE UP TILE-WORK WITH GROUNDPLANE.	
 	##should set this up so it builds new tiles if you are reaching the boundary.
 	fName = 'textures\\strong_edge.bmp'
 	gtexture = viz.addTexture(fName)
 	gtexture.wrap(viz.WRAP_T, viz.REPEAT)
 	gtexture.wrap(viz.WRAP_S, viz.REPEAT)
-	
 	#add groundplane (wrap mode)
 ###UNCOMMENT FOR TILING
 	gplane1 = viz.addTexQuad() ##
@@ -267,8 +270,10 @@ def BendMaker(radlist):
 
 class myExperiment(viz.EventClass):
 
-	def __init__(self, eyetracking, practice, tiling, exp_id):
-            
+	def __init__(self, eyetracking, practice, tiling, exp_id, ppid = 1):
+
+		viz.EventClass.__init__(self)
+	
 		self.EYETRACKING = eyetracking
 		self.PRACTICE = practice
 		self.TILING = tiling
@@ -276,6 +281,9 @@ class myExperiment(viz.EventClass):
 
 		if EYETRACKING == True:	
 			LoadEyetrackingModules()
+
+		self.PP_id = ppid
+		self.VisibleRoadTime = 2.5 #length of time that road is visible. Constant throughout experiment
 	
 		#### PERSPECTIVE CORRECT ######
 		self.caveview = LoadCave() #this module includes viz.go()
@@ -303,6 +311,28 @@ class myExperiment(viz.EventClass):
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
 		self.starttimer(0,1.0/60.0,viz.FOREVER)		
 		
+		####### DATA SAVING ######
+		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
+		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
+
+		### parameters that are set at the start of each trial ####
+		self.Trial_radius = 0
+		self.Trial_occlusion = 0 				
+		self.Trial_N = 0
+		self.Trial_trialtype_signed = 0			
+		self.Trial_Timer = 0 #keeps track of trial length. 
+		self.Trial_BendObject = None		
+		
+		#### parameters that are updated each timestamp ####
+		self.Current_pos_x = 0
+		self.Current_pos_z = 0
+		self.Current_yaw = 0
+		self.Current_SWA = 0
+		self.Current_Time = 0
+		self.Current_RowIndex = 0
+		self.Current_BendVisibleFlag = 0
+
+		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
 	def runtrials(self):
 		"""Loops through the trial sequence"""
@@ -320,38 +350,48 @@ class myExperiment(viz.EventClass):
 		#add text to denote conditons.
 		txtCondt = viz.addText("Condition",parent = viz.SCREEN)
 		txtCondt.setPosition(.7,.2)
-		txtCondt.fontSize(36)
+		txtCondt.fontSize(36)		
 
-		out = ""
-
+		if self.EYETRACKING:
+			comms.start_trial()
 		
 		for i, trialtype_signed in enumerate(myExp.TRIALSEQ_signed):
 			#import vizjoy		
 			print("Trial: ", str(i))
-			print("TrialType: ", str(i))
-
+			print("TrialType: ", str(trialtype_signed))
+			
 			trialtype = abs(trialtype_signed)
 
 			trial_radii = self.ConditionList_radii[trialtype] #set radii for that trial
 			trial_occl = self.ConditionList_occl[trialtype] #set target number for the trial.
 
 			print(str([trial_radii, trial_occl]))
-				
+
 			txtDir = ""
 			
+			print ("Length of bend array:", len(self.rightbends))
+
+			radius_index = self.FACTOR_radiiPool.index(trial_radii)
+
 			#choose correct road object.
 			if trialtype_signed > 0: #right bend
-				trialbend = self.rightbends[trialtype]
+				trialbend = self.rightbends[radius_index]
 				txtDir = "R"
 			else:
-				trialbend = self.leftbends[trialtype]
+				trialbend = self.leftbends[radius_index]
 				txtDir = "L"
 						
 			if trial_radii > 0: #if trial_radii is above zero it is a bend, not a straight 
 				msg = "Radius: " + str(trial_radii) + txtDir + '_' + str(trial_occl)
 			else:
 				msg = "Radius: Straight" + txtDir + '_' + str(trial_occl)
-			txtCondt.message(msg)				
+			txtCondt.message(msg)	
+
+			#update class#
+			self.Trial_N = i
+			self.Trial_radius = trial_radii
+			self.Trial_occlusion = trial_occl			
+			self.Trial_BendObject = trialbend			
 
 			# Define a function that saves data
 			
@@ -367,11 +407,11 @@ class myExperiment(viz.EventClass):
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
 			self.driver.setSWA_invisible()		
 			
-			yield viztask.waitTime(trial_occl) #wait an occlusion period
+			yield viztask.waitTime(trial_occl) #wait an occlusion period. Will viztask waitime work within a class? 
 			
 			trialbend.visible(1)
 			
-			yield viztask.waitTime(2.5-trial_occl) #after the occlusion add the road again. 2.5s to avoid ceiling effects.
+			yield viztask.waitTime(self.VisibleRoadTime-trial_occl) #after the occlusion add the road again. 2.5s to avoid ceiling effects.
 			
 			trialbend.visible(0)
 			#driver.setSWA_visible()
@@ -380,7 +420,7 @@ class myExperiment(viz.EventClass):
 				
 				centred = False
 				while not centred:
-					x = driver.getPos()
+					x = self.driver.getPos()
 					if abs(x) < .5:
 						centred = True
 						break
@@ -399,55 +439,49 @@ class myExperiment(viz.EventClass):
 			
 			self.driver.setSWA_visible()
 			yield viztask.waitTime(2) #wait for input .		
-			
-			
-			
-			
-		else:
-			#print file after looped through all trials.
-			fileproper=('Pilot_CDM.dat')
-			# Opens nominated file in write mode
-			path = viz.getOption('viz.publish.path/')
-			file = open(path + fileproper, 'w')
-			file.write(out)
-			# Makes sure the file data is really written to the harddrive
-			file.flush()                                        
-			#print out
-			file.close()
-			
-			#exit vizard
-			
-			viz.quit() ##otherwise keeps writting data onto last file untill ESC
+	
+		#loop has finished.
+		CloseConnections(self.EYETRACKING)
+		#viz.quit() 
 
 	def RecordData(self):
 		
 		"""Records Data into Dataframe"""
 
-		#TODO: convert into pandas.	
-			#what data do we want? RoadVisibility Flag. SWA. Time, TrialType. x,z of that trial These can be reset in processing by subtracting the initial position and reorienting.
-			#TODO: Change to Pandas Dataframe.
-			if out != '-1':
-				# Create the output string
-				currTime = viz.tick()										
-				out = out + str(float((currTime))) + '\t' + str(trialtype_signed) + '\t' + str(pos_x) + '\t' + str(pos_z)+ '\t' + str(ori)+  '\t' + str(steer) + '\t' + str(radius) + '\t' + str(occlusion) + '\t' + str(int(trialbend.getVisible())) + '\n'							
+		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
+		output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_BendVisibleFlag] #output array.
+		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
 	def SaveData(self):
-		"""Saves Data"""
-	
+
+		"""Saves Current Dataframe to csv file"""
+		self.Output.to_csv('Data//Pilot.csv')
 
 	def updatePositionLabel(self, num):
 		
-		"""Timer function that gets called every frame"""
+		"""Timer function that gets called every frame. Updates parameters for saving and moves groundplane if TILING mode is switched on"""
 			
 		# get head position(x, y, z)
 		pos = viz.get(viz.HEAD_POS)
 		pos[1] = 0.0 # (x, 0, z)
 		# get body orientation
 		ori = viz.get(viz.BODY_ORI)
-		steeringWheel = driver.getPos()
+		steeringWheel = self.driver.getPos()
 									
-		#what data do we want? RoadVisibility Flag. SWA. Time, TrialType. x,z of that trial These can be reset in processing by subtracting the initial position and reorienting.
-		SaveData(pos[0], pos[2], ori, steeringWheel) ##.
+		### #update Current parameters ####
+		self.Current_pos_x = pos[0]
+		self.Current_pos_z = pos[2]
+		self.Current_SWA = steeringWheel
+		self.Current_yaw = ori
+		self.Current_RowIndex += 1
+		self.Current_Time = viz.tick()
+		if self.Trial_BendObject is not None:
+			self.Current_BendVisibleFlag = self.Trial_BendObject.getVisible()	
+		else:
+			self.Current_BendVisibleFlag = None
+
+
+		self.RecordData() #write a line in the dataframe.
 	
 		if self.TILING:
 		
@@ -484,13 +518,24 @@ class myExperiment(viz.EventClass):
 				self.gplane2.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize y size of the other tile.
 				
 				self.gplane2.setEuler(0,90,0, viz.REL_LOCAL) #rotate to ground plane		
+
+def CloseConnections(EYETRACKING):
+	
+	"""Shuts down EYETRACKING and wheel threads then quits viz"""		
+	
+	print ("Closing connections")
+	if EYETRACKING: 
+	 	comms.stop_trial() #closes recording			
+	
+	#kill automation
+	viz.quit()
 	
 if __name__ == '__main__':
 
 	###### SET EXPERIMENT OPTIONS ######	
 	EYETRACKING = True
-	PRACTICE = False
-	TILING = True
+	PRACTICE = True
+	TILING = False
 	EXP_ID = "BenLui17"
 
 	if PRACTICE == True: # HACK
@@ -498,6 +543,7 @@ if __name__ == '__main__':
 
 	myExp = myExperiment(EYETRACKING, PRACTICE, TILING, EXP_ID)
 
+	viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
 	viztask.schedule(myExp.runtrials())
 

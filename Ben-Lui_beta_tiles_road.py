@@ -312,7 +312,7 @@ class myExperiment(viz.EventClass):
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
 		
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
+		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'BendVisible']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
@@ -331,6 +331,10 @@ class myExperiment(viz.EventClass):
 		self.Current_Time = 0
 		self.Current_RowIndex = 0
 		self.Current_BendVisibleFlag = 0
+		self.Current_YawRate_seconds = 0
+		self.Current_TurnAngle_frames = 0
+		self.Current_distance = 0
+		self.Current_dt = 0
 
 		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
@@ -445,7 +449,10 @@ class myExperiment(viz.EventClass):
 		"""Records Data into Dataframe"""
 
 		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
-		output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_BendVisibleFlag] #output array.
+		output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
+		self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.
+		
 		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
 	def SaveData(self):
@@ -459,22 +466,26 @@ class myExperiment(viz.EventClass):
 
 		#print("UpdatingPosition...")	
 		#update driver view.
-		self.driver.UpdateView()
+		UpdateValues = self.driver.UpdateView() #update view and return values used for update
 		
 		# get head position(x, y, z)
 		pos = viz.get(viz.HEAD_POS)
 		pos[1] = 0.0 # (x, 0, z)
 		# get body orientation
-		ori = viz.get(viz.BODY_ORI)
-		steeringWheel = self.driver.getPos()
+		ori = viz.get(viz.BODY_ORI)		
 									
 		### #update Current parameters ####
 		self.Current_pos_x = pos[0]
 		self.Current_pos_z = pos[2]
-		self.Current_SWA = steeringWheel
+		self.Current_SWA = UpdateValues[4]
 		self.Current_yaw = ori
 		self.Current_RowIndex += 1
 		self.Current_Time = viz.tick()
+		self.Current_YawRate_seconds = UpdateValues[0]
+		self.Current_TurnAngle_frames = UpdateValues[1]
+		self.Current_distance = UpdateValues[2]
+		self.Current_dt = UpdateValues[3]
+
 		if self.Trial_BendObject is not None:
 			self.Current_BendVisibleFlag = self.Trial_BendObject.getVisible()	
 		else:

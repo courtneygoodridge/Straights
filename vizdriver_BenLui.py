@@ -74,12 +74,16 @@ class Driver(viz.EventClass):
 	def UpdateView(self):
 		elapsedTime = viz.elapsed()
 
+		yawrate = 0.0
+		turnangle = 0.0
+		distance = 0.0
 
 		dt = elapsedTime
 		#dt = 1.0/60.0 #not sure why but it's perceptually smoother with a constant. This shouldn't be the case.
 
 		#Get steering wheel and gas position
 		data = joy.getPosition()
+		SteeringWheelValue = data[0] # on scale from -1 to 1.
 		gas = data[1]
 
 		if self.__automation:
@@ -100,9 +104,9 @@ class Driver(viz.EventClass):
 	#		#Compute drag
 	#		drag = self.__speed / 300.0
 			self.__dir = 1
-			yawrate = self.__dir * (data[0])  * 35.0 #max wheel lock is 35degrees per s yawrate
-			turnrate = yawrate * dt
-			self.__heading += turnrate
+			yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
+			turnangle = yawrate * dt
+			self.__heading += turnangle
 		
 			self.__pause = self.__pause+1
 			#Update the viewpoint
@@ -120,7 +124,17 @@ class Driver(viz.EventClass):
 			else:
 				self.__heading = 0.0
 				self.__dir = 1.0
-				turnrate = 0.0
+				turnangle = 0.0
+
+		#return the values used in position update
+		UpdateValues = []
+		UpdateValues.append(yawrate)
+		UpdateValues.append(turnangle)
+		UpdateValues.append(distance)
+		UpdateValues.append(dt)
+		UpdateValues.append(SteeringWheelValue)
+
+		return (UpdateValues)
 
 	def keyDown(self,button):
 		if button == KEY_DIR_SWITCH_BUTTON:

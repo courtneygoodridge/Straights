@@ -28,7 +28,7 @@ class Driver(viz.EventClass):
 
 		self.__dir = 1.0 # direction of the vehicle (+: )
 			
-		self.callback(viz.TIMER_EVENT,self.__ontimer)
+		#self.callback(viz.TIMER_EVENT,self.__ontimer)
 		self.callback(viz.KEYDOWN_EVENT,self.keyDown) #enables control with the keyboard
 		self.callback(vizjoy.BUTTONDOWN_EVENT,self.joyDown) 
 		self.callback(vizjoy.MOVE_EVENT,self.joymove)
@@ -38,7 +38,7 @@ class Driver(viz.EventClass):
 		self.txtSWA.setPosition(.45,.4)
 		self.txtSWA.fontSize(36)
 		
-		self.starttimer(0,0,viz.FOREVER)
+		#self.starttimer(0,0,viz.FOREVER)
 
 		global joy
 		joy = vizjoy.add()
@@ -71,11 +71,13 @@ class Driver(viz.EventClass):
 		
 		gas = data[1]
 
-	def __ontimer(self,num):
+	def UpdateView(self):
 		elapsedTime = viz.elapsed()
-	
+
+		print("Updating View:", viz.elapsed())
+
 		dt = elapsedTime
-		dt = 1.0/60.0 #not sure why but it's perceptually smoother with a constant. This shouldn't be the case.
+		#dt = 1.0/60.0 #not sure why but it's perceptually smoother with a constant. This shouldn't be the case.
 
 		#Get steering wheel and gas position
 		data = joy.getPosition()
@@ -99,7 +101,7 @@ class Driver(viz.EventClass):
 	#		#Compute drag
 	#		drag = self.__speed / 300.0
 			self.__dir = 1
-			yawrate = self.__dir * (data[0])  * 35 #max wheel lock is 35degrees per s yawrate
+			yawrate = self.__dir * (data[0])  * 35.0 #max wheel lock is 35degrees per s yawrate
 			turnrate = yawrate * dt
 			self.__heading += turnrate
 		
@@ -111,10 +113,10 @@ class Driver(viz.EventClass):
 
 				#posnew = (0,0,self.__speed)
 				posnew = (0,0,distance)
-				eulernew = (self.__heading,0,0)	
+				eulernew = (self.__heading,0,0)
 				
 				self.__view.setPosition(posnew, viz.REL_LOCAL)
-				self.__view.setEuler(eulernew, viz.ABS_GLOBAL) #surely this should be global rather than local? 
+				self.__view.setEuler(eulernew) 
 				
 			else:
 				self.__heading = 0.0

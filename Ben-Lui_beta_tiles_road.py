@@ -66,7 +66,6 @@ def LoadCave():
 	caveview = cave.getCaveView()
 	return (caveview)
 
-
 def GenerateConditionLists(FACTOR_radiiPool, FACTOR_occlPool, TrialsPerCondition):
 	"""Based on two factor lists and TrialsPerCondition, create a factorial design and return trialarray and condition lists"""
 
@@ -108,6 +107,7 @@ def setStage(TILING = True):
 	gtexture.wrap(viz.WRAP_S, viz.REPEAT)
 	#add groundplane (wrap mode)
 ###UNCOMMENT FOR TILING
+# Tiling saves memory by using two groundplane tiles instead of a massive groundplane. Since the drivers are essentially driving linearly forward, they cover a lot of distance across the z axis.
 	gplane1 = viz.addTexQuad() ##
 	tilesize = 1000 #half a km wide
 	#planesize = tilesize/5
@@ -175,10 +175,10 @@ def setStage(TILING = True):
 #	dots.visible(1)
 
 	
-# road edge setting. Make at start of trial.
+# function to make Bends.
 def BendMaker(radlist):
 	
-	#make left and right road edges for for a given radii and return them in a list.
+	"""makes left and right road edges for for a given radii and return them in a list"""
 	
 	#needs to work with an array of radii
 

@@ -74,7 +74,6 @@ class Driver(viz.EventClass):
 	def UpdateView(self):
 		elapsedTime = viz.elapsed()
 
-		print("Updating View:", viz.elapsed())
 
 		dt = elapsedTime
 		#dt = 1.0/60.0 #not sure why but it's perceptually smoother with a constant. This shouldn't be the case.

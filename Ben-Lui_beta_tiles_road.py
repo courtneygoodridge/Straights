@@ -420,22 +420,17 @@ class myExperiment(viz.EventClass):
 			def checkCentred():
 				
 				centred = False
-				while not centred:
-					x = self.driver.getPos()
-					if abs(x) < .5:
-						centred = True
-						break
+				x = self.driver.getPos()
+				if abs(x) < .5:
+					centred = True						
 				
-	#		centred = False
-	#		while not centred:
-	#			x = driver.getPos()
-	#			print x
+				return (centred)
 			
 			##wait a while
 			print "waiting"
 			#TODO: Recentre the wheel on automation.
 
-			yield viztask.waitDirector(checkCentred)
+			yield viztask.waitTrue(checkCentred)
 			print "waited"
 			
 			self.driver.setSWA_visible()
@@ -462,7 +457,7 @@ class myExperiment(viz.EventClass):
 		
 		"""Timer function that gets called every frame. Updates parameters for saving and moves groundplane if TILING mode is switched on"""
 
-		print("UpdatingPosition...")	
+		#print("UpdatingPosition...")	
 		#update driver view.
 		self.driver.UpdateView()
 		

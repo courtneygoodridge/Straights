@@ -66,8 +66,8 @@ class initCave(viz.EventClass):
 		# print ("2_N: ", self.cave.getNearPlane())
 		# print ("2_F: ", self.cave.getFarPlane())
 		
-		self.callback(viz.TIMER_EVENT,self.UpdateCave)
-		self.starttimer(0,0,viz.FOREVER)
+	#	self.callback(viz.TIMER_EVENT,self.UpdateCave)
+#		self.starttimer(0,0,viz.FOREVER)
 	
 	def getProjSpec(self):
 		spec = []

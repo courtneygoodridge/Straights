@@ -309,7 +309,7 @@ class myExperiment(viz.EventClass):
 		self.rightbends = rightbends 
 
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
-		self.starttimer(0,1.0/60.0,viz.FOREVER)		
+		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
 		
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
@@ -343,7 +343,8 @@ class myExperiment(viz.EventClass):
 			yield run_calibration(comms, filename)
 			yield run_accuracy(comms, filename)		
 
-		self.driver = vizdriver.Driver(myExp.caveview)	
+		self.driver = vizdriver.Driver(self.caveview)	
+
 		
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 	
@@ -355,7 +356,7 @@ class myExperiment(viz.EventClass):
 		if self.EYETRACKING:
 			comms.start_trial()
 		
-		for i, trialtype_signed in enumerate(myExp.TRIALSEQ_signed):
+		for i, trialtype_signed in enumerate(self.TRIALSEQ_signed):
 			#import vizjoy		
 			print("Trial: ", str(i))
 			print("TrialType: ", str(trialtype_signed))
@@ -419,22 +420,17 @@ class myExperiment(viz.EventClass):
 			def checkCentred():
 				
 				centred = False
-				while not centred:
-					x = self.driver.getPos()
-					if abs(x) < .5:
-						centred = True
-						break
+				x = self.driver.getPos()
+				if abs(x) < .5:
+					centred = True						
 				
-	#		centred = False
-	#		while not centred:
-	#			x = driver.getPos()
-	#			print x
+				return (centred)
 			
 			##wait a while
 			print "waiting"
 			#TODO: Recentre the wheel on automation.
 
-			yield viztask.waitDirector(checkCentred)
+			yield viztask.waitTrue(checkCentred)
 			print "waited"
 			
 			self.driver.setSWA_visible()
@@ -460,7 +456,11 @@ class myExperiment(viz.EventClass):
 	def updatePositionLabel(self, num):
 		
 		"""Timer function that gets called every frame. Updates parameters for saving and moves groundplane if TILING mode is switched on"""
-			
+
+		#print("UpdatingPosition...")	
+		#update driver view.
+		self.driver.UpdateView()
+		
 		# get head position(x, y, z)
 		pos = viz.get(viz.HEAD_POS)
 		pos[1] = 0.0 # (x, 0, z)

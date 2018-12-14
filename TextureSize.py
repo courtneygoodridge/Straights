@@ -8,6 +8,8 @@ import viz # vizard library
 				
 if __name__ == '__main__':
 
+	#check emails for vizard support email. If you add the file to viz.ortho you can easily control the pixel size directly.
+	
 	viz.go()
 	texfile = 'C:/VENLAB data/shared_modules/textures/calibmarker.png' #pixel size 137 x 137
 

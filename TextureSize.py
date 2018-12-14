@@ -14,4 +14,12 @@ if __name__ == '__main__':
 	mytex = viz.add(viz.TEXQUAD,viz.SCREEN)
 	mytex.texture(viz.add(texfile))	
 	mytex.setPosition([.5,.5,0])
-	mytex.setScale([2,2,2])		
+	mytex.setScale([4,4,0])		
+		
+	print ("Texture size:", mytex.getSize())
+	print ("Texture Scale:", mytex.getScale())
+	
+	viz.window.setFullscreen(viz.ON)
+	
+	print ("Texture size_afterFullscreen:", mytex.getSize())	
+	print ("Texture Scale_afterFullscreen:", mytex.getScale())

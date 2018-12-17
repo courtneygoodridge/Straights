@@ -184,11 +184,19 @@ def BendMaker(radlist):
 
 	rdsize = 500 # Hz size for curve length
 	
-	#left_array= np.arange(0.0, np.pi*1000)/1000
-	left_array= np.linspace(0.0, np.pi,rdsize)
+	#left_array= np.arange(0.0, np.pi*1000)/1000 # arange(start,stop,step). Array with 3142(/1000) numbers. 
+	left_array= np.linspace(0.0, np.pi,rdsize) #### creates evenly spaced 500 steps from 0 to pi for left radius turn to be made 
 	#right_array = np.arange(np.pi*1000, 0.0, -1)/1000  ##arange(start,stop,step). Array with 3142(/1000) numbers
-	right_array = np.linspace(np.pi, 0.0, rdsize)  ##arange(start,stop,step). Array with 3142(/1000) numbers
-		
+	right_array = np.linspace(np.pi, 0.0, rdsize)  #### From pi to 0 in 500 steps (opposite for opposite corner)
+
+	#### Above code creates gradual turns for the bends of varying radii. 
+	#### I would need less gradual spacing - spacing would have to the same so all 500 points would in a straight line 
+
+	# left_array = np.linspace(0.0, 5000, rdsize)
+	# right_array = np.linspace(5000, 0.0, rdsize)	
+
+	#### Code above could create 2 straight lines towards the left and right. This probably is not right but it might be on the right track
+	
 	leftbendlist = []
 	rightbendlist = []
 	grey = [.8,.8,.8]
@@ -206,23 +214,24 @@ def BendMaker(radlist):
 		if r > 0:	#r=-1 means it is a straight.
 			while i < rdsize:
 				
-				######### COURTNEY EDITS BELOW ############
+				######### COURTNEY EDITS BELOW #############
+
 				#### I'm trying to place a straight road angled at each of the radii rather than the bends that are currently there.
-				#### i.e. if the radii is greater than 0 and while i is smaller than the rdsize, plot vertices to create straight roads 
-				#### The road will be created at such an angle to create the radii that are being looped through
+				#### i.e. if the radii is greater than 0 and while i is smaller than the rdsize, plot vertices to create straight roads. 
+				#### The road will be created at an angle to create the radii that are being looped through.
 				#### However, rdsize refers to the points on the curve, so without changing this I could have 500 small straight roads?
 				#### Also would it more likely be that I'd have to specify angle for this to work? What is the relationship between angle and radii?
+				#### rdsize creates the small squares that are put together to create the bend of the radius chosen, with x and z being their coordinates.
+				#### 
 
 				# x1[i] = viz.vertex(0+width,.1,0)
 				# z1[i] = viz.vertex(0-width,.1,0)
-				# viz.vertex(0+width,.1,100.0) #100m straight
-				# viz.vertex(0-width,.1,100.0) #100m straight
-
-
+				# x2[i] = viz.vertex(0+width,.1,100.0) #100m straight
+				# z2[i] = viz.vertex(0-width,.1,100.0) #100m straight
 				# viz.vertexColor(grey)
-
 				# i + = 1
-
+				
+				# I need to somehow incorporate the left and right arrary variables as these dictate which direction the straight should go
 
 				######### COURTNEY EDITS ABOVE ############
 

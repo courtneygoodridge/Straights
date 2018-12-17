@@ -7,6 +7,8 @@ class initCave(viz.EventClass):
 	def __init__(self):
 		viz.EventClass.__init__(self)
 		
+		### Real - world measurements of the display. Specifies a 'viewport' into the virtual world.
+
 		self.EH = 1.2
 		Proj_Dist = 1.0 #front projection distance to Eye
 				

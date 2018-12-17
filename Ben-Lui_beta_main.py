@@ -13,7 +13,7 @@ For eyetracking - eyetrike_calibration_standard.py; eyetrike_accuracy_standard.p
 
 For perspective correct rendering - myCave.py
 
-For motion through the virtual world - vizdriver.py
+For motion through the virtual world - vizdriver_BenLui.py
 
 """
 import sys
@@ -63,8 +63,8 @@ def LoadCave():
 
 	#set EH in myCave
 	cave = myCave.initCave()
-	caveview = cave.getCaveView()
-	return (caveview)
+	#caveview = cave.getCaveView()
+	return (cave)
 
 def GenerateConditionLists(FACTOR_radiiPool, FACTOR_occlPool, TrialsPerCondition):
 	"""Based on two factor lists and TrialsPerCondition, create a factorial design and return trialarray and condition lists"""
@@ -272,7 +272,7 @@ class myExperiment(viz.EventClass):
 
 	def __init__(self, eyetracking, practice, tiling, exp_id, ppid = 1):
 
-		viz.EventClass.__init__(self)
+		viz.EventClass.__init__(self) #specific to vizard classes
 	
 		self.EYETRACKING = eyetracking
 		self.PRACTICE = practice
@@ -286,11 +286,12 @@ class myExperiment(viz.EventClass):
 		self.VisibleRoadTime = 2.5 #length of time that road is visible. Constant throughout experiment
 	
 		#### PERSPECTIVE CORRECT ######
-		self.caveview = LoadCave() #this module includes viz.go()
+		self.cave = LoadCave()
+		self.caveview = self.cave.getCaveView() #this module includes viz.go()
 
 		##### SET CONDITION VALUES #####
 		self.FACTOR_radiiPool = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600,-1] #13 radii conditions. 300m steps.
-		self.FACTOR_occlPool = [0, .5, 1] #3 occlusion conditions
+		self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
 		self.TrialsPerCondition = 10	
 		[trialsequence_signed, cl_radii, cl_occl]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_occlPool, self.TrialsPerCondition)
 
@@ -305,12 +306,15 @@ class myExperiment(viz.EventClass):
 
 		##### MAKE BEND OBJECTS #####
 		[leftbends,rightbends] = BendMaker(self.FACTOR_radiiPool)
-		self.leftbends = leftbends
+		self.leftbends = leftbends #list of vizard bend objects.
 		self.rightbends = rightbends 
 
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
 		
+		self.driver = None
+		self.SAVEDATA = False
+
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'BendVisible']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
@@ -318,9 +322,9 @@ class myExperiment(viz.EventClass):
 		### parameters that are set at the start of each trial ####
 		self.Trial_radius = 0
 		self.Trial_occlusion = 0 				
-		self.Trial_N = 0
+		self.Trial_N = 0 #nth trial
 		self.Trial_trialtype_signed = 0			
-		self.Trial_Timer = 0 #keeps track of trial length. 
+		#self.Trial_Timer = 0 #keeps track of trial length. 
 		self.Trial_BendObject = None		
 		
 		#### parameters that are updated each timestamp ####
@@ -348,7 +352,7 @@ class myExperiment(viz.EventClass):
 			yield run_accuracy(comms, filename)		
 
 		self.driver = vizdriver.Driver(self.caveview)	
-
+		self.SAVEDATA = True # switch saving data on.
 		
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 	
@@ -374,11 +378,11 @@ class myExperiment(viz.EventClass):
 
 			txtDir = ""
 			
-			print ("Length of bend array:", len(self.rightbends))
-
+			######choose correct road object.######
+			
+			#print ("Length of bend array:", len(self.rightbends)
 			radius_index = self.FACTOR_radiiPool.index(trial_radii)
 
-			#choose correct road object.
 			if trialtype_signed > 0: #right bend
 				trialbend = self.rightbends[radius_index]
 				txtDir = "R"
@@ -392,13 +396,11 @@ class myExperiment(viz.EventClass):
 				msg = "Radius: Straight" + txtDir + '_' + str(trial_occl)
 			txtCondt.message(msg)	
 
-			#update class#
+			#update class trial parameters#
 			self.Trial_N = i
 			self.Trial_radius = trial_radii
 			self.Trial_occlusion = trial_occl			
 			self.Trial_BendObject = trialbend			
-
-			# Define a function that saves data
 			
 			#translate bend to driver position.
 			driverpos = viz.MainView.getPosition()
@@ -460,25 +462,29 @@ class myExperiment(viz.EventClass):
 		
 		"""Records Data into Dataframe"""
 
-		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
-		output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
-		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.		
+		if self.SAVEDATA:
+			#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
+			output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
+			self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.		
 
-		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
+			self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
 	def SaveData(self):
 
 		"""Saves Current Dataframe to csv file"""
 		self.Output.to_csv('Data//Pilot.csv')
 
-	def updatePositionLabel(self, num):
+	def updatePositionLabel(self, num): #num is a timer parameter
 		
 		"""Timer function that gets called every frame. Updates parameters for saving and moves groundplane if TILING mode is switched on"""
 
 		#print("UpdatingPosition...")	
 		#update driver view.
-		UpdateValues = self.driver.UpdateView() #update view and return values used for update
+		if self.driver is None: #if self.driver == None, it hasn't been initialised yet. Only gets initialised at the start of runtrials()
+			UpdateValues = [0, 0, 0, 0, 0]
+		else:
+			UpdateValues = self.driver.UpdateView() #update view and return values used for update
 		
 		# get head position(x, y, z)
 		pos = self.caveview.getPosition()
@@ -557,13 +563,13 @@ if __name__ == '__main__':
 	###### SET EXPERIMENT OPTIONS ######	
 	EYETRACKING = True
 	PRACTICE = True
-	TILING = False
+	TILING = False #to reduce memory load set True to create two groundplane tiles that dynamically follow the driver's position instead of one massive groundplane.
 	EXP_ID = "BenLui17"
 
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, TILING, EXP_ID)
+	myExp = myExperiment(EYETRACKING, PRACTICE, TILING, EXP_ID) #initialises a myExperiment class
 
 	viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 

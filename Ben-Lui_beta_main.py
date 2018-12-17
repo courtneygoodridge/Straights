@@ -3,7 +3,7 @@ Script to run threshold vs accumulator experiment. The participant experiences v
 After a few seconds a straight road appears with a experimentally controlled deflection angle. The participants task is to steer so as to try and stay on the straight road.
 A further few seconds elapses. The road disapears. The participant experiences a few seconds of vection without a road, then a new straight appears with a different deflection angle.
 
-The main script to run the experiment is Ben-Lui_beta_tiles_road.py
+The main script to run the experiment is Ben-Lui__beta_main.py
 
 The Class myExperiment handles execution of the experiment.
 
@@ -444,6 +444,18 @@ class myExperiment(viz.EventClass):
 		CloseConnections(self.EYETRACKING)
 		#viz.quit() 
 
+	
+	def getNormalisedEuler(self):
+		"""returns three dimensional euler on 0-360 scale"""
+		
+		euler = self.caveview.getEuler()
+		
+		euler[0] = vizmat.NormAngle(euler[0])
+		euler[1] = vizmat.NormAngle(euler[1])
+		euler[2] = vizmat.NormAngle(euler[2])
+
+		return euler
+
 	def RecordData(self):
 		
 		"""Records Data into Dataframe"""
@@ -451,8 +463,8 @@ class myExperiment(viz.EventClass):
 		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
 		output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.
-		
+		self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.		
+
 		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
 	def SaveData(self):
@@ -469,16 +481,15 @@ class myExperiment(viz.EventClass):
 		UpdateValues = self.driver.UpdateView() #update view and return values used for update
 		
 		# get head position(x, y, z)
-		pos = viz.get(viz.HEAD_POS)
-		pos[1] = 0.0 # (x, 0, z)
-		# get body orientation
-		ori = viz.get(viz.BODY_ORI)		
+		pos = self.caveview.getPosition()
+				
+		ori = self.getNormalisedEuler()		
 									
 		### #update Current parameters ####
 		self.Current_pos_x = pos[0]
 		self.Current_pos_z = pos[2]
 		self.Current_SWA = UpdateValues[4]
-		self.Current_yaw = ori
+		self.Current_yaw = ori[0]
 		self.Current_RowIndex += 1
 		self.Current_Time = viz.tick()
 		self.Current_YawRate_seconds = UpdateValues[0]

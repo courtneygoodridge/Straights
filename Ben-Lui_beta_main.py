@@ -312,6 +312,9 @@ class myExperiment(viz.EventClass):
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
 		
+		self.driver = None
+		self.SAVEDATA = False
+
 		####### DATA SAVING ######
 		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'BendVisible']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
@@ -349,7 +352,7 @@ class myExperiment(viz.EventClass):
 			yield run_accuracy(comms, filename)		
 
 		self.driver = vizdriver.Driver(self.caveview)	
-
+		self.SAVEDATA = True # switch saving data on.
 		
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 	
@@ -459,12 +462,13 @@ class myExperiment(viz.EventClass):
 		
 		"""Records Data into Dataframe"""
 
-		#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
-		output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
-		self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-		self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.		
+		if self.SAVEDATA:
+			#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
+			output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
+			self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.		
 
-		self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
+			self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
 	def SaveData(self):
 
@@ -477,7 +481,10 @@ class myExperiment(viz.EventClass):
 
 		#print("UpdatingPosition...")	
 		#update driver view.
-		UpdateValues = self.driver.UpdateView() #update view and return values used for update
+		if self.driver is None: #if self.driver == None, it hasn't been initialised yet. Only gets initialised at the start of runtrials()
+			UpdateValues = [0, 0, 0, 0, 0]
+		else:
+			UpdateValues = self.driver.UpdateView() #update view and return values used for update
 		
 		# get head position(x, y, z)
 		pos = self.caveview.getPosition()

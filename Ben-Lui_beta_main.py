@@ -190,12 +190,12 @@ def BendMaker(radlist):
 	right_array = np.linspace(np.pi, 0.0, rdsize)  #### From pi to 0 in 500 steps (opposite for opposite corner)
 
 	#### Above code creates gradual turns for the bends of varying radii. 
-	#### I would need less gradual spacing - spacing would have to the same so all 500 points would in a straight line 
+	#### I would need less gradual spacing - spacing would have to be the same so all 500 points would in a straight line 
 
 	# left_array = np.linspace(0.0, 5000, rdsize)
 	# right_array = np.linspace(5000, 0.0, rdsize)	
 
-	#### Code above could create 2 straight lines towards the left and right. This probably is not right but it might be on the right track
+	#### Code above could create 2 straight lines towards the left and right. This probably is not right but it might be on the right track.
 	
 	leftbendlist = []
 	rightbendlist = []
@@ -226,12 +226,28 @@ def BendMaker(radlist):
 
 				# x1[i] = viz.vertex(0+width,.1,0)
 				# z1[i] = viz.vertex(0-width,.1,0)
-				# x2[i] = viz.vertex(0+width,.1,100.0) #100m straight
-				# z2[i] = viz.vertex(0-width,.1,100.0) #100m straight
+				# x2[i] = viz.vertex(0+width,.1,100.0) * right_array[i] #100m straight
+				# z2[i] = viz.vertex(0-width,.1,100.0) * right_array[i] #100m straight
 				# viz.vertexColor(grey)
 				# i + = 1
 				
-				# I need to somehow incorporate the left and right arrary variables as these dictate which direction the straight should go
+				# I need to somehow incorporate the left and right arrary variables as these dictate which direction the straight bend should go
+				# Perhaps multilping by the right array alongside indexing from the loop? Not sure how or why this could work
+				# Might use np.tan() function? This creates a straight line that touches but does intersect a curve
+				# Potential to use this to create a straight line that is at the tangent of the radii of the original bend?
+				
+				# One option could be to keep the origianl code all the same and just use the np.tan() function
+				# In the hope that instead of creating a bend, it would create a straight line at a tangent of the bend 
+
+				# Or could use it with the edits I have a suggested above 
+				# i.e. I still might need to create a straight line with the left and right array variables (see below).
+
+				# x1[i] = viz.vertex(0+width,.1,0)
+				# z1[i] = viz.vertex(0-width,.1,0)
+				# x2[i] = viz.vertex(0+width,.1,100.0) * np.tan(right_array[i]) #100m straight
+				# z2[i] = viz.vertex(0-width,.1,100.0) * np.tan(right_array[i]) #100m straight
+				# viz.vertexColor(grey)
+				# i + = 1
 
 				######### COURTNEY EDITS ABOVE ############
 

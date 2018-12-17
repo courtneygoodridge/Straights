@@ -72,7 +72,7 @@ class Driver(viz.EventClass):
 		gas = data[1]
 
 	def UpdateView(self):
-		elapsedTime = viz.elapsed()
+		elapsedTime = viz.elapsed() #retrieves amount of time passed from last function call.
 
 		yawrate = 0.0
 		turnangle = 0.0
@@ -105,21 +105,21 @@ class Driver(viz.EventClass):
 	#		drag = self.__speed / 300.0
 			self.__dir = 1
 			yawrate = self.__dir * SteeringWheelValue  * 35.0 #max wheel lock is 35degrees per s yawrate
-			turnangle = yawrate * dt
+			turnangle = yawrate * dt #amount of angular distance to move per frame.
 			self.__heading += turnangle
 		
 			self.__pause = self.__pause+1
 			#Update the viewpoint
 			if self.__pause > 0:
 								
-				distance = self.__speed * dt
+				distance = self.__speed * dt #amount of metres that the camera needs to move per frame.
 
 				#posnew = (0,0,self.__speed)
 				posnew = (0,0,distance)
 				eulernew = (self.__heading,0,0)
 				
-				self.__view.setPosition(posnew, viz.REL_LOCAL)
-				self.__view.setEuler(eulernew) 
+				self.__view.setPosition(posnew, viz.REL_LOCAL)				
+				self.__view.setEuler(eulernew) #set absolutely.
 				
 			else:
 				self.__heading = 0.0

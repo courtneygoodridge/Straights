@@ -204,7 +204,29 @@ def BendMaker(radlist):
 		viz.startLayer(viz.QUAD_STRIP)
 		width = .1 #road width/2
 		if r > 0:	#r=-1 means it is a straight.
-			while i < rdsize:			
+			while i < rdsize:
+				
+				######### COURTNEY EDITS BELOW ############
+				#### I'm trying to place a straight road angled at each of the radii rather than the bends that are currently there.
+				#### i.e. if the radii is greater than 0 and while i is smaller than the rdsize, plot vertices to create straight roads 
+				#### The road will be created at such an angle to create the radii that are being looped through
+				#### However, rdsize refers to the points on the curve, so without changing this I could have 500 small straight roads?
+				#### Also would it more likely be that I'd have to specify angle for this to work? What is the relationship between angle and radii?
+
+				# x1[i] = viz.vertex(0+width,.1,0)
+				# z1[i] = viz.vertex(0-width,.1,0)
+				# viz.vertex(0+width,.1,100.0) #100m straight
+				# viz.vertex(0-width,.1,100.0) #100m straight
+
+
+				# viz.vertexColor(grey)
+
+				# i + = 1
+
+
+				######### COURTNEY EDITS ABOVE ############
+
+						
 				#need two vertices at each point to form quad vertices
 				#inside edge
 				x1[i] = ((r-width)*np.cos(right_array[i])) + r

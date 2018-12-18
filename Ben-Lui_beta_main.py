@@ -201,6 +201,9 @@ def BendMaker(radlist):
 	#### At certain intervals, a one remaining straight line appear which was clearly the -1 in the radii pool
 	#### Perhaps incorporating the the straight lines vertices in these left/right_array parameters mights create the staright lines I need?
 
+	# left_array = viz.vertex(0+width,.1,100.0)
+	# right_array = viz.vertex(0+width,.1,100.0)
+
 	
 	leftbendlist = []
 	rightbendlist = []

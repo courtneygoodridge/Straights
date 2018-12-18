@@ -195,7 +195,12 @@ def BendMaker(radlist):
 	# left_array = np.linspace(0.0, 5000, rdsize)
 	# right_array = np.linspace(5000, 0.0, rdsize)	
 
-	#### Code above could create 2 straight lines towards the left and right. This probably is not right but it might be on the right track.
+	#### Code above did not create 2 straight lines 
+	#### However is did remove the curved bends and create random zig zags within the environment
+	#### Clearly not what is needed but I now know that this parameter can manipulate the line bend
+	#### At certain intervals, a one remaining straight line appear which was clearly the -1 in the radii pool
+	#### Perhaps incorporating the the straight lines vertices in these left/right_array parameters mights create the staright lines I need?
+
 	
 	leftbendlist = []
 	rightbendlist = []
@@ -248,6 +253,8 @@ def BendMaker(radlist):
 				# z2[i] = viz.vertex(0-width,.1,100.0) * np.tan(right_array[i]) #100m straight
 				# viz.vertexColor(grey)
 				# i + = 1
+
+				####### np.tan() did not work. All bends were removed from the environment
 
 				######### COURTNEY EDITS ABOVE ############
 

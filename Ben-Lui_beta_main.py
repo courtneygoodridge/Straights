@@ -217,7 +217,7 @@ def BendMaker(radlist):
 		i = 0
 
 		##try using quad-strip for roads.
-		viz.startLayer(viz.QUAD_STRIP)
+		viz.startLayer(viz.QUAD_STRIP) # Investigate quad strips on google 
 		width = .1 #road width/2
 		if r > 0:	#r=-1 means it is a straight.
 			while i < rdsize:

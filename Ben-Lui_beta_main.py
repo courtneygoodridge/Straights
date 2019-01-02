@@ -287,6 +287,11 @@ def BendMaker(radlist):
 		rightbend = viz.endlayer()
 		rightbend.visible(0)
 		rightbend.dynamic()
+
+		### Above codes for the bends towards the right handside. The X and Z coordinates help map the quad strips onto the environment
+		### rdsize = 500 represents the curve length, however I do not want a curve anymore. 
+		### This needs to be edited so quad strips can be connected at angles to created straight curves.
+		### Try altering the rdsize andf running code to see how that affects the shape of the bend. 
 			
 		i=0
 		viz.startLayer(viz.QUAD_STRIP)
@@ -318,6 +323,8 @@ def BendMaker(radlist):
 		leftbend = viz.endlayer()	
 		leftbend.visible(0)
 		leftbend.dynamic()
+
+		## Above codes for the left hand bends
 			
 		leftbendlist.append(leftbend)
 		rightbendlist.append(rightbend)

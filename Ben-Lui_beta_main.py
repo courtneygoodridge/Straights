@@ -405,7 +405,7 @@ class myExperiment(viz.EventClass):
 		self.SAVEDATA = False
 
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'heading','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'BendVisible']
+		datacolumns = ['ppid', 'heading','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'StraightVisible']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
@@ -414,7 +414,7 @@ class myExperiment(viz.EventClass):
 		self.Trial_N = 0 #nth trial
 		self.Trial_trialtype_signed = 0			
 		#self.Trial_Timer = 0 #keeps track of trial length. 
-		self.Trial_BendObject = None		
+		#self.Trial_BendObject = None		
 		
 		#### parameters that are updated each timestamp ####
 		self.Current_pos_x = 0
@@ -423,7 +423,7 @@ class myExperiment(viz.EventClass):
 		self.Current_SWA = 0
 		self.Current_Time = 0
 		self.Current_RowIndex = 0
-		self.Current_BendVisibleFlag = 0
+		seStraight = 0
 		self.Current_YawRate_seconds = 0
 		self.Current_TurnAngle_frames = 0
 		self.Current_distance = 0
@@ -471,48 +471,38 @@ class myExperiment(viz.EventClass):
 			txtDir = ""
 			
 			######choose correct road object.######
-			
-			#print ("Length of bend array:", len(self.rightbends)
-			heading_index = self.FACTOR_headingpool.index(trial_heading)
 
-			if trialtype_signed > 0: #right bend
-				trialbend = self.rightbends[heading_index]
-				txtDir = "R"
-			else:
-				trialbend = self.leftbends[heading_index]
-				txtDir = "L"
-						
-			if trial_heading > 0: #if trial_heading is above zero it is a bend, not a straight 
-				msg = "heading: " + str(trial_heading) + txtDir + '_' + str(trial_occl)
-			else:
-				msg = "heading: Straight" + txtDir + '_' + str(trial_occl)
+			# changes message on screen			
+			msg = msg = "heading: " + str(trial_heading) + '_' + str(trial_occl)
 			txtCondt.message(msg)	
 
 			#update class trial parameters#
 			self.Trial_N = i
 			self.Trial_heading = trial_heading
 			self.Trial_occlusion = trial_occl			
-			self.Trial_BendObject = trialbend			
+			#self.Trial_BendObject = trialbend			
 			
 			#translate bend to driver position.
 			driverpos = viz.MainView.getPosition()
 			print driverpos
-			trialbend.setPosition(driverpos[0],0, driverpos[2])
+			self.Straight.setPosition(driverpos[0],0, driverpos[2])
 					
 			#now need to set orientation
 			driverEuler = viz.MainView.getEuler()
-			trialbend.setEuler(driverEuler, viz.ABS_GLOBAL)		
+			#Euler needs to be in yaw,pitch,roll
+			#bendEuler = driverEuler 
+			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL)		
 			
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
 			self.driver.setSWA_invisible()		
 			
 			yield viztask.waitTime(trial_occl) #wait an occlusion period. Will viztask waitime work within a class? 
 			
-			trialbend.visible(1)
+			self.Straight.visible(1)
 			
 			yield viztask.waitTime(self.VisibleRoadTime-trial_occl) #after the occlusion add the road again. 2.5s to avoid ceiling effects.
 			
-			trialbend.visible(0)
+			self.Straight.visible(0)
 			#driver.setSWA_visible()
 			
 			def checkCentred():
@@ -558,7 +548,7 @@ class myExperiment(viz.EventClass):
 			#datacolumns = ['ppid', 'heading','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
 			output = [self.PP_id, self.Trial_heading, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-			self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.		
+			self.Current_distance, self.Current_dt, self.Straight] #output array.		
 
 			self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
@@ -595,10 +585,9 @@ class myExperiment(viz.EventClass):
 		self.Current_distance = UpdateValues[2]
 		self.Current_dt = UpdateValues[3]
 
-		if self.Trial_BendObject is not None:
-			self.Current_BendVisibleFlag = self.Trial_BendObject.getVisible()	
-		else:
-			self.Current_BendVisibleFlag = None
+		
+		self.Current_StraightVisibleFlag = self.Straight.getVisible()	
+	
 
 
 		self.RecordData() #write a line in the dataframe.

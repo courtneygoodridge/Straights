@@ -210,7 +210,7 @@ def BendMaker(radlist):
 	rdsize = 500 # Hz size for curve length
 	
 	#left_array= np.arange(0.0, np.pi*1000)/1000 # arange(start,stop,step). Array with 3142(/1000) numbers. 
-	left_array= np.linspace(0.0, np.pi,rdsize) #### creates evenly spaced 500 steps from 0 to pi for left radius turn to be made 
+	left_array= np.linspace(0.0, np.pi,rdsize) #### creates evenly spaced 500 steps from 0 to pi for left heading turn to be made 
 	#right_array = np.arange(np.pi*1000, 0.0, -1)/1000  ##arange(start,stop,step). Array with 3142(/1000) numbers
 	right_array = np.linspace(np.pi, 0.0, rdsize)  #### From pi to 0 in 500 steps (opposite for opposite corner)
 
@@ -254,7 +254,7 @@ def BendMaker(radlist):
 				#### The road will be created at an angle to create the heading that are being looped through.
 				#### However, rdsize refers to the points on the curve, so without changing this I could have 500 small straight roads?
 				#### Also would it more likely be that I'd have to specify angle for this to work? What is the relationship between angle and heading?
-				#### rdsize creates the small squares that are put together to create the bend of the radius chosen, with x and z being their coordinates.
+				#### rdsize creates the small squares that are put together to create the bend of the heading chosen, with x and z being their coordinates.
 				#### 
 
 				# x1[i] = viz.vertex(0+width,.1,0)
@@ -405,11 +405,11 @@ class myExperiment(viz.EventClass):
 		self.SAVEDATA = False
 
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'BendVisible']
+		datacolumns = ['ppid', 'heading','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'BendVisible']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
-		self.Trial_radius = 0
+		self.Trial_heading = 0
 		self.Trial_occlusion = 0 				
 		self.Trial_N = 0 #nth trial
 		self.Trial_trialtype_signed = 0			
@@ -473,24 +473,24 @@ class myExperiment(viz.EventClass):
 			######choose correct road object.######
 			
 			#print ("Length of bend array:", len(self.rightbends)
-			radius_index = self.FACTOR_headingpool.index(trial_heading)
+			heading_index = self.FACTOR_headingpool.index(trial_heading)
 
 			if trialtype_signed > 0: #right bend
-				trialbend = self.rightbends[radius_index]
+				trialbend = self.rightbends[heading_index]
 				txtDir = "R"
 			else:
-				trialbend = self.leftbends[radius_index]
+				trialbend = self.leftbends[heading_index]
 				txtDir = "L"
 						
 			if trial_heading > 0: #if trial_heading is above zero it is a bend, not a straight 
-				msg = "Radius: " + str(trial_heading) + txtDir + '_' + str(trial_occl)
+				msg = "heading: " + str(trial_heading) + txtDir + '_' + str(trial_occl)
 			else:
-				msg = "Radius: Straight" + txtDir + '_' + str(trial_occl)
+				msg = "heading: Straight" + txtDir + '_' + str(trial_occl)
 			txtCondt.message(msg)	
 
 			#update class trial parameters#
 			self.Trial_N = i
-			self.Trial_radius = trial_heading
+			self.Trial_heading = trial_heading
 			self.Trial_occlusion = trial_occl			
 			self.Trial_BendObject = trialbend			
 			
@@ -555,8 +555,8 @@ class myExperiment(viz.EventClass):
 		"""Records Data into Dataframe"""
 
 		if self.SAVEDATA:
-			#datacolumns = ['ppid', 'radius','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
-			output = [self.PP_id, self.Trial_radius, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+			#datacolumns = ['ppid', 'heading','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
+			output = [self.PP_id, self.Trial_heading, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
 			self.Current_distance, self.Current_dt, self.Current_BendVisibleFlag] #output array.		
 

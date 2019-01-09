@@ -101,6 +101,7 @@ class Driver(viz.EventClass):
 			elif viz.key.isDown(viz.KEY_RIGHT):
 				data[0] = 1
 		
+			SteeringWheelValue = data[0] # on scale from -1 to 1.
 	#		#Compute drag
 	#		drag = self.__speed / 300.0
 			self.__dir = 1

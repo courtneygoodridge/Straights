@@ -66,17 +66,17 @@ def LoadCave():
 	#caveview = cave.getCaveView()
 	return (cave)
 
-def GenerateConditionLists(FACTOR_radiiPool, FACTOR_occlPool, TrialsPerCondition):
+def GenerateConditionLists(FACTOR_headingpool, FACTOR_occlPool, TrialsPerCondition):
 	"""Based on two factor lists and TrialsPerCondition, create a factorial design and return trialarray and condition lists"""
 
-	NCndts = len(FACTOR_radiiPool) * len(FACTOR_occlPool)	
+	NCndts = len(FACTOR_headingpool) * len(FACTOR_occlPool)	
 #	ConditionList = range(NCndts) 
 
 	#automatically generate factor lists so you can adjust levels using the FACTOR variables
-	ConditionList_radii = np.repeat(FACTOR_radiiPool, len(FACTOR_occlPool)	)
-	ConditionList_occl = np.tile(FACTOR_occlPool, len(FACTOR_radiiPool)	)
+	ConditionList_heading = np.repeat(FACTOR_headingpool, len(FACTOR_occlPool)	)
+	ConditionList_occl = np.tile(FACTOR_occlPool, len(FACTOR_headingpool)	)
 
-	print (ConditionList_radii)
+	print (ConditionList_heading)
 	print (ConditionList_occl)
 
 	TotalN = NCndts * TrialsPerCondition
@@ -89,7 +89,7 @@ def GenerateConditionLists(FACTOR_radiiPool, FACTOR_occlPool, TrialsPerCondition
 
 	TRIALSEQ_signed = np.array(direc)*np.array(TRIALSEQ)
 
-	return (TRIALSEQ_signed, ConditionList_radii, ConditionList_occl)
+	return (TRIALSEQ_signed, ConditionList_heading, ConditionList_occl)
 
 # ground texture setting
 def setStage(TILING = True):
@@ -175,12 +175,37 @@ def setStage(TILING = True):
 #	dots.visible(1)
 
 	
-# function to make Bends.
+
+
+def StraightMaker(x, start_z, end_z, colour = [.8,.8,.8], primitive= viz.QUAD_STRIP, width=None):
+	"""returns a straight, given some starting coords and length"""
+	viz.startlayer(primitive)
+	if width is None:
+		if primitive == viz.QUAD_STRIP:
+			width = .05
+		elif primitive == viz.LINE_STRIP:
+			width = 2
+			viz.linewidth(width)
+			width = 0
+	
+	viz.vertex(x-width,.1,start_z)
+	viz.vertexcolor(colour)
+	viz.vertex(x+width,.1,start_z)
+	viz.vertexcolor(colour)
+	viz.vertex(x-width,.1,end_z)
+	viz.vertexcolor(colour)
+	viz.vertex(x+width,.1,end_z)		
+
+	straightedge = viz.endlayer()
+
+	return straightedge
+
+
 def BendMaker(radlist):
 	
-	"""makes left and right road edges for for a given radii and return them in a list"""
+	"""makes left and right road edges for for a given heading and return them in a list"""
 	
-	#needs to work with an array of radii
+	#needs to work with an array of heading
 
 	rdsize = 500 # Hz size for curve length
 	
@@ -189,7 +214,7 @@ def BendMaker(radlist):
 	#right_array = np.arange(np.pi*1000, 0.0, -1)/1000  ##arange(start,stop,step). Array with 3142(/1000) numbers
 	right_array = np.linspace(np.pi, 0.0, rdsize)  #### From pi to 0 in 500 steps (opposite for opposite corner)
 
-	#### Above code creates gradual turns for the bends of varying radii. 
+	#### Above code creates gradual turns for the bends of varying heading. 
 	#### I would need less gradual spacing - spacing would have to be the same so all 500 points would in a straight line 
 
 	# left_array = np.linspace(0.0, 5000, rdsize)
@@ -198,7 +223,7 @@ def BendMaker(radlist):
 	#### Code above did not create 2 straight lines 
 	#### However is did remove the curved bends and create random zig zags within the environment
 	#### Clearly not what is needed but I now know that this parameter can manipulate the line bend
-	#### At certain intervals, a one remaining straight line appear which was clearly the -1 in the radii pool
+	#### At certain intervals, a one remaining straight line appear which was clearly the -1 in the heading pool
 	#### Perhaps incorporating the the straight lines vertices in these left/right_array parameters mights create the staright lines I need?
 
 	# left_array = viz.vertex(0+width,.1,100.0)
@@ -224,11 +249,11 @@ def BendMaker(radlist):
 				
 				######### COURTNEY EDITS BELOW #############
 
-				#### I'm trying to place a straight road angled at each of the radii rather than the bends that are currently there.
-				#### i.e. if the radii is greater than 0 and while i is smaller than the rdsize, plot vertices to create straight roads. 
-				#### The road will be created at an angle to create the radii that are being looped through.
+				#### I'm trying to place a straight road angled at each of the heading rather than the bends that are currently there.
+				#### i.e. if the heading is greater than 0 and while i is smaller than the rdsize, plot vertices to create straight roads. 
+				#### The road will be created at an angle to create the heading that are being looped through.
 				#### However, rdsize refers to the points on the curve, so without changing this I could have 500 small straight roads?
-				#### Also would it more likely be that I'd have to specify angle for this to work? What is the relationship between angle and radii?
+				#### Also would it more likely be that I'd have to specify angle for this to work? What is the relationship between angle and heading?
 				#### rdsize creates the small squares that are put together to create the bend of the radius chosen, with x and z being their coordinates.
 				#### 
 
@@ -242,7 +267,7 @@ def BendMaker(radlist):
 				# I need to somehow incorporate the left and right arrary variables as these dictate which direction the straight bend should go
 				# Perhaps multilping by the right array alongside indexing from the loop? Not sure how or why this could work
 				# Might use np.tan() function? This creates a straight line that touches but does intersect a curve
-				# Potential to use this to create a straight line that is at the tangent of the radii of the original bend?
+				# Potential to use this to create a straight line that is at the tangent of the heading of the original bend?
 				
 				# One option could be to keep the origianl code all the same and just use the np.tan() function
 				# In the hope that instead of creating a bend, it would create a straight line at a tangent of the bend 
@@ -356,13 +381,13 @@ class myExperiment(viz.EventClass):
 		self.caveview = self.cave.getCaveView() #this module includes viz.go()
 
 		##### SET CONDITION VALUES #####
-		self.FACTOR_radiiPool = [300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300, 3600,-1] #13 radii conditions. 300m steps.
+		self.FACTOR_headingpool = np.linspace(-45.0, 45.0, 5) #array from -45 to 45. 
 		self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
 		self.TrialsPerCondition = 10	
-		[trialsequence_signed, cl_radii, cl_occl]  = GenerateConditionLists(self.FACTOR_radiiPool, self.FACTOR_occlPool, self.TrialsPerCondition)
+		[trialsequence_signed, cl_heading, cl_occl]  = GenerateConditionLists(self.FACTOR_headingpool, self.FACTOR_occlPool, self.TrialsPerCondition)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.
-		self.ConditionList_radii = cl_radii
+		self.ConditionList_heading = cl_heading
 		self.ConditionList_occl = cl_occl
 
 		##### ADD GRASS TEXTURE #####
@@ -370,10 +395,8 @@ class myExperiment(viz.EventClass):
 		self.gplane1 = gplane1
 		self.gplane2 = gplane2
 
-		##### MAKE BEND OBJECTS #####
-		[leftbends,rightbends] = BendMaker(self.FACTOR_radiiPool)
-		self.leftbends = leftbends #list of vizard bend objects.
-		self.rightbends = rightbends 
+		##### MAKE STRAIGHT OBJECT #####
+		self.Straight = StraightMaker(x = 0, start_z = 0, end_z = 200)	
 
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
@@ -431,23 +454,26 @@ class myExperiment(viz.EventClass):
 			comms.start_trial()
 		
 		for i, trialtype_signed in enumerate(self.TRIALSEQ_signed):
+
+			### iterates each trial ###
+
 			#import vizjoy		
 			print("Trial: ", str(i))
 			print("TrialType: ", str(trialtype_signed))
 			
 			trialtype = abs(trialtype_signed)
 
-			trial_radii = self.ConditionList_radii[trialtype] #set radii for that trial
+			trial_heading = self.ConditionList_heading[trialtype] #set heading for that trial
 			trial_occl = self.ConditionList_occl[trialtype] #set target number for the trial.
 
-			print(str([trial_radii, trial_occl]))
+			print(str([trial_heading, trial_occl]))
 
 			txtDir = ""
 			
 			######choose correct road object.######
 			
 			#print ("Length of bend array:", len(self.rightbends)
-			radius_index = self.FACTOR_radiiPool.index(trial_radii)
+			radius_index = self.FACTOR_headingpool.index(trial_heading)
 
 			if trialtype_signed > 0: #right bend
 				trialbend = self.rightbends[radius_index]
@@ -456,15 +482,15 @@ class myExperiment(viz.EventClass):
 				trialbend = self.leftbends[radius_index]
 				txtDir = "L"
 						
-			if trial_radii > 0: #if trial_radii is above zero it is a bend, not a straight 
-				msg = "Radius: " + str(trial_radii) + txtDir + '_' + str(trial_occl)
+			if trial_heading > 0: #if trial_heading is above zero it is a bend, not a straight 
+				msg = "Radius: " + str(trial_heading) + txtDir + '_' + str(trial_occl)
 			else:
 				msg = "Radius: Straight" + txtDir + '_' + str(trial_occl)
 			txtCondt.message(msg)	
 
 			#update class trial parameters#
 			self.Trial_N = i
-			self.Trial_radius = trial_radii
+			self.Trial_radius = trial_heading
 			self.Trial_occlusion = trial_occl			
 			self.Trial_BendObject = trialbend			
 			

@@ -381,7 +381,7 @@ class myExperiment(viz.EventClass):
 		self.caveview = self.cave.getCaveView() #this module includes viz.go()
 
 		##### SET CONDITION VALUES #####
-		self.FACTOR_headingpool = np.linspace(-45.0, 45.0, 5) #array from -45 to 45. 
+		self.FACTOR_headingpool = np.linspace(-5, 5, 5) #array from -45 to 45. 
 		self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
 		self.TrialsPerCondition = 10	
 		[trialsequence_signed, cl_heading, cl_occl]  = GenerateConditionLists(self.FACTOR_headingpool, self.FACTOR_occlPool, self.TrialsPerCondition)
@@ -422,8 +422,7 @@ class myExperiment(viz.EventClass):
 		self.Current_yaw = 0
 		self.Current_SWA = 0
 		self.Current_Time = 0
-		self.Current_RowIndex = 0
-		seStraight = 0
+		self.Current_RowIndex = 0		
 		self.Current_YawRate_seconds = 0
 		self.Current_TurnAngle_frames = 0
 		self.Current_distance = 0
@@ -486,16 +485,29 @@ class myExperiment(viz.EventClass):
 			driverpos = viz.MainView.getPosition()
 			print driverpos
 			self.Straight.setPosition(driverpos[0],0, driverpos[2])
-					
+			
+			
+			#self.Straight.setPosition([0,0, 5], viz.REL_LOCAL)
+
 			#now need to set orientation
 			driverEuler = viz.MainView.getEuler()
+			print ("driverEuler", driverEuler)
+			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL)		
+
+			
+			
 			#Euler needs to be in yaw,pitch,roll
 			#bendEuler = driverEuler 
-			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL)		
+			#offsetEuler = [driverEuler[0]+trial_heading, driverEuler[1], driverEuler[2]]
+			offsetEuler = [trial_heading, 0, 0]
+			print ("offsetEuler", offsetEuler)
+
+			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)		
 			
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
 			self.driver.setSWA_invisible()		
 			
+			#trial_occl = 0
 			yield viztask.waitTime(trial_occl) #wait an occlusion period. Will viztask waitime work within a class? 
 			
 			self.Straight.visible(1)

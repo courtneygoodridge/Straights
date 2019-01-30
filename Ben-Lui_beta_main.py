@@ -617,6 +617,10 @@ class myExperiment(viz.EventClass):
 				
 				#now need to set orientation
 				#driverEuler = viz.MainView.getEuler() - already existig code
+				
+				# Need to set an offset main view euler, and then for each new straight offset,
+				# change this main view euler in order to alter camera rotation for each new vehicle position. 
+				# This could possibly be done by altering x coord within a for loop for each of the heading pool values.
 				# for i in len(self.FACTOR_headingpool) - Courtney edit
 				# viz.cam.setReset(driverEuler[10, 0 0]) - Courtney edit 
 

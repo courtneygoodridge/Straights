@@ -616,7 +616,10 @@ class myExperiment(viz.EventClass):
 				self.gplane1.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
 				
 				#now need to set orientation
-				#driverEuler = viz.MainView.getEuler()
+				#driverEuler = viz.MainView.getEuler() - already existig code
+				# for i in len(self.FACTOR_headingpool) - Courtney edit
+				# viz.cam.setReset(driverEuler[10, 0 0]) - Courtney edit 
+
 				self.gplane1.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
 				
 				self.gplane1.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize * 3

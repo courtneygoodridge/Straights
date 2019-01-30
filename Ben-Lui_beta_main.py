@@ -427,6 +427,7 @@ class myExperiment(viz.EventClass):
 		self.Current_TurnAngle_frames = 0
 		self.Current_distance = 0
 		self.Current_dt = 0
+		self.Camera_Offset = [0, 1, -1] # offset parameter that can be added to camera angle to rotate it
 
 		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
@@ -490,9 +491,25 @@ class myExperiment(viz.EventClass):
 			#self.Straight.setPosition([0,0, 5], viz.REL_LOCAL)
 
 			#now need to set orientation
-			driverEuler = viz.MainView.getEuler()
-			print ("driverEuler", driverEuler)
-			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL)		
+			driverEuler = viz.MainView.getEuler() # gets current driver euler (orientation)
+			print ("driverEuler", driverEuler) # prints the euler 
+			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) # then sets the straight euler as the driver euler in global coordinates. This could be the camera
+
+			# driverEuler = viz.MainView.getEuler()
+			# print ("driverEuler", driverEuler)
+			# self.Straight.setEuler(driverEuler[self.Camera_Offset], viz.ABS_GLOBAL) # Idea 1)
+
+			# for i in self.Camera_Offset # Idea 2)
+			# driverEuler = viz.MainView.getEuler() + self.Camera_Offset[i]
+			# print ("driverEuler", driverEuler) # prints the euler 
+			# self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) 
+
+			# Idea is to loop around the different offsets and add them to the main view euler to generate a camera offset
+
+			# Currently, vehicle and camera both change position for each straight 
+			# I need to keep vehicle  changing, but offset the camera
+			# Current code sets drievr euler, and then sets this as the straight euler
+			# If i in coorporate a camera offset parameter, will this offset the global straight euler whilst keeping the driver euler the same?
 
 			
 			
@@ -616,14 +633,8 @@ class myExperiment(viz.EventClass):
 				self.gplane1.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
 				
 				#now need to set orientation
-				#driverEuler = viz.MainView.getEuler() - already existig code
-				
-				# Need to set an offset main view euler, and then for each new straight offset,
-				# change this main view euler in order to alter camera rotation for each new vehicle position. 
-				# This could possibly be done by altering x coord within a for loop for each of the heading pool values.
-				# for i in len(self.FACTOR_headingpool) - Courtney edit
-				# viz.cam.setReset(driverEuler[10, 0 0]) - Courtney edit 
-
+				#driverEuler = viz.MainView.getEuler()
+		
 				self.gplane1.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
 				
 				self.gplane1.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize * 3

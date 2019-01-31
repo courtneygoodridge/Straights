@@ -506,6 +506,16 @@ class myExperiment(viz.EventClass):
 
 			# Idea is to loop around the different offsets and add them to the main view euler to generate a camera offset
 
+			 # import random # Idea 3)
+			 # def UpdateCameraAngle():
+			 # yaw,pitch,roll = viz.MainView.getEuler() # get main euler
+			 # pos = viz.MainView.getPosition() # get main view position
+			 # self.Camera_Offset = [0, 1, -1] # selection of camera offsets
+			 # for i in self.Camera_Offset # loop round the offset selections
+			 # offset = random.choice(self.Camera_Offset) # save a randomly chosen offset to the offset variable
+			 # UpdatedCameraView.setEuler([yaw+offset,pitch,roll]) # add this randomly chosen camera offset  to the main view yaw to offset the camera angle
+			 # vizact.ontimer(2.5,UpdateCameraAngle) # perform this function every 2.5 seconds, each time with a new random offset choice
+
 			# Currently, vehicle and camera both change position for each straight 
 			# I need to keep vehicle  changing, but offset the camera
 			# Current code sets drievr euler, and then sets this as the straight euler

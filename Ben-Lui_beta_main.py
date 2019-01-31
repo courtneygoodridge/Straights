@@ -427,7 +427,7 @@ class myExperiment(viz.EventClass):
 		self.Current_TurnAngle_frames = 0
 		self.Current_distance = 0
 		self.Current_dt = 0
-		self.Camera_Offset = [0, 1, -1] # offset parameter that can be added to camera angle to rotate it
+		# self.Camera_Offset = [0, 1, -1] # offset parameter that can be added to camera angle to rotate it
 
 		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
@@ -506,15 +506,24 @@ class myExperiment(viz.EventClass):
 
 			# Idea is to loop around the different offsets and add them to the main view euler to generate a camera offset
 
-			 # import random # Idea 3)
-			 # def UpdateCameraAngle():
-			 # yaw,pitch,roll = viz.MainView.getEuler() # get main euler
-			 # pos = viz.MainView.getPosition() # get main view position
-			 # self.Camera_Offset = [0, 1, -1] # selection of camera offsets
-			 # for i in self.Camera_Offset # loop round the offset selections
-			 # offset = random.choice(self.Camera_Offset) # save a randomly chosen offset to the offset variable
-			 # UpdatedCameraView.setEuler([yaw+offset,pitch,roll]) # add this randomly chosen camera offset  to the main view yaw to offset the camera angle
-			 # vizact.ontimer(2.5,UpdateCameraAngle) # perform this function every 2.5 seconds, each time with a new random offset choice
+			# import random # Idea 3)
+			# def UpdateCameraAngle():
+			# yaw,pitch,roll = viz.MainView.getEuler() # get main euler
+			# pos = viz.MainView.getPosition() # get main view position
+			# self.Camera_Offset = [0, 1, -1] # selection of camera offsets
+			# for i in self.Camera_Offset # loop round the offset selections
+			# offset = random.choice(self.Camera_Offset) # save a randomly chosen offset to the offset variable
+			# UpdatedCameraView.setEuler([yaw+offset,pitch,roll]) # add this randomly chosen camera offset  to the main view yaw to offset the camera angle
+			# vizact.ontimer(2.5,UpdateCameraAngle) # perform this function every 2.5 seconds, each time with a new random offset choice
+
+			# import random # Idea 3.5) implement function in existing code
+			# def UpdateCameraAngle():
+			# driverEuler = viz.MainView.getEuler() # main view euler is the driver's euler
+			# self.Camera_Offset = [0, 1, -1] # selection of camera offsets
+			# for i in self.Camera_Offset # loop round the offset selections
+			# offset = random.choice(self.Camera_Offset) # save a randomly chosen offset to the offset variable
+			# UpdatedCameraView.setEuler([driverEuler[1] + offset]) # add this randomly chosen camera offset  to the first element of the driver euler (yaw) and update the overall camera view with this parameter
+			# vizact.ontimer(2.5,UpdateCameraAngle) # perform this function every 2.5 seconds, each time with a new random offset choice
 
 			# Currently, vehicle and camera both change position for each straight 
 			# I need to keep vehicle  changing, but offset the camera

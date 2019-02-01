@@ -494,6 +494,16 @@ class myExperiment(viz.EventClass):
 			driverEuler = viz.MainView.getEuler() # gets current driver euler (orientation)
 			print ("driverEuler", driverEuler) # prints the euler 
 			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) # then sets the straight euler as the driver euler in global coordinates. This could be the camera
+			# def UpdateCameraAngle():
+			# self.Camera_Offset = [0, 1, -1] # selection of camera offsets
+			# for i in self.Camera_Offset # loop round the offset selections
+			# offset = random.choice(self.Camera_Offset) # save a randomly chosen offset to the offset variable
+			# UpdatedCameraView.setEuler([driverEuler[1] + offset]) # add this randomly chosen camera offset  to the first element of the driver euler (yaw) and update the overall camera view with this parameter
+			# vizact.ontimer(2.5,UpdateCameraAngle)
+
+			# UpdatedCameraView.setEuler([driverEuler[0] + offset, driverEuler[1], driverEuler[2]])
+			# Alternative way of adding offset to the yaw of the driverEuler, whilst specifiying that pitch and roll stay the same as the driverEuler
+
 
 			# driverEuler = viz.MainView.getEuler()
 			# print ("driverEuler", driverEuler)
@@ -532,6 +542,8 @@ class myExperiment(viz.EventClass):
 
 			
 			
+			
+
 			#Euler needs to be in yaw,pitch,roll
 			#bendEuler = driverEuler 
 			#offsetEuler = [driverEuler[0]+trial_heading, driverEuler[1], driverEuler[2]]

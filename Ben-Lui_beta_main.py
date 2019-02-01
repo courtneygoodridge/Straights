@@ -498,8 +498,9 @@ class myExperiment(viz.EventClass):
 			# self.Camera_Offset = [0, 1, -1] # selection of camera offsets
 			# for i in self.Camera_Offset # loop round the offset selections
 			# offset = random.choice(self.Camera_Offset) # save a randomly chosen offset to the offset variable
-			# UpdatedCameraView.setEuler([driverEuler[1] + offset]) # add this randomly chosen camera offset  to the first element of the driver euler (yaw) and update the overall camera view with this parameter
+			# UpdatedCameraView.setEuler([driverEuler[0] + offset]) # add this randomly chosen camera offset  to the first element of the driver euler (yaw) and update the overall camera view with this parameter
 			# vizact.ontimer(2.5,UpdateCameraAngle)
+			# viz.MainView.reset
 
 			# UpdatedCameraView.setEuler([driverEuler[0] + offset, driverEuler[1], driverEuler[2]])
 			# Alternative way of adding offset to the yaw of the driverEuler, whilst specifiying that pitch and roll stay the same as the driverEuler
@@ -542,16 +543,22 @@ class myExperiment(viz.EventClass):
 
 			
 			
-			
 
 			#Euler needs to be in yaw,pitch,roll
 			#bendEuler = driverEuler 
 			#offsetEuler = [driverEuler[0]+trial_heading, driverEuler[1], driverEuler[2]]
-			offsetEuler = [trial_heading, 0, 0]
+			offsetEuler = [trial_heading, 0, 0] # this creates the straight offset
 			print ("offsetEuler", offsetEuler)
-
-			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)		
+			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)	# this sets the next straight at the yaw offset of the condition list 
 			
+			# Idea 4
+			# self.Straight.setEuler(offsetEuler, viz.REL_LOCAL) # straight offset is set
+			# self.Camera_Offset = [0, 1, -1] # camera offset is set
+			# for i in self.Straight.setEuler # for each euler offset that is set for the straight
+			# offset = random.choice(self.Camera_Offset) # offset is randomly chosen from a variable
+			# UpdatedCameraView.setEuler([driverEuler[0] + offset]) # this is then added to the yaw of the driver euler to update camera view
+
+
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
 			self.driver.setSWA_invisible()		
 			

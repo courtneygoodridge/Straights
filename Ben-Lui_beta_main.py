@@ -510,14 +510,16 @@ class myExperiment(viz.EventClass):
 			# print ("driverEuler", driverEuler)
 			# self.Straight.setEuler(driverEuler[self.Camera_Offset], viz.ABS_GLOBAL) # Idea 1)
 
-			# for i in self.Camera_Offset # Idea 2)
+			# Idea 2)
+			# for i in self.Camera_Offset 
 			# driverEuler = viz.MainView.getEuler() + self.Camera_Offset[i]
 			# print ("driverEuler", driverEuler) # prints the euler 
 			# self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) 
 
 			# Idea is to loop around the different offsets and add them to the main view euler to generate a camera offset
-
-			# import random # Idea 3)
+			
+			# Idea 3)
+			# import random 
 			# def UpdateCameraAngle():
 			# yaw,pitch,roll = viz.MainView.getEuler() # get main euler
 			# pos = viz.MainView.getPosition() # get main view position
@@ -527,7 +529,8 @@ class myExperiment(viz.EventClass):
 			# UpdatedCameraView.setEuler([yaw+offset,pitch,roll]) # add this randomly chosen camera offset  to the main view yaw to offset the camera angle
 			# vizact.ontimer(2.5,UpdateCameraAngle) # perform this function every 2.5 seconds, each time with a new random offset choice
 
-			# import random # Idea 3.5) implement function in existing code
+			# Idea 3.5) implement function in existing code
+			# import random 
 			# def UpdateCameraAngle():
 			# driverEuler = viz.MainView.getEuler() # main view euler is the driver's euler
 			# self.Camera_Offset = [0, 1, -1] # selection of camera offsets
@@ -536,10 +539,7 @@ class myExperiment(viz.EventClass):
 			# UpdatedCameraView.setEuler([driverEuler[1] + offset]) # add this randomly chosen camera offset  to the first element of the driver euler (yaw) and update the overall camera view with this parameter
 			# vizact.ontimer(2.5,UpdateCameraAngle) # perform this function every 2.5 seconds, each time with a new random offset choice
 
-			# Currently, vehicle and camera both change position for each straight 
-			# I need to keep vehicle  changing, but offset the camera
-			# Current code sets drievr euler, and then sets this as the straight euler
-			# If i in coorporate a camera offset parameter, will this offset the global straight euler whilst keeping the driver euler the same?
+			# In these cases, does UpdatedCameraView.setEuler overwrite the camera view with another offset (good), or is the offset added (not good)
 
 			
 			
@@ -552,8 +552,9 @@ class myExperiment(viz.EventClass):
 			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)	# this sets the next straight at the yaw offset of the condition list 
 			
 			# Idea 4
+			# import random 
 			# self.Straight.setEuler(offsetEuler, viz.REL_LOCAL) # straight offset is set
-			# self.Camera_Offset = [0, 1, -1] # camera offset is set
+			# self.Camera_Offset = [0, 1, -1] # camera offset values set
 			# for i in self.Straight.setEuler # for each euler offset that is set for the straight
 			# offset = random.choice(self.Camera_Offset) # offset is randomly chosen from a variable
 			# UpdatedCameraView.setEuler([driverEuler[0] + offset]) # this is then added to the yaw of the driver euler to update camera view

@@ -552,12 +552,13 @@ class myExperiment(viz.EventClass):
 			print ("offsetEuler", offsetEuler)
 			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)	# this sets the next straight at the yaw offset of the condition list 
 			
+
+
 			# Idea 4)	
 			# Camera_Offset = [0, 10, -10] # camera offset values set
 			# for i in self.Straight.setEuler # for each euler offset that is set for the straight
 			# offset = random.choice(Camera_Offset) # offset is randomly chosen from a variable
 			# UpdatedCameraView.setEuler([driverEuler[0] + offset]) # this is then added to the yaw of the driver euler to update camera view
-
 	
 			# self.Camera_Offset = [0, 1, -1] # camera offset values set
 			# for i in self.Straight.setEuler # for each euler offset that is set for the straight

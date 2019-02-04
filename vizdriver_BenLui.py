@@ -3,6 +3,7 @@ import vizact
 import vizmat
 import vizjoy
 import viztask
+import random # CMG edit
 import math as mt # python library
 JOY_FIRE_BUTTONS = [100, 101, 102]
 JOY_DIR_SWITCH_BUTTON = [5, 6]
@@ -20,6 +21,7 @@ class Driver(viz.EventClass):
 		self.__pause = -50 #pauses for 50 frames at the start of each trial
 		
 		self.__view = Cave
+		self.Camera_Offset = [0, 10, -10] # CMG edit - selection of camera offsets
 		# self.__view = viz.MainView.setPosition(0,1.20,0) #Grabs the main graphics window
 		# self.__view = viz.MainView
 		# self.__view.moverelative(viz.BODY_ORI)
@@ -114,10 +116,10 @@ class Driver(viz.EventClass):
 			if self.__pause > 0:
 								
 				distance = self.__speed * dt #amount of metres that the camera needs to move per frame.
-
+				offset = random.choice(self.Camera_Offset) # CMG edit
 				#posnew = (0,0,self.__speed)
 				posnew = (0,0,distance)
-				eulernew = (self.__heading,0,0)
+				eulernew = (self.__heading+offset,0,0) #CMG edit +offset
 				
 				self.__view.setPosition(posnew, viz.REL_LOCAL)				
 				self.__view.setEuler(eulernew) #set absolutely.

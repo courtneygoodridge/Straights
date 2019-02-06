@@ -382,14 +382,21 @@ class myExperiment(viz.EventClass):
 		self.caveview = self.cave.getCaveView() #this module includes viz.go()
 
 		##### SET CONDITION VALUES #####
-		self.FACTOR_headingpool = np.linspace(-5, 5, 5) #array from -45 to 45. 
-		self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
+		#self.FACTOR_headingpool = np.linspace(-10, 10, 5) #array from -45 to 45. 
+		self.FACTOR_headingpool = [0] #array from -45 to 45. 
+		
+		#self.FACTOR_headingpool = np.linspace(-30, 30, 5) #array from -45 to 45. 
+		#self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
+		self.FACTOR_occlPool = [0] #3 occlusion delay time conditions
 		self.TrialsPerCondition = 10	
 		[trialsequence_signed, cl_heading, cl_occl]  = GenerateConditionLists(self.FACTOR_headingpool, self.FACTOR_occlPool, self.TrialsPerCondition)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.
 		self.ConditionList_heading = cl_heading
 		self.ConditionList_occl = cl_occl
+
+		#self.Camera_Offset = [-45, -10, 10, 45] #very obvious.
+		self.Camera_Offset = np.linspace(-10, 10, 5) #random jitter within smallish bounds.
 
 		##### ADD GRASS TEXTURE #####
 		[gplane1, gplane2] = setStage(TILING)
@@ -413,7 +420,8 @@ class myExperiment(viz.EventClass):
 		self.Trial_heading = 0
 		self.Trial_occlusion = 0 				
 		self.Trial_N = 0 #nth trial
-		self.Trial_trialtype_signed = 0			
+		self.Trial_trialtype_signed = 0
+		self.Trial_Camera_Offset = 0 			
 		#self.Trial_Timer = 0 #keeps track of trial length. 
 		#self.Trial_BendObject = None		
 		
@@ -475,8 +483,9 @@ class myExperiment(viz.EventClass):
 
 			# changes message on screen			
 			msg = msg = "heading: " + str(trial_heading) + '_' + str(trial_occl)
-			txtCondt.message(msg)	
 
+
+			
 			#update class trial parameters#
 			self.Trial_N = i
 			self.Trial_heading = trial_heading
@@ -495,52 +504,7 @@ class myExperiment(viz.EventClass):
 			driverEuler = viz.MainView.getEuler() # gets current driver euler (orientation)
 			print ("driverEuler", driverEuler) # prints the euler 
 			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) # then sets the straight euler as the driver euler in global coordinates. This could be the camera
-			# def UpdateCameraAngle():
-			# Camera_Offset = [0, 10, -10] # selection of camera offsets
-			# for i in Camera_Offset # loop round the offset selections
-			# offset = random.choice(Camera_Offset) # save a randomly chosen offset to the offset variable
-			# UpdatedCameraView.setEuler([driverEuler[0] + offset]) # add this randomly chosen camera offset  to the first element of the driver euler (yaw) and update the overall camera view with this parameter
-			# vizact.ontimer(2.5,UpdateCameraAngle)
-			# viz.MainView.reset
-
-			# UpdatedCameraView.setEuler([driverEuler[0] + offset, driverEuler[1], driverEuler[2]])
-			# Alternative way of adding offset to the yaw of the driverEuler, whilst specifiying that pitch and roll stay the same as the driverEuler
-
-
-			# driverEuler = viz.MainView.getEuler()
-			# print ("driverEuler", driverEuler)
-			# self.Straight.setEuler(driverEuler[self.Camera_Offset], viz.ABS_GLOBAL) # Idea 1)
-
-			# Idea 2)
-			# for i in self.Camera_Offset 
-			# driverEuler = viz.MainView.getEuler() + self.Camera_Offset[i]
-			# print ("driverEuler", driverEuler) # prints the euler 
-			# self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) 
-
-			# Idea is to loop around the different offsets and add them to the main view euler to generate a camera offset
-			
-			# Idea 3)
-			# import random 
-			# def UpdateCameraAngle():
-			# yaw,pitch,roll = viz.MainView.getEuler() # get main euler
-			# pos = viz.MainView.getPosition() # get main view position
-			# self.Camera_Offset = [0, 1, -1] # selection of camera offsets
-			# for i in self.Camera_Offset # loop round the offset selections
-			# offset = random.choice(self.Camera_Offset) # save a randomly chosen offset to the offset variable
-			# UpdatedCameraView.setEuler([yaw+offset,pitch,roll]) # add this randomly chosen camera offset  to the main view yaw to offset the camera angle
-			# vizact.ontimer(2.5,UpdateCameraAngle) # perform this function every 2.5 seconds, each time with a new random offset choice
-
-			# Idea 3.5) implement function in existing code
-			# import random 
-			# def UpdateCameraAngle():
-			# driverEuler = viz.MainView.getEuler() # main view euler is the driver's euler
-			# self.Camera_Offset = [0, 1, -1] # selection of camera offsets
-			# for i in self.Camera_Offset # loop round the offset selections
-			# offset = random.choice(self.Camera_Offset) # save a randomly chosen offset to the offset variable
-			# UpdatedCameraView.setEuler([driverEuler[1] + offset]) # add this randomly chosen camera offset  to the first element of the driver euler (yaw) and update the overall camera view with this parameter
-			# vizact.ontimer(2.5,UpdateCameraAngle) # perform this function every 2.5 seconds, each time with a new random offset choice
-
-			# In these cases, does UpdatedCameraView.setEuler overwrite the camera view with another offset (good), or is the offset added (not good)
+		
 
 			
 			
@@ -549,27 +513,31 @@ class myExperiment(viz.EventClass):
 			#bendEuler = driverEuler 
 			#offsetEuler = [driverEuler[0]+trial_heading, driverEuler[1], driverEuler[2]]
 			offsetEuler = [trial_heading, 0, 0] # this creates the straight offset
-			print ("offsetEuler", offsetEuler)
+			# print ("offsetEuler", offsetEuler)
 			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)	# this sets the next straight at the yaw offset of the condition list 
 			
 
+			#change OFFSET OF VIEW
 
-			# Idea 4)	
-			# Camera_Offset = [0, 10, -10] # camera offset values set
-			# for i in self.Straight.setEuler # for each euler offset that is set for the straight
-			# offset = random.choice(Camera_Offset) # offset is randomly chosen from a variable
-			# UpdatedCameraView.setEuler([driverEuler[0] + offset]) # this is then added to the yaw of the driver euler to update camera view
-	
-			# self.Camera_Offset = [0, 1, -1] # camera offset values set
-			# for i in self.Straight.setEuler # for each euler offset that is set for the straight
-			# offset = random.choice(self.Camera_Offset) # offset is randomly chosen from a variable
-			# UpdatedCameraView.setEuler([driverEuler[0] + offset]) # this is then added to the yaw of the driver euler to update camera view
+
+			
+
+			#FOR EQUAL AND OPPOSITE USE THE LINE BELOW:
+			#self.Trial_Camera_Offset = trial_heading # CMG edit
+
+			self.Trial_Camera_Offset = random.choice(self.Camera_Offset) # CMG edit
+			offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
+			viz.MainWindow.setViewOffset( offset )
+			
+			msg = msg + '\n' + 'Offset: ' + str(self.Trial_Camera_Offset) #Save your variables.
+
+			txtCondt.message(msg)	
 
 
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
 			self.driver.setSWA_invisible()		
 			
-			#trial_occl = 0
+			#trial_occl = 0 #HACK
 			yield viztask.waitTime(trial_occl) #wait an occlusion period. Will viztask waitime work within a class? 
 			
 			self.Straight.visible(1)
@@ -578,12 +546,13 @@ class myExperiment(viz.EventClass):
 			
 			self.Straight.visible(0)
 			#driver.setSWA_visible()
+
 			
 			def checkCentred():
 				
 				centred = False
 				x = self.driver.getPos()
-				if abs(x) < .5:
+				if abs(x) < .1:
 					centred = True						
 				
 				return (centred)

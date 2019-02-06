@@ -21,7 +21,7 @@ class Driver(viz.EventClass):
 		self.__pause = -50 #pauses for 50 frames at the start of each trial
 		
 		self.__view = Cave
-		self.Camera_Offset = [-10] # CMG edit - selection of camera offsets
+		self.Camera_Offset = [0, 1, -1] # CMG edit - selection of camera offsets
 		# self.__view = viz.MainView.setPosition(0,1.20,0) #Grabs the main graphics window
 		# self.__view = viz.MainView
 		# self.__view.moverelative(viz.BODY_ORI)
@@ -121,10 +121,7 @@ class Driver(viz.EventClass):
 				posnew = (0,0,distance)
 				eulernew = (self.__heading,0,0) #CMG edit + offset
 				self.__view.setPosition(posnew, viz.REL_LOCAL)
-				CameraRotation = False # CMG edit
-				if SteeringWheelValue > 0.1 or SteeringWheelValue < -0.1: #CMG edit
-					CameraRotation = True #CMG edit
-					self.__view.setEuler(eulernew[0]+offset) #set absolutely. CMG - [0]+ offset
+				self.__view.setEuler(eulernew, viz.ABS_GLOBAL) #set absolutely. CMG - [0]+ offset				
 				
 			else:
 				self.__heading = 0.0

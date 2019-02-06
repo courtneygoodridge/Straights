@@ -58,8 +58,13 @@ class initCave(viz.EventClass):
 
 		self.track = viztracker.Keyboard6DOF() #tracker object
 		self.track.setPosition(0,self.EH,0)
+		
 		viz.link(self.track,view) #linked to mainview
 		self.cave.setTracker(pos=self.track)
+
+		#change euler
+		#self.cave.setTracker(pos=self.track)
+
 		##Create CaveView object for manipulating the entire cave environment
 		##The caveorigin is a node that can be adjusted to move the entire cave around the virtual environment, it needs a tracker object to initialise it.
 		self.caveview = vizcave.CaveView(self.track)

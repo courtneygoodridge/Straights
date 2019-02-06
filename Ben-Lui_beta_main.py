@@ -214,22 +214,6 @@ def BendMaker(radlist):
 	left_array= np.linspace(0.0, np.pi,rdsize) #### creates evenly spaced 500 steps from 0 to pi for left heading turn to be made 
 	#right_array = np.arange(np.pi*1000, 0.0, -1)/1000  ##arange(start,stop,step). Array with 3142(/1000) numbers
 	right_array = np.linspace(np.pi, 0.0, rdsize)  #### From pi to 0 in 500 steps (opposite for opposite corner)
-
-	#### Above code creates gradual turns for the bends of varying heading. 
-	#### I would need less gradual spacing - spacing would have to be the same so all 500 points would in a straight line 
-
-	# left_array = np.linspace(0.0, 5000, rdsize)
-	# right_array = np.linspace(5000, 0.0, rdsize)	
-
-	#### Code above did not create 2 straight lines 
-	#### However is did remove the curved bends and create random zig zags within the environment
-	#### Clearly not what is needed but I now know that this parameter can manipulate the line bend
-	#### At certain intervals, a one remaining straight line appear which was clearly the -1 in the heading pool
-	#### Perhaps incorporating the the straight lines vertices in these left/right_array parameters mights create the staright lines I need?
-
-	# left_array = viz.vertex(0+width,.1,100.0)
-	# right_array = viz.vertex(0+width,.1,100.0)
-
 	
 	leftbendlist = []
 	rightbendlist = []
@@ -246,48 +230,7 @@ def BendMaker(radlist):
 		viz.startLayer(viz.QUAD_STRIP) # Investigate quad strips on google 
 		width = .1 #road width/2
 		if r > 0:	#r=-1 means it is a straight.
-			while i < rdsize:
-				
-				######### COURTNEY EDITS BELOW #############
-
-				#### I'm trying to place a straight road angled at each of the heading rather than the bends that are currently there.
-				#### i.e. if the heading is greater than 0 and while i is smaller than the rdsize, plot vertices to create straight roads. 
-				#### The road will be created at an angle to create the heading that are being looped through.
-				#### However, rdsize refers to the points on the curve, so without changing this I could have 500 small straight roads?
-				#### Also would it more likely be that I'd have to specify angle for this to work? What is the relationship between angle and heading?
-				#### rdsize creates the small squares that are put together to create the bend of the heading chosen, with x and z being their coordinates.
-				#### 
-
-				# x1[i] = viz.vertex(0+width,.1,0)
-				# z1[i] = viz.vertex(0-width,.1,0)
-				# x2[i] = viz.vertex(0+width,.1,100.0) * right_array[i] #100m straight
-				# z2[i] = viz.vertex(0-width,.1,100.0) * right_array[i] #100m straight
-				# viz.vertexColor(grey)
-				# i + = 1
-				
-				# I need to somehow incorporate the left and right arrary variables as these dictate which direction the straight bend should go
-				# Perhaps multilping by the right array alongside indexing from the loop? Not sure how or why this could work
-				# Might use np.tan() function? This creates a straight line that touches but does intersect a curve
-				# Potential to use this to create a straight line that is at the tangent of the heading of the original bend?
-				
-				# One option could be to keep the origianl code all the same and just use the np.tan() function
-				# In the hope that instead of creating a bend, it would create a straight line at a tangent of the bend 
-
-				# Or could use it with the edits I have a suggested above 
-				# i.e. I still might need to create a straight line with the left and right array variables (see below).
-
-				# x1[i] = viz.vertex(0+width,.1,0)
-				# z1[i] = viz.vertex(0-width,.1,0)
-				# x2[i] = viz.vertex(0+width,.1,100.0) * np.tan(right_array[i]) #100m straight
-				# z2[i] = viz.vertex(0-width,.1,100.0) * np.tan(right_array[i]) #100m straight
-				# viz.vertexColor(grey)
-				# i + = 1
-
-				####### np.tan() did not work. All bends were removed from the environment
-
-				######### COURTNEY EDITS ABOVE ############
-
-						
+			while i < rdsize:		
 				#need two vertices at each point to form quad vertices
 				#inside edge
 				x1[i] = ((r-width)*np.cos(right_array[i])) + r
@@ -436,7 +379,6 @@ class myExperiment(viz.EventClass):
 		self.Current_TurnAngle_frames = 0
 		self.Current_distance = 0
 		self.Current_dt = 0
-		# self.Camera_Offset = [0, 1, -1] # offset parameter that can be added to camera angle to rotate it
 
 		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
@@ -482,7 +424,7 @@ class myExperiment(viz.EventClass):
 			######choose correct road object.######
 
 			# changes message on screen			
-			msg = msg = "heading: " + str(trial_heading) + '_' + str(trial_occl)
+			msg = msg = "Heading: " + str(trial_heading) + '_' + str(trial_occl)
 
 
 			
@@ -520,10 +462,8 @@ class myExperiment(viz.EventClass):
 			#change OFFSET OF VIEW
 
 
-			
-
 			#FOR EQUAL AND OPPOSITE USE THE LINE BELOW:
-			#self.Trial_Camera_Offset = trial_heading # CMG edit
+			#self.Trial_Camera_Offset = trial_heading 
 
 			self.Trial_Camera_Offset = random.choice(self.Camera_Offset) # CMG edit
 			offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
@@ -588,8 +528,8 @@ class myExperiment(viz.EventClass):
 		"""Records Data into Dataframe"""
 
 		if self.SAVEDATA:
-			#datacolumns = ['ppid', 'heading','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
-			output = [self.PP_id, self.Trial_heading, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
+			#datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
+			output = [self.PP_id, self.Trial_heading, self.Trial_Camera_Offset, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
 			self.Current_distance, self.Current_dt, self.Straight] #output array.		
 

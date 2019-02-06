@@ -325,8 +325,8 @@ class myExperiment(viz.EventClass):
 		self.caveview = self.cave.getCaveView() #this module includes viz.go()
 
 		##### SET CONDITION VALUES #####
-		#self.FACTOR_headingpool = np.linspace(-10, 10, 5) #array from -45 to 45. 
-		self.FACTOR_headingpool = [0] #array from -45 to 45. 
+		self.FACTOR_headingpool = np.linspace(-10, 10, 5) #array from -45 to 45. 
+		#self.FACTOR_headingpool = [0] #array from -45 to 45. 
 		
 		#self.FACTOR_headingpool = np.linspace(-30, 30, 5) #array from -45 to 45. 
 		#self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
@@ -356,7 +356,7 @@ class myExperiment(viz.EventClass):
 		self.SAVEDATA = False
 
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'heading','occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'StraightVisible']
+		datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'StraightVisible']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####

@@ -257,12 +257,6 @@ def BendMaker(radlist):
 		rightbend.visible(0)
 		rightbend.dynamic()
 
-		### Above codes for the bends towards the right handside. 
-		### The X and Z coordinates help map the quad strips onto the environment.
-		### The else statement means that if r is less than zero, a straight is created.
-		### rdsize = 500 represents the curve length, however I do not want a curve anymore. 
-		### This needs to be edited so quad strips can be connected at angles to created straight curves.
-		### Try altering the rdsize and running code to see how that affects the shape of the bend.
 			
 		i=0
 		viz.startLayer(viz.QUAD_STRIP)
@@ -438,14 +432,13 @@ class myExperiment(viz.EventClass):
 			driverpos = viz.MainView.getPosition()
 			print driverpos
 			self.Straight.setPosition(driverpos[0],0, driverpos[2])
-			
-			
-			#self.Straight.setPosition([0,0, 5], viz.REL_LOCAL)
+
+			# self.Straight.setPosition([0,0, 5], viz.REL_LOCAL)
 
 			#now need to set orientation
 			driverEuler = viz.MainView.getEuler() # gets current driver euler (orientation)
 			print ("driverEuler", driverEuler) # prints the euler 
-			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) # then sets the straight euler as the driver euler in global coordinates. This could be the camera
+			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) # then sets the straight euler as the driver euler in global coordinates.
 		
 
 			
@@ -475,17 +468,17 @@ class myExperiment(viz.EventClass):
 
 
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
-			self.driver.setSWA_invisible()		
+			#self.driver.setSWA_invisible()		
 			
 			#trial_occl = 0 #HACK
-			yield viztask.waitTime(trial_occl) #wait an occlusion period. Will viztask waitime work within a class? 
+			yield viztask.waitTime(trial_occl) # This command will create a Condition object that will wait for the specified number of seconds to elapse. Will viztask waitime work within a class? 
 			
 			self.Straight.visible(1)
 			
 			yield viztask.waitTime(self.VisibleRoadTime-trial_occl) #after the occlusion add the road again. 2.5s to avoid ceiling effects.
 			
 			self.Straight.visible(0)
-			#driver.setSWA_visible()
+			# driver.setSWA_visible()
 
 			
 			def checkCentred():
@@ -493,9 +486,8 @@ class myExperiment(viz.EventClass):
 				centred = False
 				x = self.driver.getPos()
 				if abs(x) < .1:
-					centred = True						
-				
-				return (centred)
+					centred = True
+					return (centred)
 			
 			##wait a while
 			print "waiting"
@@ -628,7 +620,7 @@ if __name__ == '__main__':
 	###### SET EXPERIMENT OPTIONS ######	
 	EYETRACKING = True
 	PRACTICE = True
-	TILING = False #to reduce memory load set True to create two groundplane tiles that dynamically follow the driver's position instead of one massive groundplane.
+	TILING = True #to reduce memory load set True to create two groundplane tiles that dynamically follow the driver's position instead of one massive groundplane.
 	EXP_ID = "BenLui17"
 
 	if PRACTICE == True: # HACK

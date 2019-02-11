@@ -36,7 +36,7 @@ MData = zeros(ttime*srate,nVars,nTrials,nCndts); %Matrix to Hold Parameters.
 iTrials = zeros(nCndts,1); %Trial Index
 sz = size(raw_data,1); %number of rows.
 MProc = zeros(3,nTrials,nCndts); %SWA_t, SWA_amp, maxRate
-Vradii = [50 150 250 900 1100 1300 2500 3000 3500];% 5000];    
+angles = linspace(-10, 10, 5);% 5000];    
 cols = {'b--';'g--';'r--';'m--';'c-';'b-';'g-';'r-';'m-';'k--'};
 cols2 = {'bo';'go';'ro';'mo';'c.';'b.';'g.';'r.';'m.';'k.'};
 figure(1)
@@ -146,30 +146,30 @@ end
 
 meanSWA_t = zeros(nCndts,1);
 meanSWA_a = zeros(nCndts,1);
-for r = 1:length(Vradii)
+for r = 1:length(angles)
    for i = 1:nTrials
        %Time
       SWA_t = squeeze(MProc(1,i,r));
       subplot(2,1,1)
-      plot(Vradii(r),SWA_t,cols2{r},'MarkerSize',6); hold on
+      plot(angles(r),SWA_t,cols2{r},'MarkerSize',6); hold on
       
       %Amp
       SWA_a = squeeze(MProc(2,i,r));
       subplot(2,1,2)
-      plot(Vradii(r),log(SWA_a),cols2{r},'MarkerSize',6); hold on
+      plot(angles(r),log(SWA_a),cols2{r},'MarkerSize',6); hold on
    end
    %plot average.
    vSWA_t = squeeze(MProc(1,:,r));
    avg_t = mean(vSWA_t);
    meanSWA_t(r) = avg_t;
    subplot(2,1,1)
-   plot(Vradii(r),avg_t,'kx','MarkerSize',10); hold on
+   plot(angles(r),avg_t,'kx','MarkerSize',10); hold on
    
    vSWA_a = squeeze(MProc(2,:,r));
    avg_a = mean(vSWA_a);
    meanSWA_a(r) = avg_a;
    subplot(2,1,2)
-   plot(Vradii(r),log(avg_a),'kx','MarkerSize',10); hold on
+   plot(angles(r),log(avg_a),'kx','MarkerSize',10); hold on
    
 end
 
@@ -178,11 +178,11 @@ subplot(2,1,1)
 ylabel('Time at first Wheel Correction')
 xlabel('Radii')
 
-Radii = 0:500:3500;
+angle = linspace(-10, 10, 5);
 %line of best fit.
-pfit = polyfit(Vradii',meanSWA_t,2); 
-pval = polyval(pfit,Radii);
-plot(Radii, pval, 'k-','LineWidth',2);
+pfit = polyfit(angles',meanSWA_t,2); 
+pval = polyval(pfit,angle);
+plot(angle, pval, 'k-','LineWidth',2);
 
 %labels
 subplot(2,1,2)
@@ -190,9 +190,9 @@ ylabel('Log(Amplitude)')
 xlabel('Radii')
 
 %line of best fit.
-pfit = polyfit(Vradii',log(meanSWA_a),2); 
-pval = polyval(pfit,Radii);
-plot(Radii, pval, 'k-','LineWidth',2);
+pfit = polyfit(angles',log(meanSWA_a),2); 
+pval = polyval(pfit,angle);
+plot(angle, pval, 'k-','LineWidth',2);
 %may need to logradii
 
 

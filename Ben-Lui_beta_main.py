@@ -39,6 +39,11 @@ import pandas as pd
 import random
 #import PPinput
 
+ParticipantNumber = viz.input('Enter your participant number:')
+ParticipantID = viz.input('Enter your unique participant ID: ')
+
+filename = str(ParticipantNumber) + '_' + str(ParticipantID)
+
 def LoadEyetrackingModules():
 
 	"""load eyetracking modules and check connection"""
@@ -379,11 +384,11 @@ class myExperiment(viz.EventClass):
 	def runtrials(self):
 		"""Loops through the trial sequence"""
 		
-		if self.EYETRACKING:
-			filename = str(self.EXP_ID) + "_Calibration" #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
-			print (filename)
-			yield run_calibration(comms, filename)
-			yield run_accuracy(comms, filename)		
+		# if self.EYETRACKING:
+			# filename = str(self.EXP_ID) + "_Calibration" #+ str(demographics[0]) + "_" + str(demographics[2]) #add experimental block to filename
+			# print (filename)
+			# yield run_calibration(comms, filename)
+			# yield run_accuracy(comms, filename)		
 
 		self.driver = vizdriver.Driver(self.caveview)	
 		self.SAVEDATA = True # switch saving data on.
@@ -530,7 +535,7 @@ class myExperiment(viz.EventClass):
 	def SaveData(self):
 
 		"""Saves Current Dataframe to csv file"""
-		self.Output.to_csv('Data//Pilot.csv')
+		self.Output.to_csv(filename) # CMG edit <- 'Data//Pilot.csv'
 
 	def updatePositionLabel(self, num): #num is a timer parameter
 		

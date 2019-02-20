@@ -1,3 +1,4 @@
+ 
 """
 Script to run threshold vs accumulator experiment. The participant experiences vection across a textured ground-plane. 
 After a few seconds a straight road appears with a experimentally controlled deflection angle. The participants task is to steer so as to try and stay on the straight road.
@@ -319,9 +320,9 @@ class myExperiment(viz.EventClass):
 		self.caveview = self.cave.getCaveView() #this module includes viz.go()
 
 		##### SET CONDITION VALUES #####
-		self.FACTOR_headingpool = np.linspace(-10, 10, 5) #array from -45 to 45. 
+		#self.FACTOR_headingpool = np.linspace(-10, 10, 5) # -10, -5, 0, 5 , 10
 		#self.FACTOR_headingpool = [0] #array from -45 to 45. 
-		
+		self.FACTOR_headingpool = np.linspace(-3, 3, 5) # experimental angles
 		#self.FACTOR_headingpool = np.linspace(-30, 30, 5) #array from -45 to 45. 
 		#self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
 		self.FACTOR_occlPool = [0] #3 occlusion delay time conditions

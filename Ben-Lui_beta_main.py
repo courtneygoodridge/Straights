@@ -40,10 +40,10 @@ import pandas as pd
 import random
 #import PPinput
 
-ParticipantNumber = viz.input('Enter your participant number:')
-ParticipantID = viz.input('Enter your unique participant ID: ')
+# ParticipantNumber = viz.input('Enter your participant number:')
+# ParticipantID = viz.input('Enter your unique participant ID: ')
 
-filename = str(ParticipantNumber) + '_' + str(ParticipantID)
+# filename = str(ParticipantNumber) + '_' + str(ParticipantID)
 
 def LoadEyetrackingModules():
 
@@ -541,13 +541,11 @@ class myExperiment(viz.EventClass):
 	def SaveData(self):
 
 		"""Saves Current Dataframe to csv file"""
-<<<<<<< HEAD
+
 		# self.Output.to_csv('Data//Pilot.csv') #pilot
 		
 		self.Output.to_csv(self.datafilename)
-=======
-		self.Output.to_csv(filename) # CMG edit <- 'Data//Pilot.csv'
->>>>>>> cad0bfa306dce3168af25af512f5dd1511e1824b
+	
 
 	def updatePositionLabel(self, num): #num is a timer parameter
 		

@@ -309,6 +309,8 @@ class myExperiment(viz.EventClass):
 		self.TILING = tiling
 		self.EXP_ID = exp_id
 
+		self.datafilename = str(exp_id) + '_' + str(ppid) + '.csv'
+
 		if EYETRACKING == True:	
 			LoadEyetrackingModules()
 
@@ -322,7 +324,8 @@ class myExperiment(viz.EventClass):
 		##### SET CONDITION VALUES #####
 		#self.FACTOR_headingpool = np.linspace(-10, 10, 5) # -10, -5, 0, 5 , 10
 		#self.FACTOR_headingpool = [0] #array from -45 to 45. 
-		self.FACTOR_headingpool = np.linspace(-3, 3, 5) # experimental angles
+		self.FACTOR_headingpool = np.linspace(-2, 2, 5) # experimental angles
+		print self.FACTOR_headingpool	
 		#self.FACTOR_headingpool = np.linspace(-30, 30, 5) #array from -45 to 45. 
 		#self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
 		self.FACTOR_occlPool = [0] #3 occlusion delay time conditions
@@ -334,7 +337,8 @@ class myExperiment(viz.EventClass):
 		self.ConditionList_occl = cl_occl
 
 		#self.Camera_Offset = [-45, -10, 10, 45] #very obvious.
-		self.Camera_Offset = np.linspace(-10, 10, 5) #random jitter within smallish bounds.
+		#self.Camera_Offset = np.linspace(-10, 10, 5) #random jitter within smallish bounds.
+		self.Camera_Offset = np.linspace(-2, 2, 5)
 
 		##### ADD GRASS TEXTURE #####
 		[gplane1, gplane2] = setStage(TILING)
@@ -457,11 +461,12 @@ class myExperiment(viz.EventClass):
 
 
 			#FOR EQUAL AND OPPOSITE USE THE LINE BELOW:
-			#self.Trial_Camera_Offset = trial_heading 
+			self.Trial_Camera_Offset = trial_heading 
 
-			self.Trial_Camera_Offset = random.choice(self.Camera_Offset) # CMG edit
-			offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
-			viz.MainWindow.setViewOffset( offset )
+			#self.Trial_Camera_Offset = random.choice(self.Camera_Offset) # CMG edit
+			#offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
+			#viz.MainWindow.setViewOffset( offset )
+			
 			
 			msg = msg + '\n' + 'Offset: ' + str(self.Trial_Camera_Offset) #Save your variables.
 
@@ -469,7 +474,7 @@ class myExperiment(viz.EventClass):
 
 
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
-			#self.driver.setSWA_invisible()		
+			self.driver.setSWA_invisible()		
 			
 			#trial_occl = 0 #HACK
 			yield viztask.waitTime(trial_occl) # This command will create a Condition object that will wait for the specified number of seconds to elapse. Will viztask waitime work within a class? 
@@ -491,13 +496,13 @@ class myExperiment(viz.EventClass):
 					return (centred)
 			
 			##wait a while
-			print "waiting"
+			#print "waiting"
 			#TODO: Recentre the wheel on automation.
 
-			yield viztask.waitTrue(checkCentred)
-			print "waited"
+			#yield viztask.waitTrue(checkCentred)
+			#print "waited"
 			
-			self.driver.setSWA_visible()
+			#self.driver.setSWA_visible()
 			yield viztask.waitTime(2) #wait for input .		
 	
 		#loop has finished.
@@ -531,7 +536,9 @@ class myExperiment(viz.EventClass):
 	def SaveData(self):
 
 		"""Saves Current Dataframe to csv file"""
-		self.Output.to_csv('Data//Pilot.csv')
+		# self.Output.to_csv('Data//Pilot.csv') #pilot
+		
+		self.Output.to_csv(self.datafilename)
 
 	def updatePositionLabel(self, num): #num is a timer parameter
 		
@@ -627,7 +634,13 @@ if __name__ == '__main__':
 	if PRACTICE == True: # HACK
 		EYETRACKING = False 
 
-	myExp = myExperiment(EYETRACKING, PRACTICE, TILING, EXP_ID) #initialises a myExperiment class
+	
+	ParticipantNumber = viz.input('Enter participant number') #cmg edit 
+	#ParticipantID = viz.input('Enter unique participant ID') #cmg edit
+
+	#datafilename = str(ParticipantNumber) + '_' + str(ParticipantID) #cmg edit
+
+	myExp = myExperiment(EYETRACKING, PRACTICE, TILING, EXP_ID, ppid = ParticipantNumber) #initialises a myExperiment class
 
 	viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 

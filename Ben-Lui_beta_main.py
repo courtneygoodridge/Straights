@@ -400,10 +400,10 @@ class myExperiment(viz.EventClass):
 		
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 	
-		#add text to denote conditons.
-		txtCondt = viz.addText("Condition",parent = viz.SCREEN)
-		txtCondt.setPosition(.7,.2)
-		txtCondt.fontSize(36)		
+		#add text to denote conditons - COMMENT OUT FOR EXPERIMENT
+		# txtCondt = viz.addText("Condition",parent = viz.SCREEN)
+		# txtCondt.setPosition(.7,.2)
+		# txtCondt.fontSize(36)		
 
 		if self.EYETRACKING:
 			comms.start_trial()
@@ -428,7 +428,7 @@ class myExperiment(viz.EventClass):
 			######choose correct road object.######
 
 			# changes message on screen			
-			msg = msg = "Heading: " + str(trial_heading) + '_' + str(trial_occl)
+			# msg = msg = "Heading: " + str(trial_heading) + '_' + str(trial_occl) - COMMENT OUT FOR EXPERIMENT
 
 
 			
@@ -473,13 +473,13 @@ class myExperiment(viz.EventClass):
 			#viz.MainWindow.setViewOffset( offset )
 			
 			
-			msg = msg + '\n' + 'Offset: ' + str(self.Trial_Camera_Offset) #Save your variables.
+			# msg = msg + '\n' + 'Offset: ' + str(self.Trial_Camera_Offset) #Save your variables - COMMENT OUT FOR EXPERIMENT
 
-			txtCondt.message(msg)	
+			# txtCondt.message(msg)	- COMMENT OUT FOR EXPERIMENT
 
 
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
-			self.driver.setSWA_invisible()		
+			self.driver.setSWA_invisible() # sets SWA invisible on screen		
 			
 			#trial_occl = 0 #HACK
 			yield viztask.waitTime(trial_occl) # This command will create a Condition object that will wait for the specified number of seconds to elapse. Will viztask waitime work within a class? 

@@ -334,7 +334,7 @@ class myExperiment(viz.EventClass):
 		#self.FACTOR_headingpool = np.linspace(-30, 30, 5) #array from -45 to 45. 
 		#self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
 		self.FACTOR_occlPool = [0] #3 occlusion delay time conditions
-		self.TrialsPerCondition = 10	
+		self.TrialsPerCondition = 15 # was oriringally 10	
 		[trialsequence_signed, cl_heading, cl_occl]  = GenerateConditionLists(self.FACTOR_headingpool, self.FACTOR_occlPool, self.TrialsPerCondition)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.

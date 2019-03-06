@@ -360,7 +360,7 @@ class myExperiment(viz.EventClass):
 		self.SAVEDATA = False
 
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'StraightVisible']
+		datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWV','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'StraightVisible']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
@@ -376,6 +376,7 @@ class myExperiment(viz.EventClass):
 		self.Current_pos_x = 0
 		self.Current_pos_z = 0
 		self.Current_yaw = 0
+		self.Current_SWV = 0
 		self.Current_SWA = 0
 		self.Current_Time = 0
 		self.Current_RowIndex = 0		
@@ -435,7 +436,8 @@ class myExperiment(viz.EventClass):
 			#update class trial parameters#
 			self.Trial_N = i
 			self.Trial_heading = trial_heading
-			self.Trial_occlusion = trial_occl			
+			self.Trial_occlusion = trial_occl	
+			self.Trial_trialtype_signed = trialtype_signed
 			#self.Trial_BendObject = trialbend			
 			
 			#translate bend to driver position.
@@ -529,12 +531,13 @@ class myExperiment(viz.EventClass):
 	def RecordData(self):
 		
 		"""Records Data into Dataframe"""
+		
 
 		if self.SAVEDATA:
 			#datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
 			output = [self.PP_id, self.Trial_heading, self.Trial_Camera_Offset, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
-			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-			self.Current_distance, self.Current_dt, self.Straight] #output array.		
+			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWV, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
+			self.Current_distance, self.Current_dt, self.Current_StraightVisibleFlag] #output array.		
 
 			self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
@@ -566,7 +569,8 @@ class myExperiment(viz.EventClass):
 		### #update Current parameters ####
 		self.Current_pos_x = pos[0]
 		self.Current_pos_z = pos[2]
-		self.Current_SWA = UpdateValues[4]
+		self.Current_SWV = UpdateValues[4]
+		self.Current_SWA = self.Current_SWV * 90 #-1 is -90, 1 = 90.
 		self.Current_yaw = ori[0]
 		self.Current_RowIndex += 1
 		self.Current_Time = viz.tick()

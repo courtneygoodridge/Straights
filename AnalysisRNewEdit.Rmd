@@ -1,0 +1,230 @@
+---
+title: "AnalysisRNew"
+output: 
+  html_document:
+    self_contained: no
+---
+
+```{r setup, echo=TRUE}
+# chooseCRANmirror(graphics=FALSE, ind=1) # uncomment for knitting
+knitr::opts_chunk$set(echo = TRUE)
+install.packages(ggplot2)
+install.packages(dplyr)
+install.packages(matlab)
+# install.packages("magrittr")
+setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
+temp = list.files(pattern = "*.csv") # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
+```
+
+```{r cleaning, echo=TRUE}
+
+# install.packages("magrittr")
+# setwd("M:/PhD/Project/Experiment_Code/Straights")
+# mydata = read.csv("BenLui17_2.csv")
+
+# library(magrittr)
+library(dplyr)
+
+# change in steering threshold
+yawratechange_threshold = 0.1
+
+YRchange <- workingdata$YawRate_seconds - c(0,workingdata$YawRate_seconds[-length(workingdata$YawRate_seconds)]) # calculating difference in yawrate
+
+YRchange <- data.frame(YRchange) # convert yaw rate to dataframe
+
+colnames(YRchange) <- c("YawRateChange") # change column names
+
+workingdata <- cbind(workingdata, YRchange) # join dataframes
+
+# determine first time in each ppid for each trialn
+first_time <- workingdata %>%
+  group_by(ppid,trialn) %>% 
+  filter(row_number() == 1) %>% 
+  ungroup()  %>% 
+  transmute(ppid, heading, trialn, cameraoffset, SWAStart = SWA, TrialStart = timestamp, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw, StartYawRate_seconds = YawRate_seconds, StartYawRateChange = YawRateChange) #use transmute to rename nwly computed variable (TrialStart) future join, ungroup first to allow for column rename of grouping variable
+
+# determine first time in each ppid, trialn group above threshold 
+threshold <-workingdata %>%
+  group_by(ppid,trialn) %>%
+  filter(abs(YawRateChange) > yawratechange_threshold) %>%
+  filter(row_number() == 1) %>%
+  ungroup() %>%
+  transmute(ppid, heading, trialn, cameraoffset, SWAThres = SWA, FirstYawRateChangeTimeThres = timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = YawRateChange) #use transmute to rename for future join, ungroup first to allow for column rename of grouping variable
+
+# Here SWA angle is redundent as it only takes the SWA for when the change in yaw rate is over the threshold... I'm interested in ThresYawRateChange (first change in yaw rate over threhsold) and FirstYawRateChangeTimeThres (first timestamp where yaw rate change is over threshold).
+
+# produce final result set with ppid, trialn, first time, and first time above yaw rate change threshold
+workingdatafinal <- left_join(first_time, threshold, by = c("ppid", "heading", "cameraoffset", "trialn")) %>%
+  mutate(FirstSteeringTime = FirstYawRateChangeTimeThres - TrialStart) # calculate final result: first timestamp where change in yaw rate is over threshold minus starting trial timestamp
+
+#Only thing extra would be to calculate frame rate (ask Richard), and then multiply by change in yaw rate to get yaw rate per second per second.
+
+```
+
+```{r plotting all angles, echo=TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+plottingdata <- workingdatafinal %>%
+  filter(FirstSteeringTime > 0)
+
+ggplot(plottingdata, aes(as.factor(heading), FirstSteeringTime)) +
+  geom_boxplot() +
+  ggtitle("First steering time across heading angles: boxplots") +
+  xlab("Heading angle (degrees)") +
+  ylab("Time until first steering correction (s)")
+
+plottingdata %>%
+  group_by(heading) %>%
+  summarise(meanFirstSteering = mean(FirstSteeringTime, na.rm = TRUE))
+
+```
+
+```{r plotting timecourse}
+
+library(ggplot2)
+library(dplyr)
+library(matlab)
+
+# use linspace function to generate timecourse for each each heading
+
+minus1 <- workingdata %>%
+  filter(heading < 0 & heading > -2)
+
+minus1time <- tail(minus1$timestamp, n = 1) - head(minus1$timestamp, n = 1) # total time of -1 heading trials
+
+minus1trialtotal <- linspace(0, minus1time, n = 8179)
+minus1trialtotal <- data.frame(minus1trialtotal)
+colnames(minus1trialtotal) <- c("TrialTime")
+minus1 <- cbind(minus1, minus1trialtotal)
+ggplot(minus1, aes(x = TrialTime, y = YawRateChange)) +
+  geom_line()
+
+
+
+minus2 <- workingdata %>%
+  filter(heading < -1)
+
+minus2time <- tail(minus2$timestamp, n = 1) - head(minus2$timestamp, n = 1) # total time of -2 heading trials
+minus2trialtotal <- linspace(0, minus2time, n = 8175)
+minus2trialtotal <- data.frame(minus2trialtotal)
+colnames(minus2trialtotal) <- c("TrialTime")
+minus2 <- cbind(minus2, minus2trialtotal)
+ggplot(minus2, aes(x = TrialTime, y = YawRateChange)) +
+  geom_line()
+
+# For the plots above, I have filtered the data for only information relating to the -2 and -1 headings, substracted the first timestamp from the last timestamp to get the total trial in seconds. Then created a trial time column from 0 to the end trial in seconds over the number of data points for each trial. I have then plotted this trial time column against the yaw rate change column. 
+
+
+
+ggplot() +
+  geom_line(data = minus1, aes(x = timestamp, y = YawRateChange, color = "darkblue")) +
+  geom_line(data = minus2, aes(x = timestamp, y = YawRateChange, colour = "red")) +
+  labs(title = "-2 and -1 heading timecourse", x = "time (s)", y = "Change in yaw rate per second") +
+  scale_color_manual(labels = c("-1", "-2"), values = c("blue", "red"))
+
+# For the plot above, I have 
+
+##################positives below####################
+
+plus1 <- workingdata %>%
+  filter(heading > 0 & heading < 2)
+
+ggplot(plus1, aes(x = timestamp, y = YawRateChange)) +
+           geom_line()
+
+
+plus2 <- workingdata %>%
+  filter(heading > 1)
+
+ggplot(plus2, aes(x = timestamp, y = YawRateChange)) +
+           geom_line()
+
+```
+
+
+```{r plotting positive angles, echo=TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+positive_offset <- workingdatafinal %>%
+  filter(heading >= 0, FirstSteeringTime > 0) # creates dataframe with only positive angle offsets and removes trials where SWA was already above threshold at the start of the time
+
+# input FirstSteeringTime > 0.2 & FirstSteeringTime < 1.6 to remove outliers
+
+ggplot(positive_offset, aes(x = heading, y = FirstSteeringTime)) +
+  geom_jitter() +
+  geom_smooth() +
+  ggtitle("First steering time across heading angles") +
+  xlab("Heading angle (degrees)") +
+  ylab("Time until first steering correction (s)")
+
+ggplot(positive_offset, aes(as.factor(heading), FirstSteeringTime)) +
+  geom_boxplot() +
+  ggtitle("First steering time across heading angles: boxplots") +
+  xlab("Heading angle (degrees)") +
+  ylab("Time until first steering correction (s)")
+
+```
+
+```{r plotting negative offsets, echo=TRUE}
+
+library(ggplot2)
+library(dplyr)
+
+negative_offset <- workingdatafinal %>%
+  filter(heading <= 0, FirstSteeringTime > 0)
+  # creates dataframe with only positive angle offsets and removes trials where SWA was already above threshold at the start of the time
+
+# input FirstSteeringTime > 0.2 & FirstSteeringTime < 1.3 to remove outliers
+
+ggplot(negative_offset, aes(x = heading, y = FirstSteeringTime)) +
+  geom_jitter() +
+  geom_smooth() +
+  ggtitle("First steering time across heading angles") +
+  xlab("Heading angle (degrees)") +
+  ylab("Time until first steering correction (s)")
+
+ggplot(negative_offset, aes(as.factor(heading), FirstSteeringTime)) +
+  geom_boxplot() +
+  ggtitle("First steering time across heading angles: boxplots") +
+  xlab("Heading angle (degrees)") +
+  ylab("Time until first steering correction (s)")
+
+
+```
+
+```{r mean and median values, echo=TRUE}
+
+library(dplyr)
+
+# calculating mean and median first steering timings for eaching heading offset
+
+# negative offset
+
+negative_offset %>%
+  group_by(heading) %>%
+  summarise(meanFirstSteering = mean(FirstSteeringTime, na.rm = TRUE))
+
+negative_offset %>%
+  group_by(heading) %>%
+  summarise(medianFirstSteering = median(FirstSteeringTime, na.rm = TRUE))
+
+# positive offset
+
+positive_offset %>%
+  group_by(heading) %>%
+  summarise(meanFirstSteering = mean(FirstSteeringTime, na.rm = TRUE))
+
+positive_offset %>%
+  group_by(heading) %>%
+  summarise(medianFirstSteering = median(FirstSteeringTime, na.rm = TRUE))
+
+```
+
+
+

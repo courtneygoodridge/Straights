@@ -1,0 +1,141 @@
+---
+title: "Analysis"
+output: html_document
+---
+Loads data from multiple CSV files and combine into one
+
+```{r loaddata, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages(ggplot2)
+install.packages(dplyr)
+setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
+temp = list.files(pattern = "*.csv") # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
+
+```
+
+This code successfully selects the first SWA value and corresponding row information for each trial. Currently if a trial does not have an SWA value above threshold, it is no selected. This might need to be alterd so the maximum steering input is chosen instead.
+
+```{r working code for selecting SWA above threhsold for each trial}
+
+library(dplyr)
+workingdata <- subset(workingdata, select = c(ppid, heading, cameraoffset, trialn, timestamp, World_x, World_z, WorldYaw, SWA, YawRate_seconds)) # selects important data columns
+
+# split data frame into groups of observations based on the trial column,
+workingdata_SWAThres <- lapply(split(workingdata, list(workingdata$ppid, workingdata$trialn), drop = TRUE), function(data) {
+    i <- data[abs(data$SWA) > 0.01,] # find all observations that exceed threshold
+    if (nrow(i)==0) return(NULL) # handle cases where no observations meet critera
+    return(i[1,]) # return only the first match
+})
+
+workingdata_SWAThres <- do.call(rbind.data.frame, workingdata_SWAThres) # convert list to dataframe
+workingdata_SWAThres <- arrange(workingdata_SWAThres, ppid) # arrange ppid from ppt 1 to 3
+View(workingdata_SWAThres)
+
+
+trialtimes <- workingdata %>% group_by(ppid, trialn) %>% arrange(trialn, timestamp) %>% filter(row_number()==1) # find the first timestamp for each trial i.e. trial beginning time
+
+trialtimes <- arrange(trialtimes, ppid) # this gives me first timestamp for each trial for each participant
+
+colnames(trialtimes)[5] <- c("TrialStart") # change column name for start of trials
+
+# View(trialtimes)
+
+combiningdata <- left_join(trialtimes, workingdata_SWAThres, by = c("ppid", "heading", "cameraoffset", "trialn")) # combine both dataframes 
+combiningdata <- subset(combiningdata, select = -c(World_x.x : WorldYaw.x)) # removing duplicate data columns
+combiningdata <- subset(combiningdata, select = -c(YawRate_seconds.x)) # removing duplicate data columns
+
+colnames(combiningdata)[6] <- c("SWAStart")
+colnames(combiningdata)[11] <- c("SWAFirstThres")
+colnames(combiningdata)[7] <- c("TimestampThres")
+# View(combiningdata)
+
+clean_data <- combiningdata %>%
+  mutate(FirstSteeringTime = TimestampThres - TrialStart)
+
+View(clean_data)
+
+```
+
+
+```{r plotting whole range of angles}
+
+library(ggplot2)
+library(dplyr)
+
+# focuses on whole range of angles i.e. -2 to 2 degrees of angles 
+
+clean_data_zeros_removed <- clean_data %>%
+  filter(FirstSteeringTime > 0) # creates dataframe where trials when the SWA was already above the threshold are removed 
+
+ggplot(clean_data_zeros_removed, aes(x = heading, y = FirstSteeringTime)) +
+  geom_jitter() +
+  geom_smooth()
+
+```
+
+
+```{r plotting positive offsets (0-1)}
+library(ggplot2)
+library(dplyr)
+# focus on poisitive offsets i.e. 1 and 2 degrees of angle
+
+clean_data_positive_offset <- clean_data %>%
+  filter(heading > 0, FirstSteeringTime > 0) # creates dataframe with only positive angle offsets and removes trials where SWA was already above threshold at the start of the time
+
+# input FirstSteeringTime > 0.2 to remove outliers
+
+ggplot(clean_data_positive_offset, aes(x = heading, y = FirstSteeringTime)) +
+  geom_jitter() +
+  geom_smooth()
+
+ggplot(clean_data_positive_offset, aes(x = heading, y = FirstSteeringTime)) +
+  geom_boxplot()
+
+
+```
+
+```{r plotting negatuves offsets (-2-0)}
+library(ggplot2)
+library(dplyr)
+
+# focus on negative offsets i.e. -1 and -2 degrees of angle
+
+clean_data_negative_offset <- clean_data %>%
+  filter(heading < 0, FirstSteeringTime < 1 & FirstSteeringTime > 0 & FirstSteeringTime > 0.2)
+  # creates dataframe with only positive angle offsets and removes trials where SWA was already above threshold at the start of the time
+
+# input FirstSteeringTime < 1 & FirstSteeringTime > 0 & FirstSteeringTime > 0.2 to remove outliers
+
+ggplot(clean_data_negative_offset, aes(x = heading, y = FirstSteeringTime)) +
+  geom_jitter() +
+  geom_smooth()
+
+ggplot(clean_data_negative_offset, aes(x = heading, y = FirstSteeringTime)) +
+  geom_boxplot()
+
+```
+
+```{r mean and median values}
+
+# calculating mean first steering timings for eaching heading offset
+
+clean_data_negative_offset %>%
+  group_by(heading) %>%
+  summarise(medianFirstSteering = median(FirstSteeringTime, na.rm = TRUE))
+
+clean_data_negative_offset %>%
+  group_by(heading) %>%
+  summarise(meanFirstSteering = mean(FirstSteeringTime, na.rm = TRUE))
+
+# These mean first steering times appear to folllow hypotheses for evidence accumulation for the negative offsets - bigger negatives result in quicker mean steering adjustments, possibly due to quicker development of error accumulation. And as offset reaches zero, first steering timing increases as error development is slower. However the threshold model cannot be ruled out because you cannot tell from only 5 angle whether there is a flatline? Threshold model does propose an increase from a flatline between -1 and 0 degrees of angle offset.
+
+# Possibly need more angles between -2 and 0 (or 0 and 2) in order to see any sort of potential flatlining?
+  
+```
+
+
+
+
+

@@ -7,10 +7,12 @@ output:
 
 ```{r setup, echo=TRUE}
 # chooseCRANmirror(graphics=FALSE, ind=1) # uncomment for knitting
+# rm(list = ls()) # clear workspace
 knitr::opts_chunk$set(echo = TRUE)
 install.packages(ggplot2)
 install.packages(dplyr)
 install.packages(matlab)
+install.packages(zoo)
 # install.packages("magrittr")
 setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
 temp = list.files(pattern = "*.csv") # list all CSV files in the directory
@@ -18,17 +20,13 @@ myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 ```
 
-```{r cleaning, echo=TRUE}
-
-# install.packages("magrittr")
-# setwd("M:/PhD/Project/Experiment_Code/Straights")
-# mydata = read.csv("BenLui17_2.csv")
-
-# library(magrittr)
+```{r creating dataframe and yaw rate change variable, echo=TRUE}
+library(zoo)
 library(dplyr)
 
+
 # change in steering threshold
-yawratechange_threshold = 0.1
+yawratechange_threshold = 0.25 # higher threshold for the new thresholding technique
 
 YRchange <- workingdata$YawRate_seconds - c(0,workingdata$YawRate_seconds[-length(workingdata$YawRate_seconds)]) # calculating difference in yawrate
 
@@ -38,20 +36,32 @@ colnames(YRchange) <- c("YawRateChange") # change column names
 
 workingdata <- cbind(workingdata, YRchange) # join dataframes
 
+##################This is only necessary for this kind of thresholding ######################
+
+window <- 4 #number of observation to average over
+
+workingdata  <- data.frame(workingdata, RMEAN = NA) # create RMEAN column
+
+workingdata[1:(nrow(workingdata) - window + 1),]$RMEAN <-  rollmean(workingdata$YawRateChange, k=window) # uses rollmean to calculate the average of the "window" you set, in this case an average over 4 observations (the current line and the 3 ahead).
+
+workingdata[is.na(workingdata)] <- 0 # set NA values to 0
+
+##################This is only necessary for this kind of thresholding ######################
+
 # determine first time in each ppid for each trialn
 first_time <- workingdata %>%
   group_by(ppid,trialn) %>% 
   filter(row_number() == 1) %>% 
   ungroup()  %>% 
-  transmute(ppid, heading, trialn, cameraoffset, SWAStart = SWA, TrialStart = timestamp, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw, StartYawRate_seconds = YawRate_seconds, StartYawRateChange = YawRateChange) #use transmute to rename nwly computed variable (TrialStart) future join, ungroup first to allow for column rename of grouping variable
+  transmute(ppid, heading, trialn, cameraoffset, SWAStart = SWA, TrialStart = timestamp, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw, StartYawRate_seconds = YawRate_seconds, StartYawRateChange = YawRateChange, RealStart = RMEAN) #use transmute to rename nwly computed variable (TrialStart) future join, ungroup first to allow for column rename of grouping variable
 
 # determine first time in each ppid, trialn group above threshold 
 threshold <-workingdata %>%
   group_by(ppid,trialn) %>%
-  filter(abs(YawRateChange) > yawratechange_threshold) %>%
+  filter(abs(RMEAN) > yawratechange_threshold) %>%
   filter(row_number() == 1) %>%
   ungroup() %>%
-  transmute(ppid, heading, trialn, cameraoffset, SWAThres = SWA, FirstYawRateChangeTimeThres = timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = YawRateChange) #use transmute to rename for future join, ungroup first to allow for column rename of grouping variable
+  transmute(ppid, heading, trialn, cameraoffset, SWAThres = SWA, FirstYawRateChangeTimeThres = timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = YawRateChange, RealThreshold = RMEAN) #use transmute to rename for future join, ungroup first to allow for column rename of grouping variable
 
 # Here SWA angle is redundent as it only takes the SWA for when the change in yaw rate is over the threshold... I'm interested in ThresYawRateChange (first change in yaw rate over threhsold) and FirstYawRateChangeTimeThres (first timestamp where yaw rate change is over threshold).
 
@@ -59,7 +69,176 @@ threshold <-workingdata %>%
 workingdatafinal <- left_join(first_time, threshold, by = c("ppid", "heading", "cameraoffset", "trialn")) %>%
   mutate(FirstSteeringTime = FirstYawRateChangeTimeThres - TrialStart) # calculate final result: first timestamp where change in yaw rate is over threshold minus starting trial timestamp
 
-#Only thing extra would be to calculate frame rate (ask Richard), and then multiply by change in yaw rate to get yaw rate per second per second.
+#Only thing extra would be to calculate frame rate (60 frames) (ask Richard), and then multiply by change in yaw rate to get yaw rate per second per second.
+
+```
+
+```{r filtering for heading and selecting 4 seconds of data, echo=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(matlab)
+
+####### -1 ########
+
+minus1 <- workingdata %>%
+  filter(heading < 0 & heading > -2)
+
+minus1data <-  minus1 %>% 
+  group_by(ppid, trialn) %>%
+  filter(timestamp<=min(timestamp)+4) %>%
+  ungroup() # filters data so only first 4 seconds from the start of the trial is selected
+
+minus1data <- unite(minus1data, ppid_trialn, ppid, trialn, sep = "_") # creating uniuqe ID for participants and trials
+
+minus1data <- minus1data %>%
+  group_by(ppid_trialn) %>%
+  mutate(anchored_timestamp = timestamp - min(timestamp)) # creating new variable of 4 second data in order to plot everything on top of each other
+
+###### -2 #######
+
+minus2 <- workingdata %>%
+  filter(heading < -1)
+
+minus2data <-  minus2 %>% 
+  group_by(ppid, trialn) %>%
+  filter(timestamp<=min(timestamp)+4) %>%
+  ungroup() # filters data so only first 4 seconds from the start of the trial is selected
+
+minus2data <- unite(minus2data, ppid_trialn, ppid, trialn, sep = "_") # creating uniuqe ID for participants and trials
+
+minus2data <- minus2data %>%
+  group_by(ppid_trialn) %>%
+  mutate(anchored_timestamp = timestamp - min(timestamp)) # creating new variable of 4 second data in order to plot everything on top of each other
+
+###### +1 ########
+
+plus1 <- workingdata %>%
+  filter(heading > 0 & heading < 2)
+
+plus1data <-  plus1 %>% 
+  group_by(ppid, trialn) %>%
+  filter(timestamp<=min(timestamp)+4) %>%
+  ungroup() # filters data so only first 4 seconds from the start of the trial is selected
+
+plus1data <- unite(plus1data, ppid_trialn, ppid, trialn, sep = "_") # creating uniuqe ID for participants and trials
+
+plus1data <- plus1data %>%
+  group_by(ppid_trialn) %>%
+  mutate(anchored_timestamp = timestamp - min(timestamp)) # creating new variable of 4 second data in order to plot everything on top of each other
+
+###### +2 #######
+
+plus2 <- workingdata %>%
+  filter(heading > 1)
+
+plus2data <-  plus2 %>% 
+  group_by(ppid, trialn) %>%
+  filter(timestamp<=min(timestamp)+4) %>%
+  ungroup() # filters data so only first 4 seconds from the start of the trial is selected
+
+plus2data <- unite(plus2data, ppid_trialn, ppid, trialn, sep = "_") # creating uniuqe ID for participants and trials
+
+plus2data <- plus2data %>%
+  group_by(ppid_trialn) %>%
+  mutate(anchored_timestamp = timestamp - min(timestamp)) # creating new variable of 4 second data in order to plot everything on top of each other
+
+zero <- workingdata %>%
+  filter(heading == 0)
+
+zerodata <-  zero %>% 
+  group_by(ppid, trialn) %>%
+  filter(timestamp<=min(timestamp)+4) %>%
+  ungroup() # filters data so only first 4 seconds from the start of the trial is selected
+
+zerodata <- unite(zerodata, ppid_trialn, ppid, trialn, sep = "_") # creating uniuqe ID for participants and trials
+
+zerodata <- zerodata %>%
+  group_by(ppid_trialn) %>%
+  mutate(anchored_timestamp = timestamp - min(timestamp)) # creating new variable of 4 second data in order to plot everything on top of each other
+
+
+```
+
+I think the plots do show a differece in where the peaks occur for headings of different angles. However these are not reflected in the corresponding mean values do the threshold that is being used i.e. the mean of the first timestamp where yaw rate change is above threshold.
+
+Instead I need to create a threshold that selects the final value after 10 frames of consecutive yaw rate change thus indicating a proper turn for each heading.
+```{r plotting timecourse}
+library(ggplot2)
+
+ggplot(minus1data, aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+  geom_line() +
+  ggtitle("-1 heading") +
+  scale_y_continuous(limits = c(-0.50, 0.75))
+
+ggplot(minus2data, aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+  geom_line() +
+  ggtitle("-2 heading") +
+  scale_y_continuous(limits = c(-0.50, 0.75))
+
+ggplot(plus1data, aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+  geom_line() +
+  ggtitle("+1 heading") +
+  scale_y_continuous(limits = c(-0.60, 0.50))
+
+ggplot(plus2data, aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+  geom_line() +
+  ggtitle("+2 heading") +
+  scale_y_continuous(limits = c(-0.60, 0.50))
+
+ggplot(zerodata, aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+  geom_line()
+
+
+
+```
+
+```{r mean yaw rate change}
+library(dplyr)
+library(ggplot2)
+
+#### -1 ####
+
+minus1data <- minus1data %>%
+  group_by(ppid_trialn, anchored_timestamp) %>%
+  mutate(meanYRC = mean(YawRateChange))
+
+ggplot(minus1data, aes(x = anchored_timestamp, y = meanYRC)) +
+  geom_line() +
+  scale_y_continuous(limits = c(-0.50, 0.75))
+
+#### -2 ####
+
+minus2data <- minus2data %>%
+  group_by(ppid_trialn, anchored_timestamp) %>%
+  mutate(meanYRC = mean(YawRateChange))
+
+ggplot(minus2data, aes(x = anchored_timestamp, y = meanYRC)) +
+  geom_line() +
+  scale_y_continuous(limits = c(-0.50, 0.75))
+
+#### +1 ####
+
+plus1data <- plus1data %>%
+  group_by(ppid_trialn, anchored_timestamp) %>%
+  mutate(meanYRC = mean(YawRateChange))
+
+ggplot(plus1data, aes(x = anchored_timestamp, y = meanYRC)) +
+  geom_line() +
+  scale_y_continuous(limits = c(-0.50, 0.50))
+
+#### +2 ####
+
+plus2data <- plus2data %>%
+  group_by(ppid_trialn, anchored_timestamp) %>%
+  mutate(meanYRC = mean(YawRateChange))
+
+ggplot(plus2data, aes(x = anchored_timestamp, y = meanYRC)) +
+  geom_line() +
+  scale_y_continuous(limits = c(-0.50, 0.50))
+
+
+
 
 ```
 
@@ -80,68 +259,6 @@ ggplot(plottingdata, aes(as.factor(heading), FirstSteeringTime)) +
 plottingdata %>%
   group_by(heading) %>%
   summarise(meanFirstSteering = mean(FirstSteeringTime, na.rm = TRUE))
-
-```
-
-```{r plotting timecourse}
-
-library(ggplot2)
-library(dplyr)
-library(matlab)
-
-# use linspace function to generate timecourse for each each heading
-
-minus1 <- workingdata %>%
-  filter(heading < 0 & heading > -2)
-
-minus1time <- tail(minus1$timestamp, n = 1) - head(minus1$timestamp, n = 1) # total time of -1 heading trials
-
-minus1trialtotal <- linspace(0, minus1time, n = 8179)
-minus1trialtotal <- data.frame(minus1trialtotal)
-colnames(minus1trialtotal) <- c("TrialTime")
-minus1 <- cbind(minus1, minus1trialtotal)
-ggplot(minus1, aes(x = TrialTime, y = YawRateChange)) +
-  geom_line()
-
-
-
-minus2 <- workingdata %>%
-  filter(heading < -1)
-
-minus2time <- tail(minus2$timestamp, n = 1) - head(minus2$timestamp, n = 1) # total time of -2 heading trials
-minus2trialtotal <- linspace(0, minus2time, n = 8175)
-minus2trialtotal <- data.frame(minus2trialtotal)
-colnames(minus2trialtotal) <- c("TrialTime")
-minus2 <- cbind(minus2, minus2trialtotal)
-ggplot(minus2, aes(x = TrialTime, y = YawRateChange)) +
-  geom_line()
-
-# For the plots above, I have filtered the data for only information relating to the -2 and -1 headings, substracted the first timestamp from the last timestamp to get the total trial in seconds. Then created a trial time column from 0 to the end trial in seconds over the number of data points for each trial. I have then plotted this trial time column against the yaw rate change column. 
-
-
-
-ggplot() +
-  geom_line(data = minus1, aes(x = timestamp, y = YawRateChange, color = "darkblue")) +
-  geom_line(data = minus2, aes(x = timestamp, y = YawRateChange, colour = "red")) +
-  labs(title = "-2 and -1 heading timecourse", x = "time (s)", y = "Change in yaw rate per second") +
-  scale_color_manual(labels = c("-1", "-2"), values = c("blue", "red"))
-
-# For the plot above, I have 
-
-##################positives below####################
-
-plus1 <- workingdata %>%
-  filter(heading > 0 & heading < 2)
-
-ggplot(plus1, aes(x = timestamp, y = YawRateChange)) +
-           geom_line()
-
-
-plus2 <- workingdata %>%
-  filter(heading > 1)
-
-ggplot(plus2, aes(x = timestamp, y = YawRateChange)) +
-           geom_line()
 
 ```
 
@@ -210,9 +327,9 @@ negative_offset %>%
   group_by(heading) %>%
   summarise(meanFirstSteering = mean(FirstSteeringTime, na.rm = TRUE))
 
-negative_offset %>%
-  group_by(heading) %>%
-  summarise(medianFirstSteering = median(FirstSteeringTime, na.rm = TRUE))
+# negative_offset %>%
+  # group_by(heading) %>%
+  # summarise(medianFirstSteering = median(FirstSteeringTime, na.rm = TRUE))
 
 # positive offset
 
@@ -220,11 +337,100 @@ positive_offset %>%
   group_by(heading) %>%
   summarise(meanFirstSteering = mean(FirstSteeringTime, na.rm = TRUE))
 
-positive_offset %>%
-  group_by(heading) %>%
-  summarise(medianFirstSteering = median(FirstSteeringTime, na.rm = TRUE))
+# positive_offset %>%
+  # group_by(heading) %>%
+  # summarise(medianFirstSteering = median(FirstSteeringTime, na.rm = TRUE))
 
 ```
 
 
+
+```{r old code for plotting timecourse of trials}
+
+minus1 <- workingdata %>%
+  filter(heading < 0 & heading > -2)
+
+minus1time <- tail(minus1$timestamp, n = 1) - head(minus1$timestamp, n = 1) # total time of -1 heading trials
+
+minus1trialtotal <- linspace(0, minus1time, n = 8179)
+minus1trialtotal <- data.frame(minus1trialtotal)
+colnames(minus1trialtotal) <- c("TrialTime")
+minus1 <- cbind(minus1, minus1trialtotal)
+ggplot(minus1, aes(x = TrialTime, y = YawRateChange)) +
+  geom_line() +
+  ggtitle("-1 heading")
+
+
+minus2 <- workingdata %>%
+  filter(heading < -1)
+
+minus2time <- tail(minus2$timestamp, n = 1) - head(minus2$timestamp, n = 1) # total time of -2 heading trials
+minus2trialtotal <- linspace(0, minus2time, n = 8175)
+minus2trialtotal <- data.frame(minus2trialtotal)
+colnames(minus2trialtotal) <- c("TrialTime")
+minus2 <- cbind(minus2, minus2trialtotal)
+ggplot(minus2, aes(x = TrialTime, y = YawRateChange)) +
+  geom_line() +
+  ggtitle("-2 heading")
+
+plus1 <- workingdata %>%
+  filter(heading > 0 & heading < 2)
+
+plus1time <- tail(plus1$timestamp, n = 1) - head(plus1$timestamp, n = 1) # total time of -1 heading trials
+
+plus1trialtotal <- linspace(0, plus1time, n = 8177)
+plus1trialtotal <- data.frame(plus1trialtotal)
+colnames(plus1trialtotal) <- c("TrialTime")
+plus1 <- cbind(plus1, plus1trialtotal)
+ggplot(plus1, aes(x = TrialTime, y = YawRateChange)) +
+  geom_line() +
+  ggtitle("+1 heading")
+
+plus2 <- workingdata %>%
+  filter(heading > 1 & heading < 3)
+
+plus2time <- tail(plus2$timestamp, n = 1) - head(plus2$timestamp, n = 1) # total time of -1 heading trials
+
+plus2trialtotal <- linspace(0, plus2time, n = 8188)
+plus2trialtotal <- data.frame(plus2trialtotal)
+colnames(plus2trialtotal) <- c("TrialTime")
+plus2 <- cbind(plus2, plus2trialtotal)
+ggplot(plus2, aes(x = TrialTime, y = YawRateChange)) +
+  geom_line() +
+  ggtitle("+2 heading")
+
+
+
+# ggplot() +
+  # geom_line(data = minus1, aes(x = TrialTime, y = YawRateChange, colour = "darkblue")) +
+  # geom_line(data = minus2, aes(x = TrialTime, y = YawRateChange, colour = "red"))
+
+# For the plots above, I have filtered the data for only information relating to the -2 and -1 headings, substracted the first timestamp from the last timestamp to get the total trial in seconds. Then created a trial time column from 0 to the end trial in seconds over the number of data points for each trial. I have then plotted this trial time column against the yaw rate change column. 
+
+
+
+ggplot() +
+  geom_line(data = minus1, aes(x = timestamp, y = YawRateChange, color = "darkblue")) +
+  geom_line(data = minus2, aes(x = timestamp, y = YawRateChange, colour = "red")) +
+  labs(title = "-2 and -1 heading timecourse", x = "time (s)", y = "Change in yaw rate per second") +
+  scale_color_manual(labels = c("-1", "-2"), values = c("blue", "red"))
+
+# For the plot above, I have filtered the data into -2 and -1 conditions, but instead of calculating a trial time total and then a trial time series, I have plotted the first timestamp to the last time stamp for both conditions and then edited the colours
+
+##################positives below####################
+
+plus1 <- workingdata %>%
+  filter(heading > 0 & heading < 2)
+
+ggplot(plus1, aes(x = timestamp, y = YawRateChange)) +
+           geom_line()
+
+
+plus2 <- workingdata %>%
+  filter(heading > 1)
+
+ggplot(plus2, aes(x = timestamp, y = YawRateChange)) +
+           geom_line()
+
+```
 

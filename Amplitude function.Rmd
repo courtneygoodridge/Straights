@@ -1,0 +1,70 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r example amplitude function}
+
+ThresholdingAlgo <- function(y,lag,threshold,influence) {
+  signals <- rep(0,length(y))
+  filteredY <- y[0:lag]
+  avgFilter <- NULL
+  stdFilter <- NULL
+  avgFilter[lag] <- mean(y[0:lag])
+  stdFilter[lag] <- sd(y[0:lag])
+  for (i in (lag+1):length(y)){
+    if (abs(y[i]-avgFilter[i-1]) > threshold*stdFilter[i-1]) {
+      if (y[i] > avgFilter[i-1]) {
+        signals[i] <- 1;
+      } else {
+        signals[i] <- -1;
+      }
+      filteredY[i] <- influence*y[i]+(1-influence)*filteredY[i-1]
+    } else {
+      signals[i] <- 0
+      filteredY[i] <- y[i]
+    }
+    avgFilter[i] <- mean(filteredY[(i-lag):i])
+    stdFilter[i] <- sd(filteredY[(i-lag):i])
+  }
+  return(list("signals"=signals,"avgFilter"=avgFilter,"stdFilter"=stdFilter))
+}
+
+```
+
+```{r example data}
+
+y <- workingdata %>% 
+  filter(heading == 1) %>%
+  group_by(anchored_timestamp) %>% 
+  summarise(meanYawRateChange = mean(YawRateChange)) 
+
+ggplot(y, aes(x = anchored_timestamp, y = meanYawRateChange)) +
+  geom_line()
+
+y <- y$meanYawRateChange
+
+lag       <- 30
+threshold <- 10
+influence <- 0
+
+result <- ThresholdingAlgo(y,lag,threshold,influence)
+
+```
+
+```{r plotting results}
+
+# Plot result
+par(mfrow = c(2,1),oma = c(2,2,0,0) + 0.1,mar = c(0,0,2,1) + 0.2)
+plot(1:length(y),y,type="l",ylab="",xlab="") 
+lines(1:length(y),result$avgFilter,type="l",col="cyan",lwd=2)
+lines(1:length(y),result$avgFilter+threshold*result$stdFilter,type="l",col="green",lwd=2)
+lines(1:length(y),result$avgFilter-threshold*result$stdFilter,type="l",col="green",lwd=2)
+plot(result$signals,type="S",col="red",ylab="",xlab="",ylim=c(-1.5,1.5),lwd=2)
+
+```
+

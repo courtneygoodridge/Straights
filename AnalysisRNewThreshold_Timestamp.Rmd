@@ -12,8 +12,10 @@ install.packages(dplyr)
 install.packages(tidyr)
 install.packages(TTR)
 install.packages(zoo)
+install.packages(matlab)
 # install.packages("magrittr")
-setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
+# setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 temp = list.files(pattern = "*.csv") # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -30,12 +32,26 @@ lowerthreshold = 0.010 # lower threshold for when response initiated
 workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
 
 workingdata <- workingdata %>%
+    mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) # calculating difference in yawrate
+
+workingdata <- workingdata %>%
   group_by(ppid_trialn) %>% 
-  arrange(timestamp) %>% 
-  slice(1:266) %>%
-  mutate(anchored_timestamp = linspace(0, 4, 266)) %>%
-  ungroup() %>%
-  mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) # calculating difference in yawrate
+  mutate(n = n()) %>% 
+  filter(n == 273) %>%
+  ungroup() # filtering for trials without missing frames
+
+workingdata <- workingdata %>%
+  group_by(ppid_trialn) %>%
+  mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
+  filter(anchored_timestamp<=min(anchored_timestamp)+4) %>%
+  mutate(n2 = n()) %>%
+  filter(n2 == 241) %>% # clipping timecourse at 4 seconds
+  ungroup()
+
+workingdata <- workingdata %>%
+  group_by(ppid_trialn) %>%
+  mutate(CORRECTEDanchored_timestamp = linspace(0, 4, 241)) %>%
+  ungroup() # creating new timestamp variable to match frames
 
 ```
 

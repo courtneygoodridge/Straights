@@ -38,12 +38,12 @@ ThresholdingAlgo <- function(y,lag,threshold,influence) {
 
 ```{r example data}
 
-y <- workingdata %>% 
-  filter(heading == 1) %>%
-  group_by(anchored_timestamp) %>% 
+y <- workingdatatimecourseUnsmooth %>% 
+  filter(heading == -2) %>%
+  group_by(frame) %>% 
   summarise(meanYawRateChange = mean(YawRateChange)) 
 
-ggplot(y, aes(x = anchored_timestamp, y = meanYawRateChange)) +
+ggplot(y, aes(x = frame, y = meanYawRateChange)) +
   geom_line()
 
 y <- y$meanYawRateChange

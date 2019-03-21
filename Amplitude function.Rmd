@@ -5,6 +5,10 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+install.packages(ggplot2)
+install.packages(dplyr)
+install.packages(quantmod)
+install.packages("Peaks")
 ```
 
 ```{r example amplitude function}
@@ -37,6 +41,9 @@ ThresholdingAlgo <- function(y,lag,threshold,influence) {
 ```
 
 ```{r example data}
+library(ggplot2)
+library(dplyr)
+
 
 y <- workingdatatimecourseUnsmooth %>% 
   filter(heading == -2) %>%
@@ -48,8 +55,11 @@ ggplot(y, aes(x = frame, y = meanYawRateChange)) +
 
 y <- y$meanYawRateChange
 
-lag       <- 30
-threshold <- 10
+# Write CSV in R
+write.csv(y, file = "Minus2YawRateChange.csv")
+
+lag       <- 5
+threshold <- 3.50
 influence <- 0
 
 result <- ThresholdingAlgo(y,lag,threshold,influence)
@@ -58,6 +68,7 @@ result <- ThresholdingAlgo(y,lag,threshold,influence)
 
 ```{r plotting results}
 
+# Plot result
 # Plot result
 par(mfrow = c(2,1),oma = c(2,2,0,0) + 0.1,mar = c(0,0,2,1) + 0.2)
 plot(1:length(y),y,type="l",ylab="",xlab="") 

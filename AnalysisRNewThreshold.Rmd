@@ -12,30 +12,84 @@ install.packages(dplyr)
 install.packages(tidyr)
 install.packages(TTR)
 install.packages(zoo)
+# install.packages(matlabr)
 # install.packages("magrittr")
 setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-temp = list.files(pattern = "*.csv") # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 ```
 
 
-```{r  thresholds, calculating yaw rate change and removing spikes}
+```{r  thresholds, removing trials with dropped frames, calculating yaw rate change}
 library(dplyr)
 library(tidyr)
+library(TTR)
 
-# change in steering threshold
+# change in steering 
+magnitudethreshold = 0.140
 upperthreshold = 0.105 # 0.2184 # upper threshold for consistent steering response
-lowerthreshold = 0.010 # lower threshold for when response initiated 
-
-workingdata <- workingdata %>%
-  mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) # calculating difference in yawrate
+lowerthreshold = 0.005 # lower threshold for when response initiated 
 
 workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
 
+workingdata <- workingdata %>%
+  mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% #difference in yaw rate
+  group_by(ppid_trialn) %>%
+  mutate(frame = row_number()) %>%
+  ungroup()
+
 workingdata$YawRateChange[workingdata$YawRateChange >= 0.73499999] <- 0 # removes random spikes
 
+# rows <- workingdata %>%
+#   group_by(ppid_trialn) %>%
+#   summarise(rows = n())
+# 
+# View(rows)
+
+```
+
+```{r Callum function fo r removing spikes - ask Callum about this}
+# library(dplyr)
+# 
+# workingdata <- workingdata %>% 
+#   group_by(ppid_trialn) %>% 
+#   mutate(timestamp_diff = append(diff(timestamp),0))
+# 
+# #quick function for averaging out implausible fluctuations in yaw-rate due to variations in recorded timestamps.
+# correctTimestamp <- 
+#   function(x,y){ #x needs to be timestamp_diff, y needs to be yaw signal.
+#     Tvec = which(x >.017) # Means dropped frames.
+#     len = length(y)
+#     for (i in 1:length(Tvec)){
+#       p = Tvec[i]
+#       t1 = x[p] #dropped frame.
+#       t2 = x[p+1] #sometimes this is close to zero. If it is, average the two yaw rates. If it isn't, average the preceding and subsequent.
+#       if (p+2 < len){
+#         if (t2 < .015){ ##take the corresponding two datapoints in yaw rate and average
+#           YR1 = y[p+1] 
+#           YR2 = y[p+2]
+#           YR_avg = (YR1+YR2) / 2
+#           y[p+1] = YR_avg
+#           y[p+2] = YR_avg  
+#         } else { #means it is an isolated dropped frame. average before and after yaw-rates
+#           YR1 = y[p]
+#           YR2 = y[p+2]
+#           YR_avg = (YR1+YR2) / 2
+#           y[p+1] = YR_avg
+#         }
+#       }
+#     }
+#     return(y)
+#   }
+# 
+# workingdata <- workingdata %>% 
+#   group_by(ppid_trialn) %>% 
+#   mutate(newYawRate = correctTimestamp(timestamp_diff,smoothedYawRate_seconds))
+# 
+# 
+# 
 ```
 
 ```{r anchoring timestamps at 4 seconds and calculating frames column}
@@ -47,13 +101,10 @@ workingdatatimecourseUnsmooth <- workingdata %>%
   filter(anchored_timestamp<=min(anchored_timestamp)+4) %>%
   ungroup() # create anchored timestamp and then only select first 4 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
 
-workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
-  group_by(ppid_trialn) %>%
-  mutate(frame = row_number())
-
 ```
 
-```{r formulating threshold data}
+
+```{r calculating genuine responses, formulating threshold data}
 library(zoo)
 library(dplyr)
 library(tidyr)
@@ -61,19 +112,41 @@ library(TTR)
 
 # implement anchored_timestamp again in code below to search only in first 1.5 seconds. Then use code above to calculate max peak thresholds and whether they pass the filter
 
-# workingdata <- workingdata %>%
+# TRUERESPONSE <- workingdatatimecourseUnsmooth %>%
 #   group_by(ppid_trialn) %>%
 #   mutate(maxValue = max(abs(YawRateChange))) %>%
-#   filter(maxValue > 0.20)
+#   filter(maxValue >= 0.15) %>%
+#   mutate(GenuineResponse = TRUE)
+# 
+# FALSERESPONSE <- workingdatatimecourseUnsmooth %>%
+#   group_by(ppid_trialn) %>%
+#   mutate(maxValue = max(abs(YawRateChange))) %>%
+#   filter(maxValue < 0.15) %>%
+#   mutate(GenuineResponse = FALSE)
+# 
+# workingdatatimecourseUnsmooth <- rbind(TRUERESPONSE, FALSERESPONSE)
+
+workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
+  group_by(ppid_trialn) %>%
+  mutate(PeakMagnitude = max(abs(YawRateChange))) %>%
+  ungroup()
 
 workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
-  group_by(ppid_trialn)%>%
-  mutate(row_number())%>% # added to verify selection
+  group_by(ppid_trialn) %>%
+  mutate(row_number(), Genuine_Response = if_else(PeakMagnitude >= magnitudethreshold, TRUE, FALSE)) %>%
   filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(abs(YawRateChange) > upperthreshold))) %>% 
   slice(max(which(abs(YawRateChange) < lowerthreshold))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = YawRateChange)
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = YawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude) #, maxValue = maxValue, GenuineResponse = GenuineResponse)
+
+workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
+  group_by(heading) %>%
+  mutate(LateResponse = abs(FirstSteeringTime - mean(FirstSteeringTime)) > sd(FirstSteeringTime) & abs(FirstSteeringTime - mean(FirstSteeringTime)) > -sd(FirstSteeringTime))
+# returns TRUE if response is more than 1 SD above or below mean first steering time
+# guards against too fast/low responses
+
+# returns TRUE if response is more than 1 SD from zero -> mutate(ResponseTooLate = if_else(FirstSteeringTime > 2*sd(FirstSteeringTime), TRUE, FALSE)) # label late responses
 
 ##################################### SMOOTHING DATA ###################################
 
@@ -84,35 +157,28 @@ workingdatatimecourseSmooth[is.na(workingdatatimecourseSmooth)] <- 0 # set NA va
 
 # determine first time in each ppid, trialn group above threshold
 workingdatathresholdSmooth <- workingdatatimecourseSmooth %>%
-  group_by(ppid_trialn)%>%
-  mutate(row_number())%>% # added to verify selection
+  group_by(ppid_trialn) %>%
+  mutate(row_number(), Genuine_Response = if_else(PeakMagnitude >= magnitudethreshold, TRUE, FALSE)) %>%
   filter(max(abs(smoothedYawRateChange)) > upperthreshold, # filter largest yaw rate change greater than the upper threshold
          min(abs(smoothedYawRateChange)) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold
   slice(1:min(which(abs(smoothedYawRateChange) > upperthreshold))) %>%
   slice(max(which(abs(smoothedYawRateChange) < lowerthreshold))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = smoothedYawRateChange)
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = smoothedYawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude)
 
+workingdatathresholdSmooth <- workingdatathresholdSmooth %>%
+  group_by(heading) %>%
+  mutate(LateResponse = abs(FirstSteeringTime - mean(FirstSteeringTime)) > sd(FirstSteeringTime) & abs(FirstSteeringTime - mean(FirstSteeringTime)) > -sd(FirstSteeringTime))
+# returns TRUE if response is more than 1 SD above or below mean first steering time
+# guards against too fast/low responses
+
+# returns TRUE if response is more than 1 SD from zero -> mutate(ResponseTooLate = if_else(FirstSteeringTime > 2*sd(FirstSteeringTime), TRUE, FALSE)) # label late responses
+ 
 ##################################### SMOOTHING DATA ###################################
 
 # Here SWA angle is redundent as it only takes the SWA for when the change in yaw rate is over the threshold... I'm interested in ThresYawRateChange (first change in yaw rate over threhsold) and FirstYawRateChangeTimeThres (first timestamp where yaw rate change is over threshold).
 
 #Only thing extra would be to calculate frame rate (60 frames) (ask Richard), and then multiply by change in yaw rate to get yaw rate per second per second.
-
-```
-
-
-```{r calculating number of trials per condition that reach threshold - FOR RICHARD}
-library(ggplot2)
-library(dplyr)
-
-pptsthreshold <- workingdatathresholdUnsmooth %>%
-  group_by(heading) %>%
-  summarise(NoOfPpts = n())
-
-sum(pptsthreshold$NoOfPpts) # number of trials that reach threshold
-
-View(pptsthreshold)
 
 ```
 
@@ -123,6 +189,13 @@ library(dplyr)
 
 # workingdatathreshold <- workingdatathreshold %>%
   # filter(FirstSteeringTime < 1.25) # filter outliers 
+
+# workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
+#   filter(Genuine_Response == TRUE & LateResponse == FALSE)
+# 
+# workingdatathresholdSmooth <- workingdatathresholdSmooth %>%
+#   filter(Genuine_Response == TRUE & LateResponse == FALSE)
+
 
 ######## -2 heading ##########
 
@@ -206,6 +279,31 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == 2), aes(x = anchore
 
 ```
 
+```{r genuine repsonses}
+library(dplyr)
+
+workingdatathresholdUnsmooth %>%
+  filter(LateResponse == TRUE) %>%
+  group_by(heading) %>%
+  summarise(NumLate = n())
+
+workingdatathresholdUnsmooth %>%
+  filter(Genuine_Response == FALSE) %>%
+  group_by(heading) %>%
+  summarise(NumNotGenuine = n())
+
+workingdatathresholdUnsmooth %>%
+  filter(Genuine_Response == TRUE & LateResponse == FALSE) %>%
+  group_by(heading) %>%
+  summarise(trials = n()) %>%
+  ungroup()
+
+workingdatathresholdUnsmooth %>%
+  summarise(trials = n())
+
+
+```
+
 
 ```{r timecourse plotting for individual trials}
 library(ggplot2)
@@ -215,46 +313,46 @@ library(dplyr)
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -2), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -2), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
-  ggtitle("-2 heading - unsmoothered")
+  ggtitle("-2 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == -2), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdSmooth, heading == -2), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdSmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
-  ggtitle("-2 heading - smoothered")
+  ggtitle("-2 heading - smoothed")
 
 ##### -1 ######
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -1), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -1), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
   ggtitle("-1 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == -1), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdSmooth, heading == -1), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdSmooth, heading == -1), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
-  ggtitle("-1 heading - smoothered")
+  ggtitle("-1 heading - smoothed")
 
 #### 0 ########
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 0), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 0), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
   ggtitle("0 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == 0), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdSmooth, heading == 0), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdSmooth, heading == 0), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
   ggtitle("0 heading - smoothed")
@@ -263,14 +361,14 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == 0), aes(x = anchore
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 1), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 1), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
   ggtitle("+1 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == 1), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdSmooth, heading == 1), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdSmooth, heading == 1), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
   ggtitle("+1 heading - smoothed")
@@ -279,14 +377,14 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == 1), aes(x = anchore
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
   ggtitle("+2 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == 2), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdSmooth, heading == 2), aes(xintercept = FirstSteeringTime), col = "red") +
+  geom_vline(data = filter(workingdatathresholdSmooth, heading == 2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
   ggtitle("+2 heading - smoothed")
@@ -300,9 +398,19 @@ workingdatathresholdUnsmooth %>%
   group_by(heading) %>%
   summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE))
 
+workingdatathresholdUnsmooth %>%
+  filter(Genuine_Response == TRUE & LateResponse == FALSE) %>%
+  group_by(heading) %>%
+  summarise(meanFirstSteeringTimeTRUE = mean(FirstSteeringTime, na.rm = TRUE))
+
 workingdatathresholdSmooth %>%
   group_by(heading) %>%
   summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE))
+
+workingdatathresholdSmooth %>%
+  filter(Genuine_Response == TRUE & LateResponse == FALSE) %>%
+  group_by(heading) %>%
+  summarise(meanFirstSteeringTimeTRUE = mean(FirstSteeringTime, na.rm = TRUE))
 
 ```
 
@@ -312,21 +420,70 @@ library(ggplot2)
 
 ggplot(data = workingdatathresholdUnsmooth, aes(as.factor(heading), FirstSteeringTime)) +
   geom_boxplot() +
-  stat_summary(fun.y = mean, colour = "red", geom = "point") +
-  ggtitle("First steering time across heading angles: boxplots") +
+  # stat_summary(fun.y = mean, colour = "red", geom = "point") +
+  ggtitle("First steering time across heading angles: UNSMOOTH ALL RESPONSES") +
   xlab("Heading angle (degrees)") +
-  ylab("Time until first steering correction (s)") +
-  scale_y_continuous(limits = c(0, 0.6))
+  ylab("Time until first steering correction (s)")
 
 ggplot(data = workingdatathresholdSmooth, aes(as.factor(heading), FirstSteeringTime)) +
   geom_boxplot() +
-  stat_summary(fun.y = mean, colour = "red", geom = "point") +
-  ggtitle("First steering time across heading angles: boxplots") +
+  # stat_summary(fun.y = mean, colour = "red", geom = "point") +
+  ggtitle("First steering time across heading angles: SMOOTH ALL RESPONSES") +
   xlab("Heading angle (degrees)") +
-  ylab("Time until first steering correction (s)") +
-  scale_y_continuous(limits = c(0, 0.6))
+  ylab("Time until first steering correction (s)")
+
+##### BOXPLOTS WHERE RESPONSES ARE GENUINE AND NOT TOO LATE
+
+ggplot(data = filter(workingdatathresholdUnsmooth, Genuine_Response == TRUE & LateResponse == FALSE), aes(as.factor(heading), FirstSteeringTime)) +
+  geom_boxplot() +
+  # stat_summary(fun.y = mean, colour = "red", geom = "point") +
+  ggtitle("First steering time across heading angles: UNSMOOTH GENUINE RESPONSES") +
+  xlab("Heading angle (degrees)") +
+  ylab("Time until first steering correction (s)") 
+
+ggplot(data = filter(workingdatathresholdSmooth, Genuine_Response == TRUE & LateResponse == FALSE), aes(as.factor(heading), FirstSteeringTime)) +
+  geom_boxplot() +
+  # stat_summary(fun.y = mean, colour = "red", geom = "point") +
+  ggtitle("First steering time across heading angles: SMOOTH GENUINE RESPONSES") +
+  xlab("Heading angle (degrees)") +
+  ylab("Time until first steering correction (s)") 
+
+
   
 ```
+
+```{r averaging data and saving for matlab}
+library(dplyr)
+
+minus2 <- workingdatatimecourseUnsmooth %>% 
+  filter(heading == -2) %>%
+  group_by(frame) %>% 
+  summarise(meanYawRateChange = mean(YawRateChange))
+
+minus1 <- workingdatatimecourseUnsmooth %>% 
+  filter(heading == -1) %>%
+  group_by(frame) %>% 
+  summarise(meanYawRateChange = mean(YawRateChange))
+
+plus1 <- workingdatatimecourseUnsmooth %>% 
+  filter(heading == 1) %>%
+  group_by(frame) %>% 
+  summarise(meanYawRateChange = mean(YawRateChange))
+
+plus2 <- workingdatatimecourseUnsmooth %>% 
+  filter(heading == 2) %>%
+  group_by(frame) %>% 
+  summarise(meanYawRateChange = mean(YawRateChange))
+
+avgtimecourse <- as.data.frame(cbind(minus2$frame, minus2$meanYawRateChange, minus1$meanYawRateChange, plus1$meanYawRateChange, plus2$meanYawRateChange))
+
+# Write CSV in R
+# write.csv(avgtimecourse, file = "avgtimecourse.csv")
+
+# write.csv(avgtimecourse, file = "avgtimecourseGENUINE.csv")
+
+```
+
 
 
 

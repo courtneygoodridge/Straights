@@ -386,6 +386,13 @@ class myExperiment(viz.EventClass):
 		self.Current_distance = 0
 		self.Current_dt = 0
 
+
+		self.blackscreen = viz.addTexQuad(viz.SCREEN)
+		self.blackscreen.color(viz.BLACK)
+		self.blackscreen.setPosition(.5,.6)
+		self.blackscreen.setScale(100,100)
+		self.blackscreen.visible(viz.OFF)
+
 		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
 	def runtrials(self):
@@ -464,6 +471,7 @@ class myExperiment(viz.EventClass):
 			# print ("offsetEuler", offsetEuler)
 			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)	# this sets the next straight at the yaw offset of the condition list 
 			
+			yield viztask.waitTime(1) #wait for one second before change of camera heading
 
 			#change OFFSET OF VIEW
 
@@ -474,14 +482,44 @@ class myExperiment(viz.EventClass):
 			#self.Trial_Camera_Offset = random.choice(self.Camera_Offset) # CMG edit
 
 			#set the view offset.
+			
+			#put a mask on so that the jump isn't so visible
+			self.blackscreen.visible(viz.ON)
+			
+			yield viztask.waitFrame(6) #wait for six frames (.1 s)
+
 			offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
 			viz.MainWindow.setViewOffset( offset )
+
+			self.blackscreen.visible(viz.OFF) #turn the mask
 			
+
+			yield viztask.waitTime(1) #wait for one second after change of camera heading
 			
 			# msg = msg + '\n' + 'Offset: ' + str(self.Trial_Camera_Offset) #Save your variables - COMMENT OUT FOR EXPERIMENT
 
 			# txtCondt.message(msg)	- COMMENT OUT FOR EXPERIMENT
 
+
+			#translate bend to driver position.
+			driverpos = viz.MainView.getPosition()
+			print driverpos
+			self.Straight.setPosition(driverpos[0],0, driverpos[2])
+
+			# self.Straight.setPosition([0,0, 5], viz.REL_LOCAL)
+
+			#now need to set orientation
+			driverEuler = viz.MainView.getEuler() # gets current driver euler (orientation)
+			print ("driverEuler", driverEuler) # prints the euler 
+			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) # then sets the straight euler as the driver euler in global coordinates.
+			
+
+			#Euler needs to be in yaw,pitch,roll
+			#bendEuler = driverEuler 
+			#offsetEuler = [driverEuler[0]+trial_heading, driverEuler[1], driverEuler[2]]
+			offsetEuler = [trial_heading, 0, 0] # this creates the straight offset
+			# print ("offsetEuler", offsetEuler)
+			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)
 
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
 			self.driver.setSWA_invisible() # sets SWA invisible on screen		
@@ -514,10 +552,7 @@ class myExperiment(viz.EventClass):
 			#TODO: Recentre the wheel on automation.
 
 			#yield viztask.waitTrue(checkCentred)
-			#print "waited"
-			
-			#self.driver.setSWA_visible()
-			yield viztask.waitTime(2) #wait for input .		
+			#print "waited"	
 	
 		#loop has finished.
 		CloseConnections(self.EYETRACKING)

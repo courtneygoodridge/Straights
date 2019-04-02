@@ -472,8 +472,10 @@ class myExperiment(viz.EventClass):
 			self.Trial_Camera_Offset = trial_heading 
 
 			#self.Trial_Camera_Offset = random.choice(self.Camera_Offset) # CMG edit
-			#offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
-			#viz.MainWindow.setViewOffset( offset )
+
+			#set the view offset.
+			offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
+			viz.MainWindow.setViewOffset( offset )
 			
 			
 			# msg = msg + '\n' + 'Offset: ' + str(self.Trial_Camera_Offset) #Save your variables - COMMENT OUT FOR EXPERIMENT

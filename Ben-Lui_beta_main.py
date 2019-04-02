@@ -360,7 +360,7 @@ class myExperiment(viz.EventClass):
 		self.SAVEDATA = False
 
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWV','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'StraightVisible']
+		datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWV','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'StraightVisible', 'setpoint']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
@@ -369,6 +369,7 @@ class myExperiment(viz.EventClass):
 		self.Trial_N = 0 #nth trial
 		self.Trial_trialtype_signed = 0
 		self.Trial_Camera_Offset = 0 			
+		self.Trial_setpoint = 0 #initial steering wheel angle 
 		#self.Trial_Timer = 0 #keeps track of trial length. 
 		#self.Trial_BendObject = None		
 		
@@ -486,6 +487,10 @@ class myExperiment(viz.EventClass):
 			#trial_occl = 0 #HACK
 			yield viztask.waitTime(trial_occl) # This command will create a Condition object that will wait for the specified number of seconds to elapse. Will viztask waitime work within a class? 
 			
+
+			#reset steering wheel set point. 
+			self.Trial_setpoint = self.driver.reset_setpoint()
+
 			self.Straight.visible(1)
 			
 			yield viztask.waitTime(self.VisibleRoadTime-trial_occl) #after the occlusion add the road again. 2.5s to avoid ceiling effects.
@@ -537,7 +542,7 @@ class myExperiment(viz.EventClass):
 			#datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
 			output = [self.PP_id, self.Trial_heading, self.Trial_Camera_Offset, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWV, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-			self.Current_distance, self.Current_dt, self.Current_StraightVisibleFlag] #output array.		
+			self.Current_distance, self.Current_dt, self.Current_StraightVisibleFlag, self.Trial_setpoint] #output array.		
 
 			self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	

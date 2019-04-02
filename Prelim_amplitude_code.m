@@ -1,7 +1,7 @@
 % load in data
 data = csvread('avgtimecourseGENUINE.csv', 1, 1);
 %data = csvread('avgtimecourse.csv', 1, 1); % data
-frames = data(:,1); % number of frames 
+frames = 1:241; % number of frames 
 
 % standard plotting data
 % figure
@@ -13,18 +13,58 @@ frames = data(:,1); % number of frames
 % legend('Yaw Rate Change')
 % grid on
 
-% normal thresholding to find peaks (for plus headings?)
+%%%%% normal thresholding to find peaks (for plus headings?)
 
 % [~,locs_ResponseStart] = findpeaks(data,'MinPeakHeight',-0.01,'MinPeakDistance',50);
                                 
 % inverted thresholding to find peak troughs
 
+%%%%% 0 heading %%%%%%
+
+zerodata = data(:,3);
+[~,zeroPeakResponse] = findpeaks(zerodata,'MinPeakHeight',0.1,'MinPeakDistance',30); % find the response peak/trough
+
+limit = 0.005;                                    
+indx = 1;
+limitExceeded = false; % limit is not exceeded
+while limitExceeded == false
+    if abs(zerodata(indx)) > limit % if yaw rate change is above threshold 
+        limitExceeded = true; % limit is exceeded
+    end
+    indx = indx + 1;
+end % first point before the trough
+
+zeroresponseSTART = indx; % this indx is the response start
+
+while limitExceeded == true % the limit is exceeded
+    if abs(zerodata(indx)) <= limit % if yaw rate change is less than or equal to the limit
+         limitExceeded = false; % limit is not exceeded
+    end
+    indx = indx + 1;
+end % first point after the trough 
+
+zeroresponseEND = indx; % response has ended
+
+% smoothing the signal 
+smoothzerodata = sgolayfilt(zerodata,7,21);
+
+% response values of the smoothed data
+[val_zeroPeakResponse, val_zeroresponseSTART, val_zeroresponseEND] = deal(smoothminus2data(minus2PeakResponse), smoothminus2data(minus2responseSTART), smoothminus2data(minus2responseEND));
+
+% average fall and rise times
+
+avg_riseTimezero = zeroresponseEND - zeroPeakResponse; % Average Rise time
+avg_fallTimezero = zeroPeakResponse - zeroresponseSTART; % Average Fall time
+
+avg_riseLevelzero = val_zeroresponseEND - val_zeroPeakResponse;  % Average Rise Level
+avg_fallLevelzero = val_zeroPeakResponse - val_zeroresponseSTART;  % Average Fall Level
+
 %%%%% -2 heading %%%%%
 
-minus2data_inverted = -data(:,2);
+minus2data_inverted = -data(:,1);
 [~,minus2PeakResponse] = findpeaks(minus2data_inverted,'MinPeakHeight',0.1,'MinPeakDistance',30); % find the response peak/trough
 
-minus2data = data(:,2);
+minus2data = data(:,1);
 limit = 0.005;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
@@ -85,10 +125,10 @@ avg_fallLevelminus2 = val_minus2PeakResponse - val_minus2responseSTART;  % Avera
 
 %%%%% -1 heading %%%%%
 
-minus1data_inverted = -data(:,3);
+minus1data_inverted = -data(:,2);
 [~,minus1PeakResponse] = findpeaks(minus1data_inverted,'MinPeakHeight',0.1,'MinPeakDistance',30); % find the response peak/trough
 
-minus1data = data(:,3);
+minus1data = data(:,2);
 limit = 0.005;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
@@ -130,17 +170,21 @@ figure
 hold on
 plot(frames,smoothminus2data,'r')
 plot(frames,smoothminus1data,'b')
+plot(frames,smoothzerodata, 'k')
 plot(minus2PeakResponse,smoothminus2data(minus2PeakResponse),'rs','MarkerFaceColor','b')
 plot(minus2responseSTART,smoothminus2data(minus2responseSTART), 'rv','MarkerFaceColor','r')
 plot(minus2responseEND,smoothminus2data(minus2responseEND),'rv','MarkerFaceColor','k')
 plot(minus1PeakResponse,smoothminus1data(minus1PeakResponse),'rs','MarkerFaceColor','b')
 plot(minus1responseSTART,smoothminus1data(minus1responseSTART), 'rv','MarkerFaceColor','r')
 plot(minus1responseEND,smoothminus1data(minus1responseEND),'rv','MarkerFaceColor','k')
+plot(zeroPeakResponse,smoothzerodata(zeroPeakResponse),'rs','MarkerFaceColor','b')
+plot(zeroresponseSTART,smoothzerodata(zeroresponseSTART), 'rv','MarkerFaceColor','r')
+plot(zeroresponseEND,smoothzerodata(zeroresponseEND),'rv','MarkerFaceColor','k')
 axis([0 250 -0.30 0.30])
 grid on
 xlabel('Frames')
 ylabel('Yaw Rate Change')
-legend('-2 heading', '-1 heading', 'Peak Response', 'Response Start', 'Response end')
+legend('-2 heading', '-1 heading', 'straight heading', 'Peak Response', 'Response Start', 'Response end')
 title('Filtered Yaw Rate Signal for negative heading conditions')
 
 % fall annotations for -2 heading
@@ -305,17 +349,21 @@ figure
 hold on
 plot(frames,smoothplus2data,'r')
 plot(frames,smoothplus1data,'b')
+plot(frames, smoothzerodata,'k')
 plot(plus1PeakResponse,smoothplus1data(plus1PeakResponse),'rs','MarkerFaceColor','b')
 plot(plus1responseSTART,smoothplus1data(plus1responseSTART), 'rv','MarkerFaceColor','r')
 plot(plus1responseEND,smoothplus1data(plus1responseEND),'rv','MarkerFaceColor','k')
 plot(plus2PeakResponse,smoothplus2data(plus2PeakResponse),'rs','MarkerFaceColor','b')
 plot(plus2responseSTART,smoothplus2data(plus2responseSTART), 'rv','MarkerFaceColor','r')
 plot(plus2responseEND,smoothplus2data(plus2responseEND),'rv','MarkerFaceColor','k')
+plot(zeroPeakResponse,smoothzerodata(zeroPeakResponse),'rs','MarkerFaceColor','b')
+plot(zeroresponseSTART,smoothzerodata(zeroresponseSTART), 'rv','MarkerFaceColor','r')
+plot(zeroresponseEND,smoothzerodata(zeroresponseEND),'rv','MarkerFaceColor','k')
 axis([0 250 -0.30 0.30])
 grid on
 xlabel('Frames')
 ylabel('Yaw Rate Change')
-legend('+2 heading', '+1 heading', 'Peak Response', 'Response Start', 'Response end')
+legend('+2 heading', '+1 heading', 'straight heading', 'Peak Response', 'Response Start', 'Response end')
 title('Filtered Yaw Rate Signal for positive heading conditions')
 
 % rise annotations for +2 heading

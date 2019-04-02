@@ -112,11 +112,12 @@ def setStage(TILING = True):
 	gtexture = viz.addTexture(fName)
 	gtexture.wrap(viz.WRAP_T, viz.REPEAT)
 	gtexture.wrap(viz.WRAP_S, viz.REPEAT)
-	#add groundplane (wrap mode)
+	# #add groundplane (wrap mode)
 ###UNCOMMENT FOR TILING
 # Tiling saves memory by using two groundplane tiles instead of a massive groundplane. Since the drivers are essentially driving linearly forward, they cover a lot of distance across the z axis.
 	gplane1 = viz.addTexQuad() ##
-	tilesize = 1000 #half a km wide
+	tilesize = 150 #half a km wide
+	texture_z_size = tilesize * 2
 	#planesize = tilesize/5
 	planesize = tilesize/5.0
 	gplane1.setScale(tilesize, tilesize*2, tilesize)
@@ -130,6 +131,7 @@ def setStage(TILING = True):
 	gplane1.visible(1)
 #
 	if TILING:
+		# fName2 = 'textures\\strong_edge_blueoutline.bmp'
 		gplane2 = gplane1.copy() #create duplicate.
 		gplane2.setScale(tilesize, tilesize*2, tilesize)
 		gplane2.setEuler((0, 90, 0),viz.REL_LOCAL)
@@ -143,7 +145,7 @@ def setStage(TILING = True):
 	else:
 		gplane2 = []
 	
-	return(gplane1, gplane2)
+	return(gplane1, gplane2, texture_z_size)
 #	##To save CPU I could move a small quad with the person.
 #	gsizex = 50 #groundplane size, metres squared
 #	gsizez = 160 #clipped at 150.
@@ -346,12 +348,14 @@ class myExperiment(viz.EventClass):
 		self.Camera_Offset = np.linspace(-2, 2, 5)
 
 		##### ADD GRASS TEXTURE #####
-		[gplane1, gplane2] = setStage(TILING)
+		[gplane1, gplane2, gplane_z_size] = setStage(TILING)
 		self.gplane1 = gplane1
 		self.gplane2 = gplane2
+		self.gplane_z_size = gplane_z_size
 
 		##### MAKE STRAIGHT OBJECT #####
 		self.Straight = StraightMaker(x = 0, start_z = 0, end_z = 200)	
+		self.Straight.visible(0)
 
 		self.callback(viz.TIMER_EVENT,self.updatePositionLabel)
 		self.starttimer(0,0,viz.FOREVER) #self.update position label is called every frame.
@@ -360,7 +364,7 @@ class myExperiment(viz.EventClass):
 		self.SAVEDATA = False
 
 		####### DATA SAVING ######
-		datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWV','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'StraightVisible']
+		datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWV','SWA','YawRate_seconds','TurnAngle_frames','Distance_frames','dt', 'StraightVisible', 'setpoint']
 		self.Output = pd.DataFrame(columns=datacolumns) #make new empty EndofTrial data
 
 		### parameters that are set at the start of each trial ####
@@ -369,6 +373,7 @@ class myExperiment(viz.EventClass):
 		self.Trial_N = 0 #nth trial
 		self.Trial_trialtype_signed = 0
 		self.Trial_Camera_Offset = 0 			
+		self.Trial_setpoint = 0 #initial steering wheel angle 
 		#self.Trial_Timer = 0 #keeps track of trial length. 
 		#self.Trial_BendObject = None		
 		
@@ -384,6 +389,13 @@ class myExperiment(viz.EventClass):
 		self.Current_TurnAngle_frames = 0
 		self.Current_distance = 0
 		self.Current_dt = 0
+
+
+		self.blackscreen = viz.addTexQuad(viz.SCREEN)
+		self.blackscreen.color(viz.BLACK)
+		self.blackscreen.setPosition(.5,.6)
+		self.blackscreen.setScale(100,100)
+		self.blackscreen.visible(viz.OFF)
 
 		self.callback(viz.EXIT_EVENT,self.SaveData) #if exited, save the data. 
 
@@ -463,6 +475,7 @@ class myExperiment(viz.EventClass):
 			# print ("offsetEuler", offsetEuler)
 			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)	# this sets the next straight at the yaw offset of the condition list 
 			
+			yield viztask.waitTime(1) #wait for one second before change of camera heading
 
 			#change OFFSET OF VIEW
 
@@ -471,14 +484,46 @@ class myExperiment(viz.EventClass):
 			self.Trial_Camera_Offset = trial_heading 
 
 			#self.Trial_Camera_Offset = random.choice(self.Camera_Offset) # CMG edit
-			#offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
-			#viz.MainWindow.setViewOffset( offset )
+
+			#set the view offset.
 			
+			#put a mask on so that the jump isn't so visible
+			self.blackscreen.visible(viz.ON)
+			
+			yield viztask.waitFrame(6) #wait for six frames (.1 s)
+
+			offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
+			viz.MainWindow.setViewOffset( offset )
+
+			self.blackscreen.visible(viz.OFF) #turn the mask
+			
+
+			yield viztask.waitTime(1) #wait for one second after change of camera heading
 			
 			# msg = msg + '\n' + 'Offset: ' + str(self.Trial_Camera_Offset) #Save your variables - COMMENT OUT FOR EXPERIMENT
 
 			# txtCondt.message(msg)	- COMMENT OUT FOR EXPERIMENT
 
+
+			#translate bend to driver position.
+			driverpos = viz.MainView.getPosition()
+			print driverpos
+			self.Straight.setPosition(driverpos[0],0, driverpos[2])
+
+			# self.Straight.setPosition([0,0, 5], viz.REL_LOCAL)
+
+			#now need to set orientation
+			driverEuler = viz.MainView.getEuler() # gets current driver euler (orientation)
+			print ("driverEuler", driverEuler) # prints the euler 
+			self.Straight.setEuler(driverEuler, viz.ABS_GLOBAL) # then sets the straight euler as the driver euler in global coordinates.
+			
+
+			#Euler needs to be in yaw,pitch,roll
+			#bendEuler = driverEuler 
+			#offsetEuler = [driverEuler[0]+trial_heading, driverEuler[1], driverEuler[2]]
+			offsetEuler = [trial_heading, 0, 0] # this creates the straight offset
+			# print ("offsetEuler", offsetEuler)
+			self.Straight.setEuler(offsetEuler, viz.REL_LOCAL)
 
 			#will need to save initial vertex for line origin, and Euler. Is there a nifty way to save the relative position to the road?
 			self.driver.setSWA_invisible() # sets SWA invisible on screen		
@@ -486,6 +531,10 @@ class myExperiment(viz.EventClass):
 			#trial_occl = 0 #HACK
 			yield viztask.waitTime(trial_occl) # This command will create a Condition object that will wait for the specified number of seconds to elapse. Will viztask waitime work within a class? 
 			
+
+			#reset steering wheel set point. 
+			self.Trial_setpoint = self.driver.reset_setpoint()
+
 			self.Straight.visible(1)
 			
 			yield viztask.waitTime(self.VisibleRoadTime-trial_occl) #after the occlusion add the road again. 2.5s to avoid ceiling effects.
@@ -507,10 +556,7 @@ class myExperiment(viz.EventClass):
 			#TODO: Recentre the wheel on automation.
 
 			#yield viztask.waitTrue(checkCentred)
-			#print "waited"
-			
-			#self.driver.setSWA_visible()
-			yield viztask.waitTime(2) #wait for input .		
+			#print "waited"	
 	
 		#loop has finished.
 		CloseConnections(self.EYETRACKING)
@@ -537,7 +583,7 @@ class myExperiment(viz.EventClass):
 			#datacolumns = ['ppid', 'heading', 'cameraoffset', 'occlusion','trialn','timestamp','trialtype_signed','World_x','World_z','WorldYaw','SWA','BendVisible']
 			output = [self.PP_id, self.Trial_heading, self.Trial_Camera_Offset, self.Trial_occlusion, self.Trial_N, self.Current_Time, self.Trial_trialtype_signed, 
 			self.Current_pos_x, self.Current_pos_z, self.Current_yaw, self.Current_SWV, self.Current_SWA, self.Current_YawRate_seconds, self.Current_TurnAngle_frames, 
-			self.Current_distance, self.Current_dt, self.Current_StraightVisibleFlag] #output array.		
+			self.Current_distance, self.Current_dt, self.Current_StraightVisibleFlag, self.Trial_setpoint] #output array.		
 
 			self.Output.loc[self.Current_RowIndex,:] = output #this dataframe is actually just one line. 		
 	
@@ -592,36 +638,19 @@ class myExperiment(viz.EventClass):
 			if viz.MainWindow.isCulled(self.gplane1):
 				#if it's not visible, move ahead 50m from the driver.
 				
-				print 'attempting to shift gplane1'
-				#translate bend to driver position.
-				driverpos = viz.MainView.getPosition()
-				self.gplane1.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
-				
-				#now need to set orientation
-				#driverEuler = viz.MainView.getEuler()
-		
-				self.gplane1.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
-				
-				self.gplane1.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize * 3
-				
-				
-				self.gplane1.setEuler(0,90,0, viz.REL_LOCAL) #rotate to ground plane	
+				print 'shift gplane1'
+
+				#since the road is on average straight ahead you can just move the plane along the z axis
+
+				self.gplane1.setPosition(0,0, self.gplane_z_size*2,viz.REL_GLOBAL) 
 				
 			if viz.MainWindow.isCulled(self.gplane2):
 				#if it's not visible, move ahead 50m from the driver.
 				
-				print 'attempting to shift gplane2'
-				#translate bend to driver position.
-				driverpos = viz.MainView.getPosition()
-				self.gplane2.setPosition(driverpos[0],0, driverpos[2],viz.ABS_GLOBAL) #bring to driver pos
+				print 'shift gplane2'
 				
-				#now need to set orientation
-				#driverEuler = viz.MainView.getEuler()
-				self.gplane2.setEuler(driverEuler[0],0,0, viz.ABS_GLOBAL)		
-				
-				self.gplane2.setPosition(0,0, 30, viz.REL_LOCAL) #should match up to the tilesize y size of the other tile.
-				
-				self.gplane2.setEuler(0,90,0, viz.REL_LOCAL) #rotate to ground plane		
+				#since the road is on average straight ahead you can just move the plane along the z axis
+				self.gplane2.setPosition(0,0, self.gplane_z_size*2,viz.REL_GLOBAL) 
 
 def CloseConnections(EYETRACKING):
 	

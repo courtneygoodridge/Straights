@@ -19,6 +19,9 @@ class Driver(viz.EventClass):
 		self.__speed = 8.0 #m./s
 		self.__heading = 0.0
 		self.__pause = -50 #pauses for 50 frames at the start of each trial
+
+		self.__setpoint = 0 #set point for wheel. (essentially the new zero).
+		#set point is in steering wheel value units [-1, 1]
 		
 		self.__view = Cave
 		self.Camera_Offset = [0, 1, -1] # CMG edit - selection of camera offsets
@@ -104,6 +107,7 @@ class Driver(viz.EventClass):
 				data[0] = 1
 		
 			SteeringWheelValue = data[0] # on scale from -1 to 1.
+			SteeringWheelValue -= self.__setpoint 
 	#		#Compute drag
 	#		drag = self.__speed / 300.0
 			self.__dir = 1
@@ -179,3 +183,17 @@ class Driver(viz.EventClass):
 		x = e.pos[0]*10		
 		self.txtSWA.message(str(x))
 			
+	def reset_setpoint(self):
+		
+		"""retrieves current wheel values and inputs it as the new setpoint"""
+		
+		data = joy.getPosition()
+		setpoint = data[0] # on scale from -1 to 1.
+
+		self.__setpoint = setpoint
+
+		return(self.__setpoint)
+
+	def get_setpoint(self):
+		
+		return(self.__setpoint)

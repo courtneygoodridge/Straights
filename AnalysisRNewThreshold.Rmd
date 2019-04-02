@@ -527,7 +527,7 @@ library(lmPerm)
 ancova1 <- aov(FirstSteeringTime ~ heading_fact + initialSWA, data = workingdatathresholdSmooth)
 summary(ancova1)
 
-resultTukey <-TukeyHSD(ancova1)
+resultTukey <-TukeyHSD(ancova1) # this doesn't work for some reason...
 resultTukey
 
 # ancova looking at first steering time whislt partialing out initialSWA - using linear model

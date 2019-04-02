@@ -19,7 +19,7 @@ frames = 1:241; % number of frames
                                 
 % inverted thresholding to find peak troughs
 
-%%%%% 0 heading %%%%%%
+%%%%% 0 heading %%%%%%%
 
 zerodata = data(:,3);
 [~,zeroPeakResponse] = findpeaks(zerodata,'MinPeakHeight',0.1,'MinPeakDistance',30); % find the response peak/trough

@@ -24,11 +24,26 @@ install.packages(e1071) # for calculating skewness
 # install.packages("magrittr")
 setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-temp = list.files(pattern = c("BenLui17", "*.csv")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_t", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 ```
 
+```{r altering StraightVisible variable for new experiment design}
+library(dplyr)
+
+workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
+
+sapply(workingdata, class) # identifies class of each column
+
+workingdata$StraightVisible <- as.numeric(workingdata$StraightVisible) # changes factor to numeric, 1 = false, 2 = true
+
+workingdata <- workingdata %>%
+group_by(ppid_trialn) %>%
+filter(StraightVisible == 2) %>% # filter for only data where central line is visible
+mutate(frame = row_number()) # create frame number column
+
+```
 
 ```{r  thresholds, removing trials with dropped frames, calculating yaw rate change}
 library(dplyr)
@@ -43,8 +58,6 @@ init_hemm()
 magnitudethreshold = 0.140
 upperthreshold = 0.105 # 0.2184 # upper threshold for consistent steering response
 lowerthreshold = 0.005 # lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
-
-workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
 
 workingdata <- workingdata %>%
   mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% #difference in yaw rate

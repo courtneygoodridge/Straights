@@ -655,7 +655,8 @@ class myExperiment(viz.EventClass):
 				#change euler to match camera
 				self.gplane1.setEuler([self.Current_yaw,90,0],viz.ABS_GLOBAL)
 				
-				#move forward one texture length.
+				#move forward one texture length. 
+				#Since the ground texture is already rotated 90 degrees you need to move it forward along the y axis.
 				self.gplane1.setPosition(0,self.gplane_z_size, 0,viz.ABS_LOCAL) 
 
 				
@@ -672,6 +673,7 @@ class myExperiment(viz.EventClass):
 				self.gplane2.setEuler([self.Current_yaw,90,0],viz.ABS_GLOBAL)
 				
 				#move forward one texture length.
+				#Since the ground texture is already rotated 90 degrees you need to move it forward along the y axis.
 				self.gplane2.setPosition(0,self.gplane_z_size, 0,viz.ABS_LOCAL) 
 
 def CloseConnections(EYETRACKING):

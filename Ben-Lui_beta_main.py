@@ -108,6 +108,7 @@ def setStage(TILING = True):
 	
 	#CODE UP TILE-WORK WITH GROUNDPLANE.	
 	##should set this up so it builds new tiles if you are reaching the boundary.
+	#fName = 'textures\\strong_edge_redoutline.bmp'
 	fName = 'textures\\strong_edge.bmp'
 	gtexture = viz.addTexture(fName)
 	gtexture.wrap(viz.WRAP_T, viz.REPEAT)
@@ -116,7 +117,7 @@ def setStage(TILING = True):
 ###UNCOMMENT FOR TILING
 # Tiling saves memory by using two groundplane tiles instead of a massive groundplane. Since the drivers are essentially driving linearly forward, they cover a lot of distance across the z axis.
 	gplane1 = viz.addTexQuad() ##
-	tilesize = 150 # half a km wide (might need to increase size?)
+	tilesize = 500# half a km wide (might need to increase size?)
 	texture_z_size = tilesize * 2
 	#planesize = tilesize/5
 	planesize = tilesize/5.0
@@ -132,13 +133,18 @@ def setStage(TILING = True):
 #
 	if TILING:
 		# fName2 = 'textures\\strong_edge_blueoutline.bmp'
+		#fName2 = 'textures\\strong_edge_blueoutline.bmp'
+		fName2 = 'textures\\strong_edge.bmp'
+		gtexture2 = viz.addTexture(fName2)
+		gtexture2.wrap(viz.WRAP_T, viz.REPEAT)
+		gtexture2.wrap(viz.WRAP_S, viz.REPEAT)
 		gplane2 = gplane1.copy() #create duplicate.
 		gplane2.setScale(tilesize, tilesize*2, tilesize)
 		gplane2.setEuler((0, 90, 0),viz.REL_LOCAL)
 		#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much.
 		gplane2.texmat( matrix )
 		#gplane1.texture(gtexture)
-		gplane2.texture(gtexture)
+		gplane2.texture(gtexture2)
 		gplane2.visible(1)
 		gplane2.setPosition(0,0,tilesize*2)
 		gplane2.zoffset(-1)
@@ -642,15 +648,33 @@ class myExperiment(viz.EventClass):
 
 				#since the road is on average straight ahead you can just move the plane along the z axis
 
-				self.gplane1.setPosition(0,0, self.gplane_z_size*2,viz.REL_GLOBAL) 
+				#change gplane to the driver's position
+				self.gplane1.setPosition(pos,viz.ABS_GLOBAL) 
+
+				
+				#change euler to match camera
+				self.gplane1.setEuler([self.Current_yaw,90,0],viz.ABS_GLOBAL)
+				
+				#move forward one texture length. 
+				#Since the ground texture is already rotated 90 degrees you need to move it forward along the y axis.
+				self.gplane1.setPosition(0,self.gplane_z_size, 0,viz.ABS_LOCAL) 
+
 				
 			if viz.MainWindow.isCulled(self.gplane2):
 				#if it's not visible, move ahead 50m from the driver.
 				
 				print 'shift gplane2'
 				
-				#since the road is on average straight ahead you can just move the plane along the z axis
-				self.gplane2.setPosition(0,0, self.gplane_z_size*2,viz.REL_GLOBAL) 
+								#change gplane to the driver's position
+				self.gplane2.setPosition(pos,viz.ABS_GLOBAL) 
+
+				
+				#change euler to match camera
+				self.gplane2.setEuler([self.Current_yaw,90,0],viz.ABS_GLOBAL)
+				
+				#move forward one texture length.
+				#Since the ground texture is already rotated 90 degrees you need to move it forward along the y axis.
+				self.gplane2.setPosition(0,self.gplane_z_size, 0,viz.ABS_LOCAL) 
 
 def CloseConnections(EYETRACKING):
 	

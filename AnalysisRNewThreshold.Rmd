@@ -11,20 +11,39 @@ install.packages(ggplot2) # for plots
 install.packages(dplyr) # for manipulating data frames
 install.packages(tidyr) # for tidying data (uniting columns)
 install.packages(TTR) # for smoothing data with mean of observations
-install.packages(zoo)
-install.packages(skimr)
+install.packages(zoo) # package for rolling mean
+install.packages(skimr) # generates summary of data
 install.packages(car) # to perform levenes and anova
 install.packages(apaTables) # to create apa table
 install.packages(WRS2) # for non-parametric anova
+install.packages(compute.es) # for ancova type 3 method
+install.packages(multcomp) # post hoc for type 3 method ancova
+install.packages(lmPerm) # non-parametric ancova
+install.packages(e1071) # for calculating skewness
 # install.packages(matlabr)
 # install.packages("magrittr")
 setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-temp = list.files(pattern = c("BenLui17", "*.csv")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_t", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 ```
 
+```{r altering StraightVisible variable for new experiment design}
+library(dplyr)
+
+workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
+
+sapply(workingdata, class) # identifies class of each column
+
+workingdata$StraightVisible <- as.numeric(workingdata$StraightVisible) # changes factor to numeric, 1 = false, 2 = true
+
+workingdata <- workingdata %>%
+group_by(ppid_trialn) %>%
+filter(StraightVisible == 2) %>% # filter for only data where central line is visible
+mutate(frame = row_number()) # create frame number column
+
+```
 
 ```{r  thresholds, removing trials with dropped frames, calculating yaw rate change}
 library(dplyr)
@@ -39,8 +58,6 @@ init_hemm()
 magnitudethreshold = 0.140
 upperthreshold = 0.105 # 0.2184 # upper threshold for consistent steering response
 lowerthreshold = 0.005 # lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
-
-workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
 
 workingdata <- workingdata %>%
   mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% #difference in yaw rate
@@ -108,7 +125,7 @@ library(dplyr)
 workingdatatimecourseUnsmooth <- workingdata %>%
   group_by(ppid_trialn) %>%
   mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
-  filter(anchored_timestamp<=min(anchored_timestamp)+4) %>%
+  filter(anchored_timestamp <= min(anchored_timestamp) + 4) %>%
   ungroup() # create anchored timestamp and then only select first 4 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
 
 ```
@@ -119,25 +136,12 @@ library(dplyr)
 library(tidyr)
 library(TTR)
 
-# implement anchored_timestamp again in code below to search only in first 1.5 seconds. Then use code above to calculate max peak thresholds and whether they pass the filter
-
-# TRUERESPONSE <- workingdatatimecourseUnsmooth %>%
-#   group_by(ppid_trialn) %>%
-#   mutate(maxValue = max(abs(YawRateChange))) %>%
-#   filter(maxValue >= 0.15) %>%
-#   mutate(GenuineResponse = TRUE)
-# 
-# FALSERESPONSE <- workingdatatimecourseUnsmooth %>%
-#   group_by(ppid_trialn) %>%
-#   mutate(maxValue = max(abs(YawRateChange))) %>%
-#   filter(maxValue < 0.15) %>%
-#   mutate(GenuineResponse = FALSE)
-# 
-# workingdatatimecourseUnsmooth <- rbind(TRUERESPONSE, FALSERESPONSE)
-
+# Calculates peak magnitude and initial SWA for each trial
 workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
   group_by(ppid_trialn) %>%
   mutate(PeakMagnitude = max(abs(YawRateChange))) %>% # calculate peak yaw rate change for each trial
+  mutate(initialSWA = head(SWA, n = 1)) %>%
+  mutate(absInitialSWA = abs(initialSWA)) %>%
   ungroup()
 
 workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
@@ -147,9 +151,7 @@ workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
   slice(1:min(which(abs(YawRateChange) > upperthreshold, 1))) %>% 
   slice(max(which(abs(YawRateChange) < lowerthreshold, 1))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = YawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude) #, maxValue = maxValue, GenuineResponse = GenuineResponse)
-
-workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = YawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude, initialSWA = initialSWA, absInitialSWA = absInitialSWA) %>%
   group_by(heading) %>%
   mutate(LateResponse = abs(FirstSteeringTime - mean(FirstSteeringTime)) > sd(FirstSteeringTime) & abs(FirstSteeringTime - mean(FirstSteeringTime)) > -sd(FirstSteeringTime))
 # returns TRUE if response is more than 1 SD above or below mean first steering time
@@ -158,6 +160,8 @@ workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
 # returns TRUE if response is more than 1 SD from zero -> mutate(ResponseTooLate = if_else(FirstSteeringTime > 2*sd(FirstSteeringTime), TRUE, FALSE)) # label late responses
 
 ##################################### SMOOTHING DATA ###################################
+
+# do I need to smooth SWA and calculate a new initial SWA variable for the smoothed data?
 
 workingdatatimecourseSmooth <- workingdatatimecourseUnsmooth %>%
   mutate(smoothedYawRateChange = SMA(YawRateChange, n = 3)) # calculates moving average over the number of data points you specify
@@ -173,9 +177,7 @@ workingdatathresholdSmooth <- workingdatatimecourseSmooth %>%
   slice(1:min(which(abs(smoothedYawRateChange) > upperthreshold, 1))) %>%
   slice(max(which(abs(smoothedYawRateChange) < lowerthreshold, 1))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = smoothedYawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude)
-
-workingdatathresholdSmooth <- workingdatathresholdSmooth %>%
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = smoothedYawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude, initialSWA = initialSWA, absInitialSWA = absInitialSWA) %>%
   group_by(heading) %>%
   mutate(LateResponse = abs(FirstSteeringTime - mean(FirstSteeringTime)) > sd(FirstSteeringTime) & abs(FirstSteeringTime - mean(FirstSteeringTime)) > - sd(FirstSteeringTime))
 # returns TRUE if response is more than 1 SD above or below mean first steering time
@@ -194,18 +196,9 @@ workingdatathresholdSmooth <- workingdatathresholdSmooth %>%
 ```{r checking initial SWA and repsonse time}
 library(ggplot2)
 
-initialSWA <- workingdatatimecourseUnsmooth %>%
-  group_by(ppid_trialn) %>%
-  summarise(initialSWA = head(SWA, n = 1))
-
-workingdatathresholdUnsmooth <- merge(workingdatathresholdUnsmooth, initialSWA, by = "ppid_trialn")
-
-workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
-  group_by(ppid_trialn) %>%
-  mutate(absInitialSWA = abs(initialSWA))
-
 ggplot(workingdatathresholdUnsmooth, aes(x = absInitialSWA, y = FirstSteeringTime, color = as.factor(heading))) +
   geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
   ggtitle("Initial steering wheel angle and first steering response time") +
   xlab("Initial steering wheel angle (degrees)") +
   ylab("First steering response time (seconds)") +
@@ -213,7 +206,7 @@ ggplot(workingdatathresholdUnsmooth, aes(x = absInitialSWA, y = FirstSteeringTim
 
 ggplot(filter(workingdatathresholdUnsmooth, heading == 0), aes(x = absInitialSWA, y = FirstSteeringTime, color = as.factor(heading))) +
   geom_point() +
-  geom_smooth(method = "lm") +
+  geom_smooth(method = "lm", se = FALSE) +
   ggtitle("Initial steering wheel angle and first steering response time for 0 heading") +
   xlab("Initial steering wheel angle (degrees)") +
   ylab("First steering response time (seconds)") +
@@ -458,7 +451,39 @@ workingdatathresholdSmooth %>%
 
 ```
 
-```{r anova assumptions and tests}
+```{r normality assumptions tests}
+library(ggplot2)
+library(dplyr)
+library(car) # anova and levenes table
+library(apaTables) # for apa tables
+library(MBESS) # for apa tables
+library(WRS2) # for non-parametric
+library(e1071) # for skewness calculation
+
+# skim of the data
+skim(clean_smooth_data)
+
+# calculates skewness for each condition
+clean_smooth_data %>%
+  group_by(heading) %>%
+  summarise(skew = skewness(FirstSteeringTime))
+
+# histogram normality
+ggplot(clean_smooth_data, aes(x = FirstSteeringTime)) +
+  geom_histogram() +
+  facet_wrap( ~ heading)
+
+# shapiro-wilk test for each heading - significant means not normally distributed
+clean_smooth_data_heading2 <- filter(clean_smooth_data, heading == 1)
+shapiro.test(clean_smooth_data_heading2$FirstSteeringTime)
+
+# need to make grouping variable a factor for levene's test - doesn't assume normality so significant means data is not normal
+clean_smooth_data$heading_fact<-as.factor(clean_smooth_data$heading)
+leveneTest(FirstSteeringTime ~ heading_fact, data = clean_smooth_data)
+
+```
+
+```{r anova tests}
 library(ggplot2)
 library(dplyr)
 library(car) # anova and levenes table
@@ -466,26 +491,26 @@ library(apaTables) # for apa tables
 library(MBESS) # for apa tables
 library(WRS2) # for non-parametric
 
-# shapiro-wilk test for each heading - significant means not normally distrobuted
-workingdatathresholdSmooth_heading2 <- filter(workingdatathresholdSmooth, heading == 2)
-shapiro.test(workingdatathresholdSmooth_heading2)
-
-# need to make grouping variable a factor for levene's test - doesn't assume normality so significant means data is not normal
-workingdatathresholdSmooth$heading_fact<-as.factor(workingdatathresholdSmooth$heading)
-leveneTest(FirstSteeringTime ~ heading_fact, data = workingdatathresholdSmooth)
-
 ###### PARAMETRIC ######
 
-# Anova
+# Anova style 1
 Anova1 <- aov(FirstSteeringTime ~ heading_fact, data = workingdatathresholdSmooth)
 summary(Anova1)
 
+# Post-hoc tests (only to be used on anova1 type of anova)
+resultTukey <-TukeyHSD(Anova1)
+resultTukey
+
+# Anova style 2 ( linear model)
+Anova2 <- lm(FirstSteeringTime ~ heading_fact, data = workingdatathresholdSmooth)
+summary(Anova2)
+
+# Post hoc tests for style 2 (linear model)
+posth = glht(Anova2, linfct = mcp(heading_fact = "Tukey"))  
+summary(posth)
+
 # creates nice table with effect size
 apa.aov.table(Anova1, filename = "APA_Anova_Table.doc", table.number = 1)
-
-# Post-hoc tests
-resultTukey<-TukeyHSD(Anova1)
-resultTukey
 
 ####### NON-PARAMETRIC ######
 
@@ -493,10 +518,10 @@ resultTukey
 t1way(FirstSteeringTime ~ heading_fact, data = workingdatathresholdSmooth)
 
 # Anova for non-parametric (heteroscedastic one-way ANOVA for trimmed means) and bootstrapping
-t1waybt(FirstSteeringTime ~ heading_fact, data = workingdatathresholdSmooth, nboot = 10000)
+t1waybt(FirstSteeringTime ~ heading_fact, data = clean_smooth_data, nboot = 10000)
 
 # Post hoc for non-parametric anova
-lincon(FirstSteeringTime ~ heading_fact, data = workingdatathresholdSmooth) 
+lincon(FirstSteeringTime ~ heading_fact, data = clean_smooth_data) 
 
 # Anova for non-parametric (using medians values)
 med1way(FirstSteeringTime ~ heading_fact, data = workingdatathresholdSmooth, iter = 10000)
@@ -504,9 +529,42 @@ med1way(FirstSteeringTime ~ heading_fact, data = workingdatathresholdSmooth, ite
 ```
 
 ```{r ancova tests}
+library(car)
+library(compute.es) # ancova using type 3 method
+library(multcomp) # post hoc for ancova type 3 method
+library(lmPerm)
+# allows you to partial out other observations within your data (i.e. initial SWA in my case)
+
+
+# ancova using anova function but adding the covariates to your grouping variable - significant initialSWA would mean that the effect of the covariate on the main effects was significant
+ancova1 <- aov(FirstSteeringTime ~ heading_fact + initialSWA, data = workingdatathresholdSmooth)
+summary(ancova1)
+
+resultTukey <-TukeyHSD(ancova1) # this doesn't work for some reason...
+resultTukey
+
+# ancova looking at first steering time whislt partialing out initialSWA - using linear model
+lm_ancova2 <- lm(FirstSteeringTime ~ heading_fact + initialSWA, data = clean_smooth_data)
+anova(lm_ancova2)
+
+# ancova using type 3 method and linear model - significant initialSWA would mean that the effect of the covariate on the main effects was significant
+ancova3 <- lm(FirstSteeringTime ~ heading_fact + initialSWA, contrasts = list(heading_fact = contr.sum), data = workingdatathresholdSmooth)
+Anova(ancova3, type = "III")
+
+# post hoc for ancova using linear model version
+posth = glht(lm_ancova2, linfct = mcp(heading_fact = "Tukey"))  
+summary(posth)
+
+##### NON-PARAMETRIC #####
+
+nonpara_ancova <- aovp(FirstSteeringTime ~ heading_fact + initialSWA, data = workingdatathresholdSmooth)
+summary(nonpara_ancova)
+
+resultTukey <-TukeyHSD(nonpara_ancova)
+resultTukey
+
 
 ```
-
 
 
 ```{r boxplots for all angles}
@@ -561,6 +619,11 @@ minus1 <- workingdatatimecourseUnsmooth %>%
   group_by(frame) %>% 
   summarise(meanYawRateChange = mean(YawRateChange))
 
+zero <- workingdatatimecourseUnsmooth %>% 
+  filter(heading == 0) %>%
+  group_by(frame) %>% 
+  summarise(meanYawRateChange = mean(YawRateChange))
+
 plus1 <- workingdatatimecourseUnsmooth %>% 
   filter(heading == 1) %>%
   group_by(frame) %>% 
@@ -571,12 +634,22 @@ plus2 <- workingdatatimecourseUnsmooth %>%
   group_by(frame) %>% 
   summarise(meanYawRateChange = mean(YawRateChange))
 
+avgtimecourse<- data.frame(minus2 = numeric(n),
+                           minus1 = numeric(n),
+                           zero = numeric(n),
+                           plus1 = numeric(n),
+                           plus2 = numeric(n))
 
+avgtimecourse$minus2 <- minus2$meanYawRateChange
+avgtimecourse$minus1 <- minus1$meanYawRateChange
+avgtimecourse$zero <- zero$meanYawRateChange
+avgtimecourse$plus1 <- plus1$meanYawRateChange
+avgtimecourse$plus2 <- plus2$meanYawRateChange
 
 # Write CSV in R
-# write.csv(avgtimecourse, file = "avgtimecourse.csv")
+write.csv(avgtimecourse, file = "avgtimecourse.csv")
 
-write.csv(avgtimecourse, file = "avgtimecourseGENUINE.csv")
+# write.csv(avgtimecourse, file = "avgtimecourseGENUINE.csv")
 
 ```
 

@@ -116,13 +116,13 @@ def setStage(TILING = True):
 ###UNCOMMENT FOR TILING
 # Tiling saves memory by using two groundplane tiles instead of a massive groundplane. Since the drivers are essentially driving linearly forward, they cover a lot of distance across the z axis.
 	gplane1 = viz.addTexQuad() ##
-	tilesize = 1000 # original 150 half a km wide
+	tilesize = 150 # half a km wide
 	texture_z_size = tilesize * 2
 	#planesize = tilesize/5
 	planesize = tilesize/5.0
 	gplane1.setScale(tilesize, tilesize*2, tilesize)
 	gplane1.setEuler((0, 90, 0),viz.REL_LOCAL)
-	#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much.
+	#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much (was originally commented out)
 	matrix = vizmat.Transform()
 	matrix.setScale( planesize, planesize*2, planesize )
 	gplane1.texmat( matrix )

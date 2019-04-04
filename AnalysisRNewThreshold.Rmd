@@ -29,7 +29,7 @@ myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 ```
 
-```{r altering StraightVisible variable for new experiment design}
+```{r altering StraightVisible variable (for new experiment design)}
 library(dplyr)
 
 workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
@@ -125,7 +125,7 @@ library(dplyr)
 workingdatatimecourseUnsmooth <- workingdata %>%
   group_by(ppid_trialn) %>%
   mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
-  filter(anchored_timestamp <= min(anchored_timestamp) + 4) %>%
+  filter(anchored_timestamp <= min(anchored_timestamp) + 2.5) %>% # add for seconds fro the original data 
   ungroup() # create anchored timestamp and then only select first 4 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
 
 ```
@@ -347,12 +347,12 @@ library(dplyr)
 
 ##### -2 ######
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -2), aes(x = anchored_timestamp, y = YawRateChange)) +
-  geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
-  facet_wrap( ~ ppid_trialn) +
-  scale_y_continuous(limits = c(-0.60, 0.80)) +
-  ggtitle("-2 heading - unsmoothed")
+# ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -2), aes(x = anchored_timestamp, y = YawRateChange)) +
+#   geom_line() +
+#   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
+#   facet_wrap( ~ ppid_trialn) +
+#   scale_y_continuous(limits = c(-0.60, 0.80)) +
+#   ggtitle("-2 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == -2), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +
@@ -363,12 +363,12 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == -2), aes(x = anchor
 
 ##### -1 ######
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1), aes(x = anchored_timestamp, y = YawRateChange)) +
-  geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -1), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
-  facet_wrap( ~ ppid_trialn) +
-  scale_y_continuous(limits = c(-0.60, 0.80)) +
-  ggtitle("-1 heading - unsmoothed")
+# ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1), aes(x = anchored_timestamp, y = YawRateChange)) +
+#   geom_line() +
+#   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -1), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
+#   facet_wrap( ~ ppid_trialn) +
+#   scale_y_continuous(limits = c(-0.60, 0.80)) +
+#   ggtitle("-1 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == -1), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +
@@ -379,12 +379,12 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == -1), aes(x = anchor
 
 #### 0 ########
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0), aes(x = anchored_timestamp, y = YawRateChange)) +
-  geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 0), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
-  facet_wrap( ~ ppid_trialn) +
-  scale_y_continuous(limits = c(-0.60, 0.80)) +
-  ggtitle("0 heading - unsmoothed")
+# ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0), aes(x = anchored_timestamp, y = YawRateChange)) +
+#   geom_line() +
+#   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 0), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
+#   facet_wrap( ~ ppid_trialn) +
+#   scale_y_continuous(limits = c(-0.60, 0.80)) +
+#   ggtitle("0 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == 0), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +
@@ -395,12 +395,12 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == 0), aes(x = anchore
 
 ###### +1 ######
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1), aes(x = anchored_timestamp, y = YawRateChange)) +
-  geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 1), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
-  facet_wrap( ~ ppid_trialn) +
-  scale_y_continuous(limits = c(-0.60, 0.80)) +
-  ggtitle("+1 heading - unsmoothed")
+# ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1), aes(x = anchored_timestamp, y = YawRateChange)) +
+#   geom_line() +
+#   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 1), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
+#   facet_wrap( ~ ppid_trialn) +
+#   scale_y_continuous(limits = c(-0.60, 0.80)) +
+#   ggtitle("+1 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == 1), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +
@@ -411,12 +411,12 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == 1), aes(x = anchore
 
 ##### +2 #####
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = anchored_timestamp, y = YawRateChange)) +
-  geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
-  facet_wrap( ~ ppid_trialn) +
-  scale_y_continuous(limits = c(-0.60, 0.80)) +
-  ggtitle("+2 heading - unsmoothed")
+# ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = anchored_timestamp, y = YawRateChange)) +
+#   geom_line() +
+#   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
+#   facet_wrap( ~ ppid_trialn) +
+#   scale_y_continuous(limits = c(-0.60, 0.80)) +
+#   ggtitle("+2 heading - unsmoothed")
 
 ggplot(data = filter(workingdatatimecourseSmooth, heading == 2), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
   geom_line() +

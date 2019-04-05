@@ -31,6 +31,7 @@ workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV 
 
 ```{r altering StraightVisible variable (for new experiment design)}
 library(dplyr)
+library(tidyr)
 
 workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
 
@@ -125,7 +126,7 @@ library(dplyr)
 workingdatatimecourseUnsmooth <- workingdata %>%
   group_by(ppid_trialn) %>%
   mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
-  filter(anchored_timestamp <= min(anchored_timestamp) + 2.5) %>% # add for seconds fro the original data 
+  filter(anchored_timestamp <= min(anchored_timestamp) + 5.0) %>% # add for seconds fro the original data 
   ungroup() # create anchored timestamp and then only select first 4 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
 
 ```

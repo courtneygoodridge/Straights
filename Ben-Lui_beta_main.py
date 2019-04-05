@@ -117,7 +117,7 @@ def setStage(TILING = True):
 ###UNCOMMENT FOR TILING
 # Tiling saves memory by using two groundplane tiles instead of a massive groundplane. Since the drivers are essentially driving linearly forward, they cover a lot of distance across the z axis.
 	gplane1 = viz.addTexQuad() ##
-	tilesize = 500# half a km wide (might need to increase size?)
+	tilesize = 750 # half a km wide (might need to increase size?)
 	texture_z_size = tilesize * 2
 	#planesize = tilesize/5
 	planesize = tilesize/5.0
@@ -342,7 +342,7 @@ class myExperiment(viz.EventClass):
 		#self.FACTOR_headingpool = np.linspace(-30, 30, 5) #array from -45 to 45. 
 		#self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
 		self.FACTOR_occlPool = [0] #3 occlusion delay time conditions
-		self.TrialsPerCondition = 40 # was oriringally 10 for pilot	
+		self.TrialsPerCondition = 30 # was oriringally 10 for pilot	
 		[trialsequence_signed, cl_heading, cl_occl]  = GenerateConditionLists(self.FACTOR_headingpool, self.FACTOR_occlPool, self.TrialsPerCondition)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.

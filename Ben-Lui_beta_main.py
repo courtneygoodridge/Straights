@@ -121,7 +121,7 @@ def setStage(TILING = True):
 	texture_z_size = tilesize * 2
 	#planesize = tilesize/5
 	planesize = tilesize/5.0
-	gplane1.setScale(tilesize, tilesize*2, tilesize)
+	gplane1.setScale(tilesize, tilesize*2, tilesize) 
 	gplane1.setEuler((0, 90, 0),viz.REL_LOCAL)
 	#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much (was originally commented out)
 	matrix = vizmat.Transform()
@@ -342,7 +342,7 @@ class myExperiment(viz.EventClass):
 		#self.FACTOR_headingpool = np.linspace(-30, 30, 5) #array from -45 to 45. 
 		#self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
 		self.FACTOR_occlPool = [0] #3 occlusion delay time conditions
-		self.TrialsPerCondition = 30 # was oriringally 10 for pilot	
+		self.TrialsPerCondition = 14 # was oriringally 10 for pilot	
 		[trialsequence_signed, cl_heading, cl_occl]  = GenerateConditionLists(self.FACTOR_headingpool, self.FACTOR_occlPool, self.TrialsPerCondition)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.
@@ -656,7 +656,7 @@ class myExperiment(viz.EventClass):
 				self.gplane1.setEuler([self.Current_yaw,90,0],viz.ABS_GLOBAL)
 				
 				#move forward one texture length. 
-				#Since the ground texture is already rotated 90 degrees you need to move it forward along the y axis.
+				#Ground texture is rotated 90 degrees you need to move it forward along the y axis.
 				self.gplane1.setPosition(0,self.gplane_z_size, 0,viz.ABS_LOCAL) 
 
 				
@@ -665,9 +665,9 @@ class myExperiment(viz.EventClass):
 				
 				print 'shift gplane2'
 				
-								#change gplane to the driver's position
-				self.gplane2.setPosition(pos,viz.ABS_GLOBAL) 
+				# change gplane to the driver's position
 
+				self.gplane2.setPosition(pos,viz.ABS_GLOBAL) 
 				
 				#change euler to match camera
 				self.gplane2.setEuler([self.Current_yaw,90,0],viz.ABS_GLOBAL)

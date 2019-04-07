@@ -130,7 +130,7 @@ workingdatatimecourseUnsmooth <- workingdata %>%
   group_by(ppid_trialn) %>%
   mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
   filter(anchored_timestamp <= min(anchored_timestamp) + 2.5) %>% # add for seconds fro the original data 
-  ungroup() # create anchored timestamp and then only select first 4 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
+  ungroup() # create anchored timestamp and then only select first 2.5 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
 
 ```
 
@@ -154,7 +154,7 @@ workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
   slice(max(which(abs(YawRateChange) < lowerthreshold, 1))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
   transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = YawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude) %>%
-  mutate(EarlyResponses = abs(FirstSteeringTime - mean(FirstSteeringTime)) < - sd(FirstSteeringTime))
+  mutate(EarlyResponses = FirstSteeringTime < mean(FirstSteeringTime) - sd(FirstSteeringTime))
 # returns TRUE if response is less than 1 SD below mean first steering time
 # guards against too fast responses
 # mean(workingdatathresholdUnsmooth$FirstSteeringTime) - sd(workingdatathresholdUnsmooth$FirstSteeringTime) calculates the threshold for what is considered too fast i.e. below 0.25 seconds
@@ -179,11 +179,11 @@ workingdatathresholdSmooth <- workingdatatimecourseSmooth %>%
   slice(1:min(which(abs(smoothedYawRateChange) > upperthreshold, 1))) %>%
   slice(max(which(abs(smoothedYawRateChange) < lowerthreshold, 1))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = smoothedYawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude, initialSWA = initialSWA, absInitialSWA = absInitialSWA) %>%
-  group_by(heading) %>%
-  mutate(LateResponse = abs(FirstSteeringTime - mean(FirstSteeringTime)) > sd(FirstSteeringTime) & abs(FirstSteeringTime - mean(FirstSteeringTime)) > - sd(FirstSteeringTime))
-# returns TRUE if response is more than 1 SD above or below mean first steering time
-# guards against too fast/low responses
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = smoothedYawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude) %>%
+  mutate(EarlyResponses = FirstSteeringTime < mean(FirstSteeringTime) - sd(FirstSteeringTime))
+# returns TRUE if response is less than 1 SD below mean first steering time
+# guards against too fast responses
+# mean(workingdatathresholdUnsmooth$FirstSteeringTime) - sd(workingdatathresholdUnsmooth$FirstSteeringTime) calculates the threshold for what is considered too fast i.e. below 0.25 seconds for t4 pilot dataset
 
 # returns TRUE if response is more than 1 SD from zero -> mutate(ResponseTooLate = if_else(FirstSteeringTime > 2*sd(FirstSteeringTime), TRUE, FALSE)) # label late responses
  
@@ -195,24 +195,25 @@ workingdatathresholdSmooth <- workingdatatimecourseSmooth %>%
 
 ```
 
+
 ```{r checking initial SWA and repsonse time}
 library(ggplot2)
 
-ggplot(workingdatathresholdUnsmooth, aes(x = absInitialSWA, y = FirstSteeringTime, color = as.factor(heading))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +
-  ggtitle("Initial steering wheel angle and first steering response time") +
-  xlab("Initial steering wheel angle (degrees)") +
-  ylab("First steering response time (seconds)") +
-  labs(color = "Heading")
-
-ggplot(filter(workingdatathresholdUnsmooth, heading == 0), aes(x = absInitialSWA, y = FirstSteeringTime, color = as.factor(heading))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +
-  ggtitle("Initial steering wheel angle and first steering response time for 0 heading") +
-  xlab("Initial steering wheel angle (degrees)") +
-  ylab("First steering response time (seconds)") +
-  labs(color = "Heading")
+# ggplot(workingdatathresholdUnsmooth, aes(x = absInitialSWA, y = FirstSteeringTime, color = as.factor(heading))) +
+#   geom_point() +
+#   geom_smooth(method = "lm", se = FALSE) +
+#   ggtitle("Initial steering wheel angle and first steering response time") +
+#   xlab("Initial steering wheel angle (degrees)") +
+#   ylab("First steering response time (seconds)") +
+#   labs(color = "Heading")
+# 
+# ggplot(filter(workingdatathresholdUnsmooth, heading == 0), aes(x = absInitialSWA, y = FirstSteeringTime, color = as.factor(heading))) +
+#   geom_point() +
+#   geom_smooth(method = "lm", se = FALSE) +
+#   ggtitle("Initial steering wheel angle and first steering response time for 0 heading") +
+#   xlab("Initial steering wheel angle (degrees)") +
+#   ylab("First steering response time (seconds)") +
+#   labs(color = "Heading")
 
 ```
 Ths plot shows that for 0 heading conditions, alongside conditions that are close to zero, variations in the initial steering wheel angle generate more varied responses in first steering time. This could be due to the trajectory "bleed over" making it much harder for the participant to judge the error, or whether there is error at all. Larger headings may eradicate this phenomenon as the increased error signal overides any trajecoryt bleed over caused from previous trials.

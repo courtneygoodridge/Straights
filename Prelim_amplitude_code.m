@@ -1,7 +1,7 @@
 % load in data
-data = csvread('avgtimecourseGENUINE.csv', 1, 1);
+data = csvread('avgtimecourse.csv', 1, 1);
 %data = csvread('avgtimecourse.csv', 1, 1); % data
-frames = 1:241; % number of frames 
+frames = data(:,1); % number of frames 
 
 % standard plotting data
 % figure
@@ -19,9 +19,9 @@ frames = 1:241; % number of frames
                                 
 % inverted thresholding to find peak troughs
 
-%%%%% 0 heading %%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 0 heading %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-zerodata = data(:,3);
+zerodata = data(:,6);
 [~,zeroPeakResponse] = findpeaks(zerodata,'MinPeakHeight',0.1,'MinPeakDistance',30); % find the response peak/trough
 
 limit = 0.005;                                    
@@ -58,6 +58,8 @@ avg_fallTimezero = zeroPeakResponse - zeroresponseSTART; % Average Fall time
 
 avg_riseLevelzero = val_zeroresponseEND - val_zeroPeakResponse;  % Average Rise Level
 avg_fallLevelzero = val_zeroPeakResponse - val_zeroresponseSTART;  % Average Fall Level
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Minus values %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%% -2 heading %%%%%
 
@@ -223,11 +225,7 @@ dim = [.60 .25 0 0 ];
 str = sprintf('Average rise time is %f frames', avg_riseTimeminus1);
 annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue');
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Plus values %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % finding peaks
 plus1data = data(:,4);
@@ -403,6 +401,3 @@ annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue');
 dim = [.40 .20 0 0 ]; 
 str = sprintf('Average decreased change in yaw rate is %f', avg_fallLevelplus1);
 annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue');
-
-
-                                

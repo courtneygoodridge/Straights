@@ -777,3 +777,14 @@ write.csv(avgtimecourse, file = "avgtimecourse.csv")
 
 ```
 
+```{r loading magnitude data from matlab}
+setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+
+magnitude <- read.csv("magnitudedata.csv", header = FALSE)
+
+names(data) <- c("heading", "responseStart", "responsePeak", "responseEnd")
+
+```
+
+

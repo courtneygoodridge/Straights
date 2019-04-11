@@ -24,12 +24,14 @@ frames = data(:,1); % number of frames
 zerodata = data(:,6);
 [~,zeroPeakResponse] = findpeaks(zerodata,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
 
-limit = 0.005;                                    
+limit = 0.01;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
 while limitExceeded == false
-    if abs(zerodata(indx)) > limit % if yaw rate change is above threshold 
+    if abs(zerodata(indx)) >= limit % if yaw rate change is above threshold 
         limitExceeded = true; % limit is exceeded
+    else
+        break
     end
     indx = indx + 1;
 end % first point before the trough
@@ -67,11 +69,11 @@ minus2data_inverted = -data(:,2);
 [~,minus2PeakResponse] = findpeaks(minus2data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
 
 minus2data = data(:,2);
-limit = 0.005;                                    
+limit = 0.01;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
 while limitExceeded == false
-    if abs(minus2data(indx)) < limit % if yaw rate change is above threshold 
+    if abs(minus2data(indx)) > limit % if yaw rate change is above threshold 
         limitExceeded = true; % limit is exceeded
     end
     indx = indx + 1;
@@ -80,7 +82,7 @@ end % first point before the trough
 minus2responseSTART = indx; % this indx is the response start
 
 while limitExceeded == true % the limit is exceeded
-    if abs(minus2data(indx)) > limit % if yaw rate change is less than or equal to the limit
+    if abs(minus2data(indx)) < limit % if yaw rate change is less than or equal to the limit
          limitExceeded = false; % limit is not exceeded
     end
     indx = indx + 1;
@@ -125,7 +127,7 @@ minus1_5data_inverted = -data(:,3);
 [~,minus1_5PeakResponse] = findpeaks(minus1_5data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
 
 minus1_5data = data(:,3);
-limit = 0.005;                                    
+limit = 0.01;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
 while limitExceeded == false
@@ -182,7 +184,7 @@ minus1data_inverted = -data(:,4);
 [~,minus1PeakResponse] = findpeaks(minus1data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
 
 minus1data = data(:,4);
-limit = 0.005;                                    
+limit = 0.01;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
 while limitExceeded == false
@@ -222,7 +224,7 @@ minus0_5data_inverted = -data(:,5);
 [~,minus0_5PeakResponse] = findpeaks(minus0_5data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
 
 minus0_5data = data(:,5);
-limit = 0.005;                                    
+limit = 0.01;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
 while limitExceeded == false
@@ -379,7 +381,7 @@ plus0_5data = data(:,7);
                                 
 % inverted thresholding to find peak troughs
 
-limit = 0.005;                                    
+limit = 0.01;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
 while limitExceeded == false
@@ -392,7 +394,7 @@ end % first point before the trough
 plus0_5responseSTART = indx; % this indx is the response start
 
 while limitExceeded == true % the limit is exceeded
-    if plus0_5data(indx) <= limit % if yaw rate change is less than or equal to the limit
+    if plus0_5data(indx) < limit % if yaw rate change is less than or equal to the limit
          limitExceeded = false; % limit is not exceeded
     end
     indx = indx + 1;
@@ -436,7 +438,7 @@ plus1data = data(:,8);
                                 
 % inverted thresholding to find peak troughs
 
-limit = 0.005;                                    
+limit = 0.01;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
 while limitExceeded == false
@@ -492,7 +494,7 @@ plus1_5data = data(:,9);
                                 
 % inverted thresholding to find peak troughs
 
-limit = 0.005;                                    
+limit = 0.01;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
 while limitExceeded == false
@@ -547,7 +549,7 @@ avg_fallLevelplus1_5 = val_plus1_5PeakResponse - val_plus1_5responseEND;  % Aver
 plus2data = data(:,10);
 [~,plus2PeakResponse] = findpeaks(plus2data,'MinPeakHeight',0.1,'MinPeakDistance',30);
 
-limit = 0.005;                                    
+limit = 0.01;                                    
 indx = 1;
 limitExceeded = false; % limit is not exceeded
 while limitExceeded == false
@@ -710,3 +712,17 @@ annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'Font
 dim = [.40 .20 0 0 ]; 
 str = sprintf('Average yaw rate change decrease: %f', avg_fallLevelplus0_5);
 annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 7);
+
+%%%%% data saving %%%%%
+
+heading = [-2; -1.5; -1; -0.5; 0.5; 1; 1.5; 2];
+responsestart = [val_minus2responseSTART; val_minus1_5responseSTART; val_minus1responseSTART; val_minus0_5responseSTART; val_plus0_5responseSTART; val_plus1responseSTART; val_plus1_5responseSTART; val_minus2responseSTART]; 
+responsepeak = [val_minus2PeakResponse; val_minus1_5PeakResponse; val_minus1PeakResponse; val_minus0_5PeakResponse; val_plus0_5PeakResponse; val_plus1PeakResponse; val_plus1_5PeakResponse; val_minus2PeakResponse]; 
+responseend = [val_minus2responseEND; val_minus1_5responseEND; val_minus1responseEND; val_minus0_5responseEND; val_plus0_5responseEND; val_plus1responseEND; val_plus1_5responseEND; val_minus2responseEND]; 
+
+
+magnitudedata = [heading, responsestart, responsepeak, responseend]; 
+
+csvwrite('magnitudedata.csv', magnitudedata);
+
+

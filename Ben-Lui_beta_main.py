@@ -110,11 +110,11 @@ def setStage(TILING = True):
 ###UNCOMMENT FOR TILING
 # Tiling saves memory by using two groundplane tiles instead of a massive groundplane. Since the drivers are essentially driving linearly forward, they cover a lot of distance across the z axis.
 	gplane1 = viz.addTexQuad() ##
-	tilesize = 750 # half a km wide (might need to increase size?)
+	tilesize = 3000
 	texture_z_size = tilesize * 2
 	#planesize = tilesize/5
 	planesize = tilesize/5.0
-	gplane1.setScale(tilesize, tilesize*2, tilesize) 
+	gplane1.setScale(tilesize, tilesize*2, tilesize)
 	gplane1.setEuler((0, 90, 0),viz.REL_LOCAL)
 	#groundplane.setPosition((0,0,1000),viz.REL_LOCAL) #move forward 1km so don't need to render as much (was originally commented out)
 	matrix = vizmat.Transform()
@@ -648,8 +648,7 @@ class myExperiment(viz.EventClass):
 				#change euler to match camera
 				self.gplane1.setEuler([self.Current_yaw,90,0],viz.ABS_GLOBAL)
 				
-				#move forward one texture length. 
-				#Ground texture is rotated 90 degrees you need to move it forward along the y axis.
+				#move forward one texture length.
 				self.gplane1.setPosition(0,self.gplane_z_size, 0,viz.ABS_LOCAL) 
 
 				
@@ -658,15 +657,14 @@ class myExperiment(viz.EventClass):
 				
 				print 'shift gplane2'
 				
-				# change gplane to the driver's position
-
+								#change gplane to the driver's position
 				self.gplane2.setPosition(pos,viz.ABS_GLOBAL) 
+
 				
 				#change euler to match camera
 				self.gplane2.setEuler([self.Current_yaw,90,0],viz.ABS_GLOBAL)
 				
 				#move forward one texture length.
-				#Since the ground texture is already rotated 90 degrees you need to move it forward along the y axis.
 				self.gplane2.setPosition(0,self.gplane_z_size, 0,viz.ABS_LOCAL) 
 
 def CloseConnections(EYETRACKING):

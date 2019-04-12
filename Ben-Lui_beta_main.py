@@ -3,19 +3,12 @@
 Script to run threshold vs accumulator experiment. The participant experiences vection across a textured ground-plane. 
 After a few seconds a straight road appears with a experimentally controlled deflection angle. The participants task is to steer so as to try and stay on the straight road.
 A further few seconds elapses. The road disapears. The participant experiences a few seconds of vection without a road, then a new straight appears with a different deflection angle.
-
 The main script to run the experiment is Ben-Lui__beta_main.py
-
 The Class myExperiment handles execution of the experiment.
-
 This script relies on the following modules:
-
 For eyetracking - eyetrike_calibration_standard.py; eyetrike_accuracy_standard.py; also the drivinglab_pupil plugin.
-
 For perspective correct rendering - myCave.py
-
 For motion through the virtual world - vizdriver_BenLui.py
-
 """
 import sys
 
@@ -117,7 +110,7 @@ def setStage(TILING = True):
 ###UNCOMMENT FOR TILING
 # Tiling saves memory by using two groundplane tiles instead of a massive groundplane. Since the drivers are essentially driving linearly forward, they cover a lot of distance across the z axis.
 	gplane1 = viz.addTexQuad() ##
-	tilesize = 800 # half a km wide (might need to increase size?)
+	tilesize = 750 # half a km wide (might need to increase size?)
 	texture_z_size = tilesize * 2
 	#planesize = tilesize/5
 	planesize = tilesize/5.0
@@ -709,4 +702,3 @@ if __name__ == '__main__':
 	viz.callback(viz.EXIT_EVENT,CloseConnections, myExp.EYETRACKING)
 
 	viztask.schedule(myExp.runtrials())
-

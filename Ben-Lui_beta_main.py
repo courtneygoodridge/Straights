@@ -492,7 +492,7 @@ class myExperiment(viz.EventClass):
 			yield viztask.waitFrame(6) #wait for six frames (.1 s)
 
 			offset = viz.Matrix.euler( self.Trial_Camera_Offset, 0, 0 )
-			viz.MainWindow.setViewOffset( offset )
+			viz.MainWindow.setViewOffset( offset )  # counter rotates camera
 
 			self.blackscreen.visible(viz.OFF) #turn the mask
 			

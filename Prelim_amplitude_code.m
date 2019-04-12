@@ -719,9 +719,11 @@ heading = [-2; -1.5; -1; -0.5; 0.5; 1; 1.5; 2];
 responsestart = [val_minus2responseSTART; val_minus1_5responseSTART; val_minus1responseSTART; val_minus0_5responseSTART; val_plus0_5responseSTART; val_plus1responseSTART; val_plus1_5responseSTART; val_minus2responseSTART]; 
 responsepeak = [val_minus2PeakResponse; val_minus1_5PeakResponse; val_minus1PeakResponse; val_minus0_5PeakResponse; val_plus0_5PeakResponse; val_plus1PeakResponse; val_plus1_5PeakResponse; val_minus2PeakResponse]; 
 responseend = [val_minus2responseEND; val_minus1_5responseEND; val_minus1responseEND; val_minus0_5responseEND; val_plus0_5responseEND; val_plus1responseEND; val_plus1_5responseEND; val_minus2responseEND]; 
+avgyawratechangeToPeak = [avg_fallLevelminus2; avg_fallLevelminus1_5; avg_fallLevelminus1; avg_fallLevelminus0_5; avg_riseLevelplus0_5; avg_riseLevelplus1; avg_riseLevelplus1_5; avg_riseLevelplus2];
+avgyawratechangetime = [avg_fallTimeminus2; avg_fallTimeminus1_5; avg_fallTimeminus1; avg_fallTimeminus0_5; avg_riseTimeminus0_5; avg_riseTimeminus1; avg_riseTimeminus1_5; avg_riseTimeminus2];
 
-
-magnitudedata = [heading, responsestart, responsepeak, responseend]; 
+% for analysis, I have to use absolute value of avgyawratechangeToPeak, or split them by the sign of the heading offset
+magnitudedata = [heading, responsestart, responsepeak, responseend, avgyawratechangeToPeak, avgyawratechangetime]; 
 
 csvwrite('magnitudedata.csv', magnitudedata);
 

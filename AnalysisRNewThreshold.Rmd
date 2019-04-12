@@ -783,7 +783,7 @@ setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
 
 magnitude <- read.csv("magnitudedata.csv", header = FALSE)
 
-names(data) <- c("heading", "responseStart", "responsePeak", "responseEnd")
+names(data) <- c("heading", "responseStart", "responsePeak", "responseEnd". "YawRateChangeChange", "YawRateChangeTime")
 
 ```
 

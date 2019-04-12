@@ -342,7 +342,7 @@ class myExperiment(viz.EventClass):
 		#self.FACTOR_headingpool = np.linspace(-30, 30, 5) #array from -45 to 45. 
 		#self.FACTOR_occlPool = [0, .5, 1] #3 occlusion delay time conditions
 		self.FACTOR_occlPool = [0] #3 occlusion delay time conditions
-		self.TrialsPerCondition = 20 # was oriringally 10 for pilot	
+		self.TrialsPerCondition = 10 # was oriringally 10 for pilot	
 		[trialsequence_signed, cl_heading, cl_occl]  = GenerateConditionLists(self.FACTOR_headingpool, self.FACTOR_occlPool, self.TrialsPerCondition)
 
 		self.TRIALSEQ_signed = trialsequence_signed #list of trialtypes in a randomised order. -ve = leftwards, +ve = rightwards.
@@ -420,9 +420,9 @@ class myExperiment(viz.EventClass):
 		viz.MainScene.visible(viz.ON,viz.WORLD)		
 	
 		#add text to denote conditons - COMMENT OUT FOR EXPERIMENT
-		txtCondt = viz.addText("Condition",parent = viz.SCREEN)
-		txtCondt.setPosition(.7,.2)
-		txtCondt.fontSize(36)		
+		# txtCondt = viz.addText("Condition",parent = viz.SCREEN)
+		# txtCondt.setPosition(.7,.2)
+		# txtCondt.fontSize(36)		
 
 		if self.EYETRACKING:
 			comms.start_trial()
@@ -447,7 +447,7 @@ class myExperiment(viz.EventClass):
 			######choose correct road object.######
 
 			# changes message on screen			
-			msg = msg = "Heading: " + str(trial_heading) + '_' + str(trial_occl) # COMMENT OUT FOR EXPERIMENT
+			# msg = msg = "Heading: " + str(trial_heading) + '_' + str(trial_occl) # COMMENT OUT FOR EXPERIMENT
 
 
 			
@@ -506,9 +506,9 @@ class myExperiment(viz.EventClass):
 
 			yield viztask.waitTime(1) #wait for one second after change of camera heading
 			
-			msg = msg + '\n' + 'Offset: ' + str(self.Trial_Camera_Offset) #Save your variables - COMMENT OUT FOR EXPERIMENT
+			# msg = msg + '\n' + 'Offset: ' + str(self.Trial_Camera_Offset) #Save your variables - COMMENT OUT FOR EXPERIMENT
 
-			txtCondt.message(msg)	# COMMENT OUT FOR EXPERIMENT
+			# txtCondt.message(msg)	# COMMENT OUT FOR EXPERIMENT
 
 
 			#translate bend to driver position.

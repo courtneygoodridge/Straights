@@ -29,7 +29,7 @@ install.packages(effsize) # for calculating effect sizes
 setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 
-temp = list.files(pattern = c("BenLui17_t4", "*.csv")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_1_full", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 ```
@@ -141,11 +141,11 @@ workingdatatimecourseUnsmooth <- workingdata %>%
   ungroup() # create anchored timestamp and then only select first 2.5 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
 
 # how many frames in each trial?
-# rows <- workingdata %>%
-#   group_by(trialn, heading) %>%
-#   summarise(rows = n())
-# 
-# View(rows)
+rows <- workingdata %>%
+  group_by(ppid, trialn, heading) %>%
+  summarise(rows = n())
+
+View(rows)
 # 
 # rowsgenuine <- rows %>%
 #   filter(rows > 270)

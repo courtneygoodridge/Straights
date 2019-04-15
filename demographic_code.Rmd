@@ -1,0 +1,35 @@
+---
+title: "demographic_code"
+output: html_document
+---
+
+```{r load data, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# rm(list = ls()) # clear environment
+
+# load data
+
+setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+temp = list.files(pattern = c("BenLui17_1", "*.csv")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
+
+```
+
+```{r adding demographic information to data frame}
+library(dplyr)
+
+workingdata <- workingdata %>%
+  group_by(trialn) %>%
+  mutate(gender = 2, age = 23, licenseTime = 73, contacts_glasses = FALSE) %>% # female = 1, male = 2; license time in months
+  ungroup()
+
+```
+
+```{r saving new combined data frame}
+
+write.csv(workingdata, file = "BenLui17_1_full.csv")
+
+```
+

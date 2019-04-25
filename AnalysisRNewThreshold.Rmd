@@ -22,6 +22,10 @@ install.packages(lmPerm) # non-parametric ancova
 install.packages(e1071) # for calculating skewness
 install.packages(ggpubr) # for interactions plots and boxplots
 install.packages(effsize) # for calculating effect sizes
+install.packages(gganimate) # animate plots
+install.packages(gifski) # animate plots
+install.packages(png)
+install.packages(transformr)
 
 # install.packages(matlabr)
 # install.packages(magrittr)
@@ -29,7 +33,7 @@ install.packages(effsize) # for calculating effect sizes
 setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 
-temp = list.files(pattern = c("BenLui17_1_full", "*.csv")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_3_full", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 ```
@@ -131,7 +135,7 @@ workingdata <- workingdata %>%
 #   mutate(newYawRate = correctTimestamp(timestamp_diff,smoothedYawRate_seconds))
 ```
 
-```{r anchoring timestamps at 4 seconds and calculating frames column}
+```{r anchoring timestamps at 2.5 seconds and calculating frames column}
 library(dplyr)
 
 workingdatatimecourseUnsmooth <- workingdata %>%
@@ -141,11 +145,11 @@ workingdatatimecourseUnsmooth <- workingdata %>%
   ungroup() # create anchored timestamp and then only select first 2.5 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
 
 # how many frames in each trial?
-rows <- workingdata %>%
-  group_by(ppid, trialn, heading) %>%
-  summarise(rows = n())
-
-View(rows)
+# rows <- workingdata %>%
+#   group_by(ppid, trialn, heading) %>%
+#   summarise(rows = n())
+# 
+# View(rows)
 # 
 # rowsgenuine <- rows %>%
 #   filter(rows > 270)
@@ -171,7 +175,7 @@ workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
   slice(1:min(which(abs(YawRateChange) > upperthreshold, 1))) %>% 
   slice(max(which(abs(YawRateChange) < lowerthreshold, 1))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = YawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude) %>%
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude) %>%
   mutate(EarlyResponses = FirstSteeringTime < mean(FirstSteeringTime) - sd(FirstSteeringTime))
 # returns TRUE if response is less than 1 SD below mean first steering time
 # guards against too fast responses
@@ -197,7 +201,7 @@ workingdatathresholdSmooth <- workingdatatimecourseSmooth %>%
   slice(1:min(which(abs(smoothedYawRateChange) > upperthreshold, 1))) %>%
   slice(max(which(abs(smoothedYawRateChange) < lowerthreshold, 1))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, ThresYawRateChange = smoothedYawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude) %>%
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = smoothedYawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude) %>%
   mutate(EarlyResponses = FirstSteeringTime < mean(FirstSteeringTime) - sd(FirstSteeringTime))
 # returns TRUE if response is less than 1 SD below mean first steering time
 # guards against too fast responses
@@ -238,6 +242,10 @@ Ths plot shows that for 0 heading conditions, alongside conditions that are clos
 ```{r timecourse plotting of yaw rate change}
 library(ggplot2)
 library(dplyr)
+library(gganimate)
+library(gifski)
+library(png)
+library(transformr)
 
 # workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
 #   filter(Genuine_Response == TRUE & LateResponse == FALSE)
@@ -392,7 +400,7 @@ overall <- workingdatathresholdUnsmooth %>%
   summarise(trials = n()) # overall number of trials in each condition
 
 # percentage of trials kept after removing non-genuine responses
-heading <- c('-2', '-1.5', '-1', '-0.5', '0.5', '1', '+1.5', '+2')
+heading <- c('-2', '-1.5', '-1', '-0.5', '0', '0.5', '1', '+1.5', '+2')
 percentagetrialskept <- (genuine$trials/overall$trials * 100)
 per <- data.frame(heading, percentagetrialskept) # percentage of trials kept after data cleaning 
 View(per)

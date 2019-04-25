@@ -1,10 +1,12 @@
 import pandas as pd
-# df = pd.read_csv ("M:\PhD\Project\Experiment_Code\Straights\BenLui17_1.csv")
-ntdf = pd.read_csv ("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/BenLui17_1.csv")
-pri1.csv")
+import matplotlib.pyplot as plt
+df = pd.read_csv ("M:\PhD\Project\Experiment_Code\Straights\BenLui17_1_full.csv")
+# df = pd.read_csv ("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/BenLui17_1_full.csv")
 print (df)
-
 timestamp = df[['timestamp']]
 print(timestamp)
+
+df.plot(kind='scatter',x='timestamp',y='SWA',color='red')
+plt.show()
 
 

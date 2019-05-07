@@ -32,8 +32,8 @@ install.packages(transformr)
 
 setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-
-temp = list.files(pattern = c("BenLui17_3_full", "*.csv")) # list all CSV files in the directory
+# "BenLui17_1_full", "BenLui17_2_full", "BenLui17_3_full", "BenLui17_4_full", "BenLui17_5_full", "BenLui17_6_full", "BenLui17_7_full"
+temp = list.files(pattern = c("full", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 ```
@@ -177,6 +177,7 @@ workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
   ungroup() %>%
   transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude) %>%
   mutate(EarlyResponses = FirstSteeringTime < mean(FirstSteeringTime) - sd(FirstSteeringTime))
+# might be better code practice to use scale function to calculate z scores
 # returns TRUE if response is less than 1 SD below mean first steering time
 # guards against too fast responses
 # mean(workingdatathresholdUnsmooth$FirstSteeringTime) - sd(workingdatathresholdUnsmooth$FirstSteeringTime) calculates the threshold for what is considered too fast i.e. below 0.25 seconds
@@ -248,7 +249,7 @@ library(png)
 library(transformr)
 
 # workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
-#   filter(Genuine_Response == TRUE & LateResponse == FALSE)
+#   filter(Genuine_Response == TRUE & EarlyResponses == FALSE)
 # 
 # workingdatathresholdSmooth <- workingdatathresholdSmooth %>%
 #   filter(Genuine_Response == TRUE & LateResponse == FALSE)
@@ -257,14 +258,14 @@ library(transformr)
 ######## -2 heading ##########
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -2), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-  geom_line() +
+  geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -2) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
   ggtitle("-2 heading - Unsmoothed") +
   scale_y_continuous(limits = c(-0.50, 0.75))
 
 # ggplot(data = filter(workingdatatimecourseSmooth, heading == -2), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-#   geom_line() +
+#   geom_line(show.legend = FALSE) +
 #   geom_vline(data = filter(workingdatathresholdSmooth, heading == -2) %>%
 #                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
 #   ggtitle("-2 heading - smoothed") +
@@ -274,7 +275,7 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -2), aes(x = anch
 ####### -1.5 heading #########
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1.5), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-  geom_line() +
+  geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -1.5) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
   ggtitle("-1.5 heading - Unsmoothed") +
@@ -283,14 +284,14 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1.5), aes(x = an
 ######## -1 heading ##########
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-  geom_line() +
+  geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -1) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
   ggtitle("-1 heading - unsmoothed") +
   scale_y_continuous(limits = c(-0.50, 0.75))
 
 # ggplot(data = filter(workingdatatimecourseSmooth, heading == -1), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-#   geom_line() +
+#   geom_line(show.legend = FALSE) +
 #   geom_vline(data = filter(workingdatathresholdSmooth, heading == -1) %>%
 #                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
 #   ggtitle("-1 heading - smoothed") +
@@ -299,7 +300,7 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1), aes(x = anch
 ######## -0.5 ###########
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -0.5), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-  geom_line() +
+  geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -0.5) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
   ggtitle("0.5 heading - Unsmoothed") +
@@ -308,14 +309,14 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -0.5), aes(x = an
 ######## 0 heading ##########
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-  geom_line() +
+  geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 0) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
   ggtitle("0 heading - unsmoothed") +
   scale_y_continuous(limits = c(-0.50, 0.75))
 
 # ggplot(data = filter(workingdatatimecourseSmooth, heading == 0), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-#   geom_line() +
+#   geom_line(show.legend = FALSE) +
 #   geom_vline(data = filter(workingdatathresholdSmooth, heading == 0) %>%
 #                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
 #   ggtitle("0 heading - smoothed") +
@@ -324,9 +325,9 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0), aes(x = ancho
                
 ####### +0.5 heading #########
 
-ggplot(data = filter(workingdatatimecourseSmooth, heading == 0.5), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-  geom_line() +
-  geom_vline(data = filter(workingdatathresholdSmooth, heading == 0.5) %>%
+ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0.5), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+  geom_line(show.legend = FALSE) +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 0.5) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
   ggtitle("0.5 heading - Unsmoothed") +
   scale_y_continuous(limits = c(-0.50, 0.75))
@@ -334,14 +335,14 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == 0.5), aes(x = ancho
 ######## +1 heading ##########
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-  geom_line() +
+  geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 1) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
   ggtitle("+1 heading - Unsmoothed") +
   scale_y_continuous(limits = c(-0.50, 0.75))
 
 # ggplot(data = filter(workingdatatimecourseSmooth, heading == 1), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-#   geom_line() +
+#   geom_line(show.legend = FALSE) +
 #   geom_vline(data = filter(workingdatathresholdSmooth, heading == 1) %>%
 #                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
 #   ggtitle("+1 heading - smoothed") +
@@ -350,8 +351,8 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1), aes(x = ancho
 ######## +1.5 heading ########
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1.5), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-  geom_line() +
-  geom_vline(data = filter(workingdatathresholdSmooth, heading == 1.5) %>%
+  geom_line(show.legend = FALSE) +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 1.5) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
   ggtitle("1.5 heading - smoothed") +
   scale_y_continuous(limits = c(-0.50, 0.75))
@@ -360,14 +361,14 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1.5), aes(x = anc
 ######## +2 heading ##########
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-  geom_line() +
+  geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
   ggtitle("+2 heading - unsmoothed") +
   scale_y_continuous(limits = c(-0.50, 0.75))
 
 # ggplot(data = filter(workingdatatimecourseSmooth, heading == 2), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
-#   geom_line() +
+#   geom_line(show.legend = FALSE) +
 #   geom_vline(data = filter(workingdatathresholdSmooth, heading == 2) %>%
 #                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
 #   ggtitle("+2 heading - smoothed") +
@@ -415,19 +416,19 @@ library(dplyr)
 
 ##### -2 ######
 
-# ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -2), aes(x = anchored_timestamp, y = YawRateChange)) +
-#   geom_line() +
-#   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
-#   facet_wrap( ~ ppid_trialn) +
-#   scale_y_continuous(limits = c(-0.60, 0.80)) +
-#   ggtitle("-2 heading - unsmoothed")
-
-ggplot(data = filter(workingdatatimecourseSmooth, heading == -2), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
+ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -2), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdSmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
   facet_wrap( ~ ppid_trialn) +
   scale_y_continuous(limits = c(-0.60, 0.80)) +
-  ggtitle("-2 heading - smoothed")
+  ggtitle("-2 heading - unsmoothed")
+
+# ggplot(data = filter(workingdatatimecourseSmooth, heading == -2), aes(x = anchored_timestamp, y = smoothedYawRateChange)) +
+#   geom_line() +
+#   geom_vline(data = filter(workingdatathresholdSmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
+#   facet_wrap( ~ ppid_trialn) +
+#   scale_y_continuous(limits = c(-0.60, 0.80)) +
+#   ggtitle("-2 heading - smoothed")
 
 
 #### -1.5 #####
@@ -741,28 +742,28 @@ ggplot(data = workingdatathresholdUnsmooth, aes(as.factor(heading), FirstSteerin
   xlab("Heading angle (degrees)") +
   ylab("Time until first steering correction (s)")
 
-ggplot(data = workingdatathresholdSmooth, aes(as.factor(heading), FirstSteeringTime)) +
-  geom_boxplot() +
-  # stat_summary(fun.y = mean, colour = "red", geom = "point") +
-  ggtitle("First steering time across heading angles: SMOOTH ALL RESPONSES") +
-  xlab("Heading angle (degrees)") +
-  ylab("Time until first steering correction (s)")
+# ggplot(data = workingdatathresholdSmooth, aes(as.factor(heading), FirstSteeringTime)) +
+#   geom_boxplot() +
+#   # stat_summary(fun.y = mean, colour = "red", geom = "point") +
+#   ggtitle("First steering time across heading angles: SMOOTH ALL RESPONSES") +
+#   xlab("Heading angle (degrees)") +
+#   ylab("Time until first steering correction (s)")
 
 ##### BOXPLOTS WHERE RESPONSES ARE GENUINE AND NOT TOO LATE
 
-ggplot(data = filter(workingdatathresholdUnsmooth, Genuine_Response == TRUE & LateResponse == FALSE), aes(as.factor(heading), FirstSteeringTime)) +
+ggplot(data = filter(workingdatathresholdUnsmooth, Genuine_Response == TRUE & EarlyResponses == FALSE), aes(as.factor(heading), FirstSteeringTime)) +
   geom_boxplot() +
   # stat_summary(fun.y = mean, colour = "red", geom = "point") +
   ggtitle("First steering time across heading angles: UNSMOOTH GENUINE RESPONSES") +
   xlab("Heading angle (degrees)") +
   ylab("Time until first steering correction (s)") 
 
-ggplot(data = filter(workingdatathresholdSmooth, Genuine_Response == TRUE & LateResponse == FALSE), aes(as.factor(heading), FirstSteeringTime)) +
-  geom_boxplot() +
-  # stat_summary(fun.y = mean, colour = "red", geom = "point") +
-  ggtitle("First steering time across heading angles: SMOOTH GENUINE RESPONSES") +
-  xlab("Heading angle (degrees)") +
-  ylab("Time until first steering correction (s)") 
+# ggplot(data = filter(workingdatathresholdSmooth, Genuine_Response == TRUE & LateResponse == FALSE), aes(as.factor(heading), FirstSteeringTime)) +
+#   geom_boxplot() +
+#   # stat_summary(fun.y = mean, colour = "red", geom = "point") +
+#   ggtitle("First steering time across heading angles: SMOOTH GENUINE RESPONSES") +
+#   xlab("Heading angle (degrees)") +
+#   ylab("Time until first steering correction (s)") 
 
 
   

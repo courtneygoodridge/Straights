@@ -34,7 +34,7 @@ install.packages(transformr)
 setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory on personal laptop
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 # "BenLui17_1_full", "BenLui17_2_full", "BenLui17_3_full", "BenLui17_4_full", "BenLui17_5_full", "BenLui17_6_full", "BenLui17_7_full"
-temp = list.files(pattern = c("BenLui17_10")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 

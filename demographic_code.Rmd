@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-temp = list.files(pattern = c("BenLui17_10", "*.csv")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_10_", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
@@ -29,6 +29,7 @@ workingdata <- workingdata %>%
 
 ```{r saving new combined data frame}
 
+setwd("M:/PhD/Project/Experiment_Code/Straights/Full_Data") # set directory for data saving
 write.csv(workingdata, file = "BenLui17_10_full.csv")
 
 ```

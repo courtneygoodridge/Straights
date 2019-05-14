@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # load data
 
-setwd("M:/PhD/Project/Experiment_Code/Straights") # set working directory
+setwd("M:/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 temp = list.files(pattern = c("BenLui17_10_", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
@@ -22,7 +22,7 @@ library(dplyr)
 
 workingdata <- workingdata %>%
   group_by(trialn) %>%
-  mutate(gender = 1, age = 22, licenseTime = 53, contacts_glasses = FALSE) %>% # female = 1, male = 2; license time in months
+  mutate(gender = 1, age = 22, licenseTime = 53, contacts_glasses = FALSE, pNum = 10) %>% # female = 1, male = 2; license time in months
   ungroup()
 
 ```

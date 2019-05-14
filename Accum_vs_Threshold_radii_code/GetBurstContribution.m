@@ -1,0 +1,6 @@
+function VBurstContribution = GetBurstContribution(...
+  VTimeStamp, burstCenterTime, burstDuration, nBurstGaussianStdDevs)
+
+VBurstRate = GetTruncatedGaussianBurstRate(...
+  VTimeStamp, burstCenterTime, burstDuration, nBurstGaussianStdDevs);
+VBurstContribution = cumtrapz(VTimeStamp, VBurstRate);

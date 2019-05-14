@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Thres vs Accum</title>
+
+<script src="Wrapper_TvA_R_new_files/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="Wrapper_TvA_R_new_files/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="Wrapper_TvA_R_new_files/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="Wrapper_TvA_R_new_files/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="Wrapper_TvA_R_new_files/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="Wrapper_TvA_R_new_files/navigation-1.1/tabsets.js"></script>
+<link href="Wrapper_TvA_R_new_files/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="Wrapper_TvA_R_new_files/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Thres vs Accum</h1>
+
+</div>
+
+
+<pre class="r"><code># Wrapper to Gustav Model. Threshold vs. Accumulator. CDM. 03/06/17
+
+# Aim is to test many radii and lateral offset to see if they produce different starting times.
+# First step, compare across radii, sans noise, to see if the time to SWAction differentially changes across models.
+
+# Get parameters from Gustav&#39;s best fit.
+
+
+setwd(&quot;/PhD/Project/Experiment code/Accum vs Threshold&quot;) #### set directory where the rest of the .mat files and functions are
+devtools::install_github(&quot;muschellij2/matlabr&quot;) # download matlabr functions</code></pre>
+<pre><code>## Skipping install of &#39;matlabr&#39; from a github remote, the SHA1 (6073377f) has not changed since last install.
+##   Use `force = TRUE` to force installation</code></pre>
+<pre class="r"><code>library(matlabr) # load the matlabr functions
+options(matlab.path = &quot;/ProgramData/Microsoft/Windows/Start Menu/Programs/MATLAB R2018a&quot;)
+# create a path for matlab in order to use the utilities
+have_matlab() #### If TRUE, matlab has been downloaded</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<p><strong>BELOW CODES FOR THE THRESHOLD MODEL.</strong></p>
+<p><strong>Threshold.k = NaN:</strong> This may represent the accumulation rate of evidence i.e. it is not applicable to this model, thus it is assigned a NaN value.</p>
+<p><strong>Threshold.sigma_n/m:</strong> These parameters might indicate noise in the sigal for this model. Lines become less smooth when these are given values of above 0. Unsure of the difference between <em>sigma_n</em> and <em>sigma_m</em>???</p>
+<p><strong>Threshold.Athreshold:</strong> This might adjust the threshold limit for the model. When set at 0.25, the threshold model predicts that <strong>average adjustment amplitude</strong> flatlines at a <strong>radius of 700</strong> whilst <strong>average first steering timing correction</strong> increases from a flatline at a <strong>radius of 750</strong>.</p>
+<p>When this is set at 0.01829, <strong>average adjustment amplitude</strong> flatlining occurs at a <strong>radius of 1000</strong>. In this example, the point at which <strong>average adjustment amplitudes</strong> are based upon the same perceptual error increases due to the lower threshold.</p>
+<p>When this is set at 0.01829, <strong>average first steering timing</strong> increases from a flatline at a <strong>radius of 1000</strong>. In this example, perceptual error is suprathreshold for more radii as a consequence of the lower threshold value and thus <strong>average first steering timing</strong> is constant across more radii.</p>
+<p>This is why this parameter might alter the threshold limit. Upon changing this value, the point at which adjustment amplitudes are based upon the same perceptual error (<strong>first adjustment amplitude</strong>) and the point at which perceptual error is suprathreshold for early radii (<strong>first steering correction</strong>) both change.</p>
+<p><strong>Threshold.bThreshold = true:</strong> Possibly demonstrates that there is an absolute threshold of perceptual error in this model that has to be exceeded, whereby beyond this threshold, perceptual motor action is based upon the same perceptual error (in the case of <strong>first adjustment amplitude</strong>) whereas <strong>first steering correction timing</strong> is already suprathreshold, hence the immediate flatlining. Wrapper function fails if set to false.</p>
+<pre class="r"><code>run_matlab_code(&quot;%SBestFitThreshold = load(&#39;ThresholdModelFittingResults_ChiSquareCorrected_FurtherOptimised.mat&#39;);
+Threshold.k = NaN; 
+Threshold.sigma_n = 0;%0.0057;
+Threshold.Athreshold = .025%.035%0.01829;
+Threshold.sigma_m = 0;%0.65547;
+Threshold.bThreshold = true;&quot;)</code></pre>
+<pre><code>## Script created: C:\Users\pscmgo\AppData\Local\Temp\RtmpkfDVdc\filefac1cb75f1a.m</code></pre>
+<pre><code>## Command run is:</code></pre>
+<pre><code>## matlab.exe -wait -nodesktop -nosplash -nodisplay -r  &quot;try, run(&#39;C:\Users\pscmgo\AppData\Local\Temp\RtmpkfDVdc\filefac1cb75f1a.m&#39;); catch err, disp(err.message); exit(1); end; exit(0);&quot;</code></pre>
+<pre><code>## [1] 0</code></pre>
+<p><strong>BELOW CODES FOR THE ACCUMULATOR MODEL.</strong></p>
+<p><strong>Accumulator.k:</strong> This should adjust the rate of accumulation. When altered, the slopes of the average accumulator model lines differ (lower number = slower accumulation).</p>
+<p>This generates a steeper slope across radii for <strong>average time until first steering correction</strong>.</p>
+<p>This generates a steeper downwards curve in <strong>average adjustment amplitude</strong>.</p>
+<p>These differences could be down to slower error development. As a consequence of this, there is lower perceived error and thus slower <strong>average first steering corrections</strong> as radii increases and lower <strong>average adjustment magnitudes</strong> as radii increases???</p>
+<p><strong>Accumulator.sigma_n/m:</strong> Indicates noise in the sigal for this model. Lines become less smooth when these are given values of above 0. Unsure of the difference between <em>sigma_n</em> and <em>sigma_m</em>???</p>
+<p><strong>Accumulator.Athreshold:</strong> I assume this remains as a constant 1 to represent an upper threshold limit in the model. i.e. even though this is an accumulator model, there is an accumulation of evidence towards a decision threshold and thus the 1 represents this?</p>
+<p><strong>Accumulator.bThreshold = false:</strong> I assmue this means there is no absolute threhsold as this account is based upon the accumlation of perceptual error evidence rather than a specific threshold limit like the previous model.</p>
+<pre class="r"><code>run_matlab_code(&quot;%SBestFitAccumulator = load(&#39;AccumulatorModelFittingResults_ChiSquareCorrected_FurtherOptimised.mat&#39;);
+Accumulator.k = 200;
+Accumulator.sigma_n = 0;%0.8; %Zero noise
+Accumulator.Athreshold = 1%1;
+Accumulator.sigma_m = 0;%0.8;
+Accumulator.bThreshold = false;&quot;)</code></pre>
+<pre><code>## Script created: C:\Users\pscmgo\AppData\Local\Temp\RtmpkfDVdc\filefac79ef4d0b.m</code></pre>
+<pre><code>## Command run is:</code></pre>
+<pre><code>## matlab.exe -wait -nodesktop -nosplash -nodisplay -r  &quot;try, run(&#39;C:\Users\pscmgo\AppData\Local\Temp\RtmpkfDVdc\filefac79ef4d0b.m&#39;); catch err, disp(err.message); exit(1); end; exit(0);&quot;</code></pre>
+<pre><code>## [1] 0</code></pre>
+<pre class="r"><code>run_matlab_code(&quot;%Run model over many radii
+initialoffset = 0; %for now, no offset.
+Vradii = 100:100:2500; 
+NRuns = 1;
+MStarts = zeros(NRuns,length(Vradii),2,3); %holds swaction times for each model run
+MAmps = zeros(NRuns,length(Vradii),2,3); %holds swaction times for each model run
+startTime = [0 0.5 1]; %does this manipulate visibility?
+for m = 1:2
+for i = 1:length(Vradii)
+%loop through radii
+rad = Vradii(i);
+for st = 1:3
+%      startTime(st)
+for r = 1:NRuns          
+if m==1
+SWAction = do_TestCurveDrivingSimulation(rad,initialoffset,Threshold, startTime(st));
+elseif m==2
+SWAction = do_TestCurveDrivingSimulation(rad,initialoffset,Accumulator, startTime(st))   ;
+end  
+%        pause;
+%SWAction has VSWRate, VSWAngle, VTimeStamp.
+%Time til first action.
+nonzero = find(SWAction.VSWRate);
+FirstSWAction = SWAction.VTimeStamp(nonzero(1));
+MStarts(r,i,m,st) = FirstSWAction;
+
+%Amplitude. Find point were diff(VSWRate &lt; 0)
+%%        [pks idx] = findpeaks(abs(SWAction.VSWRate)); %find peaks doesn&#39;t always seem reliable
+%        amp = abs(SWAction.VSWRate(idx(1))* 180/pi);
+amp = SWAction.VAdjustmentAmplitudes(1);
+%        deriv = diff(SWAction.VSWRate);
+%        crest = find(deriv&lt;0);
+%        amp  = SWAction.VSWRate(crest(1))*180/pi; %amp is simply height of first peak.
+MAmps(r,i,m,st) = amp;
+end
+end  
+end
+end
+
+MStarts&quot;)</code></pre>
+<pre><code>## Script created: C:\Users\pscmgo\AppData\Local\Temp\RtmpkfDVdc\filefac713267a1.m</code></pre>
+<pre><code>## Command run is:</code></pre>
+<pre><code>## matlab.exe -wait -nodesktop -nosplash -nodisplay -r  &quot;try, run(&#39;C:\Users\pscmgo\AppData\Local\Temp\RtmpkfDVdc\filefac713267a1.m&#39;); catch err, disp(err.message); exit(1); end; exit(0);&quot;</code></pre>
+<pre><code>## [1] 1</code></pre>
+<pre class="r"><code>run_matlab_code(&quot;%then plot.
+
+%%%Plot many parameterisations of threshold alongside each other?? 
+  
+  figure(55);
+clf
+subplot(2,1,1)
+thresh_ls = {&#39;c--&#39;;&#39;c-&#39;;&#39;c--o&#39;}
+accum_ls = {&#39;m--&#39;;&#39;m-&#39;;&#39;m--o&#39;}
+for r = 1:NRuns
+hold on
+for st = 1:3
+plot(Vradii,squeeze(MStarts(r,:,1,st)),thresh_ls{st}, &#39;LineWidth&#39;,1); 
+plot(Vradii,squeeze(MStarts(r,:,2,st)),accum_ls{st}, &#39;LineWidth&#39;,1); 
+end  
+end
+%plot average.
+for m=1:2
+  modelstarts = squeeze(MStarts(:,:,m));
+  modelstart_avg = mean(modelstarts,1);
+  if m==1
+    plot(Vradii,modelstart_avg,&#39;b-&#39;,&#39;LineWidth&#39;,2);
+  elseif m==2  
+    plot(Vradii,modelstart_avg,&#39;r-&#39;,&#39;LineWidth&#39;,2);
+  end
+end   
+
+ylabel(&#39;Time until First Steering Wheel Movement&#39;)
+xlabel(&#39;Radii&#39;)
+legendstr = {&#39;Thr-0s&#39;,&#39;Acc-0s&#39;,&#39;Thr-.5s&#39;,&#39;Acc-.5s&#39;,&#39;Thr-1s&#39;,&#39;Acc-1s&#39;};
+%legend(&#39;Threshold&#39;,&#39;Accumulator&#39;)
+legend(legendstr,&#39;Orientation&#39;,&#39;horizontal&#39;)
+
+MAmps
+subplot(2,1,2)
+for r = 1:NRuns
+hold on
+for st = 1:3
+plot(Vradii,log(squeeze(MAmps(r,:,1,st))),thresh_ls{st}, &#39;LineWidth&#39;,1); 
+plot(Vradii,log(squeeze(MAmps(r,:,2,st))),accum_ls{st}, &#39;LineWidth&#39;,1); 
+end
+end  
+
+%%plot average.
+for m=1:2
+  modelamps = squeeze(MAmps(:,:,m));
+  modelamps_avg = mean(modelamps,1);
+  if m==1
+    plot(Vradii,log(modelamps_avg),&#39;b-&#39;,&#39;LineWidth&#39;,2);
+  elseif m==2  
+    plot(Vradii,log(modelamps_avg),&#39;r-&#39;,&#39;LineWidth&#39;,2);
+  end
+end   
+ylabel(&#39;First Adjustment Amplitude log(gtilde)&#39;)
+xlabel(&#39;Radii&#39;)
+%legend(&#39;Threshold&#39;,&#39;Accumulator&#39;)
+legend(legendstr,&#39;Orientation&#39;,&#39;horizontal&#39;)&quot;)</code></pre>
+<pre><code>## Script created: C:\Users\pscmgo\AppData\Local\Temp\RtmpkfDVdc\filefac4a471bf6.m</code></pre>
+<pre><code>## Command run is:</code></pre>
+<pre><code>## matlab.exe -wait -nodesktop -nosplash -nodisplay -r  &quot;try, run(&#39;C:\Users\pscmgo\AppData\Local\Temp\RtmpkfDVdc\filefac4a471bf6.m&#39;); catch err, disp(err.message); exit(1); end; exit(0);&quot;</code></pre>
+<pre><code>## [1] 1</code></pre>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

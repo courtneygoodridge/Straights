@@ -1,0 +1,189 @@
+---
+title: "Thres vs Accum"
+output:
+  html_document:
+    self_contained: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, R wrapper function set up, echo=TRUE}
+# Wrapper to Gustav Model. Threshold vs. Accumulator. CDM. 03/06/17
+
+# Aim is to test many radii and lateral offset to see if they produce different starting times.
+# First step, compare across radii, sans noise, to see if the time to SWAction differentially changes across models.
+
+# Get parameters from Gustav's best fit.
+
+install.packages("devtools")
+setwd("M:/PhD/Project/Experiment_Code/Accum_vs_Threshold") #### set directory where the rest of the .mat files and functions are
+devtools::install_github("muschellij2/matlabr") # download matlabr functions
+library(matlabr) # load the matlabr functions
+options(matlab.path = "/ProgramData/Microsoft/Windows/Start Menu/Programs/MATLAB R2018a")
+# create a path for matlab in order to use the utilities
+have_matlab() #### If TRUE, matlab has been downloaded
+
+```
+
+**BELOW CODES FOR THE THRESHOLD MODEL.**
+
+**Threshold.k = NaN:** Represents the accumulation rate of evidence i.e. it is not applicable to this model, thus it is assigned a NaN value.
+
+**Threshold.sigma_n/m:** These parameters indicate noise in the sigal for this model. Lines become less smooth when these are given values of above 0. *sigma_n* represents *perceptual noise* and *sigma_m* represents *motor noise*.
+
+**Threshold.Athreshold:** This adjusts the threshold limit for the model. When set at 0.25, the threshold model predicts that **average adjustment amplitude** flatlines at a **radius of 700** whilst **average first steering timing correction** increases from a flatline at a **radius of 750**.
+
+When this is set at 0.01829, **average adjustment amplitude** flatlining occurs at a **radius of 1000**. In this example, the point at which **average adjustment amplitudes** are based upon the same perceptual error increases due to the lower threshold.  
+
+When this is set at 0.01829, **average first steering timing** increases from a flatline at a **radius of 1000**. In this example, perceptual error is suprathreshold for more radii as a consequence of the lower threshold value and thus **average first steering timing** is constant across more radii. 
+
+This is why this parameter alters the threshold limit. Upon changing this value, the point at which adjustment amplitudes are based upon the same perceptual error (**first adjustment amplitude**) and the point at which perceptual error is suprathreshold for early radii (**first steering correction**) both change.
+
+**Threshold.bThreshold = true:** Boolean operator that makes the code do different things based upon if it is true (threshold model) or false (accumulator model).
+
+```{r, threshold model set up, echo=TRUE}
+
+run_matlab_code("%SBestFitThreshold = load('ThresholdModelFittingResults_ChiSquareCorrected_FurtherOptimised.mat');
+Threshold.k = NaN; 
+Threshold.sigma_n = 0;%0.0057;
+Threshold.Athreshold = .025%.035%0.01829;
+Threshold.sigma_m = 0;%0.65547;
+Threshold.bThreshold = true;")
+```
+
+**BELOW CODES FOR THE ACCUMULATOR MODEL.**
+
+**Accumulator.k:** This adjusts the rate of accumulation. When altered, the slopes of the average accumulator model lines differ (lower number = slower accumulation). 
+
+This generates a steeper slope across radii for **average time until first steering correction**.
+
+This generates a steeper downwards curve in **average adjustment amplitude**.
+
+These differences could be down to slower error development. As a consequence of this, there is lower perceived error and thus slower **average first steering corrections** as radii increases and lower **average adjustment magnitudes** as radii increases.
+
+**Accumulator.sigma_n/m:** These parameters indicate noise in the sigal for this model. Lines become less smooth when these are given values of above 0. *sigma_n* represents *perceptual noise* and *sigma_m* represents *motor noise*.
+
+**Accumulator.Athreshold:** Accumulator is normalised so it accumulates to one. 
+
+**Accumulator.bThreshold = false:** Boolean operator that makes the code do different things based upon if it is true (threshold model) or false (accumulator model).
+
+```{r, accumulator set up, echo=TRUE}
+run_matlab_code("%SBestFitAccumulator = load('AccumulatorModelFittingResults_ChiSquareCorrected_FurtherOptimised.mat');
+Accumulator.k = 200;
+Accumulator.sigma_n = 0;%0.8; %Zero noise
+Accumulator.Athreshold = 1%1;
+Accumulator.sigma_m = 0;%0.8;
+Accumulator.bThreshold = false;")
+
+```
+
+```{r, lopping models through radii, echo=TRUE}
+run_matlab_code("%Run model over many radii
+initialoffset = 0; %for now, no offset.
+Vradii = 100:100:2500; 
+NRuns = 1;
+MStarts = zeros(NRuns,length(Vradii),2,3); %holds swaction times for each model run
+MAmps = zeros(NRuns,length(Vradii),2,3); %holds swaction times for each model run
+startTime = [0 0.5 1]; %does this manipulate visibility?
+for m = 1:2
+for i = 1:length(Vradii)
+%loop through radii
+rad = Vradii(i);
+for st = 1:3
+%      startTime(st)
+for r = 1:NRuns          
+if m==1
+SWAction = do_TestCurveDrivingSimulation(rad,initialoffset,Threshold, startTime(st));
+elseif m==2
+SWAction = do_TestCurveDrivingSimulation(rad,initialoffset,Accumulator, startTime(st))   ;
+end  
+%        pause;
+%SWAction has VSWRate, VSWAngle, VTimeStamp.
+%Time til first action.
+nonzero = find(SWAction.VSWRate);
+FirstSWAction = SWAction.VTimeStamp(nonzero(1));
+MStarts(r,i,m,st) = FirstSWAction;
+
+%Amplitude. Find point were diff(VSWRate < 0)
+%%        [pks idx] = findpeaks(abs(SWAction.VSWRate)); %find peaks doesn't always seem reliable
+%        amp = abs(SWAction.VSWRate(idx(1))* 180/pi);
+amp = SWAction.VAdjustmentAmplitudes(1);
+%        deriv = diff(SWAction.VSWRate);
+%        crest = find(deriv<0);
+%        amp  = SWAction.VSWRate(crest(1))*180/pi; %amp is simply height of first peak.
+MAmps(r,i,m,st) = amp;
+end
+end  
+end
+end
+
+MStarts")
+```
+
+```{r, plot results, echo=TRUE}
+run_matlab_code("%then plot.
+
+%%%Plot many parameterisations of threshold alongside each other?? 
+  
+  figure(55);
+clf
+subplot(2,1,1)
+thresh_ls = {'c--';'c-';'c--o'}
+accum_ls = {'m--';'m-';'m--o'}
+for r = 1:NRuns
+hold on
+for st = 1:3
+plot(Vradii,squeeze(MStarts(r,:,1,st)),thresh_ls{st}, 'LineWidth',1); 
+plot(Vradii,squeeze(MStarts(r,:,2,st)),accum_ls{st}, 'LineWidth',1); 
+end  
+end
+%plot average.
+for m=1:2
+  modelstarts = squeeze(MStarts(:,:,m));
+  modelstart_avg = mean(modelstarts,1);
+  if m==1
+    plot(Vradii,modelstart_avg,'b-','LineWidth',2);
+  elseif m==2  
+    plot(Vradii,modelstart_avg,'r-','LineWidth',2);
+  end
+end   
+
+ylabel('Time until First Steering Wheel Movement')
+xlabel('Radii')
+legendstr = {'Thr-0s','Acc-0s','Thr-.5s','Acc-.5s','Thr-1s','Acc-1s'};
+%legend('Threshold','Accumulator')
+legend(legendstr,'Orientation','horizontal')
+
+MAmps
+subplot(2,1,2)
+for r = 1:NRuns
+hold on
+for st = 1:3
+plot(Vradii,log(squeeze(MAmps(r,:,1,st))),thresh_ls{st}, 'LineWidth',1); 
+plot(Vradii,log(squeeze(MAmps(r,:,2,st))),accum_ls{st}, 'LineWidth',1); 
+end
+end  
+
+%%plot average.
+for m=1:2
+  modelamps = squeeze(MAmps(:,:,m));
+  modelamps_avg = mean(modelamps,1);
+  if m==1
+    plot(Vradii,log(modelamps_avg),'b-','LineWidth',2);
+  elseif m==2  
+    plot(Vradii,log(modelamps_avg),'r-','LineWidth',2);
+  end
+end   
+ylabel('First Adjustment Amplitude log(gtilde)')
+xlabel('Radii')
+%legend('Threshold','Accumulator')
+legend(legendstr,'Orientation','horizontal')")
+
+```
+
+
+
+

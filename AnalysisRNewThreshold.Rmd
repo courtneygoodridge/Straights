@@ -199,6 +199,7 @@ library(dplyr)
 library(tidyr)
 library(TTR)
 
+
 # Calculates peak magnitude and initial SWA for each trial
 workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
   group_by(ppid_trialn) %>%

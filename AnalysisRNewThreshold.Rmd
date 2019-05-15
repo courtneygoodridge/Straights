@@ -31,8 +31,8 @@ install.packages(transformr)
 # install.packages(magrittr)
 
 # full datasets
-setwd("M:/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+# setwd("M:/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 temp = list.files(pattern = c("BenLui17")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -103,7 +103,7 @@ library(skimr)
 # change in steering 
 magnitudethreshold = 0.140
 upperthreshold = 0.105 # 0.2184 # upper threshold for consistent steering response
-lowerthreshold = 0.005 # lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
+lowerthreshold = 0.001 # lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
 
 workingdata <- workingdata %>%
   mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% #difference in yaw rate
@@ -191,7 +191,29 @@ workingdatatimecourseUnsmooth <- workingdata %>%
 # workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
 #   group_by(ppid_trialn, heading) %>% 
 #   filter(frame >= 150)
+
+# spike trial remover 1
+
+b <- workingdatatimecourseUnsmooth %>% 
+  group_by(ppid_trialn) %>% # group by trials
+  filter(!(max(YawRateChange) > 0.8)) # removes group who max YawRateChange is greater than 1
+# ! operator selects groups where the defined condition (max(YawRateChange) > 1) is not true
+View(b)
+
+# spike trial remover 2
+
+threshold = 0.8
+
+grps_to_filt <- unique(workingdatatimecourseUnsmooth[workingdatatimecourseUnsmooth$YawRateChange > threshold, "ppid_trialn", drop = TRUE])
+
+c <- workingdatatimecourseUnsmooth[!workingdatatimecourseUnsmooth$ppid_trialn %in% grps_to_filt, , drop = FALSE]
+
+View(c)
+
+
+
 ```
+
 
 ```{r calculating genuine responses, formulating threshold data UNSMOOTH}
 library(zoo)
@@ -199,6 +221,7 @@ library(dplyr)
 library(tidyr)
 library(TTR)
 
+# similar to genuine repsonse code, except spike code will measure if YawRateChange is above a value i.e. 0.7 this is taken to be a spike and is given true value
 
 # Calculates peak magnitude and initial SWA for each trial
 workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
@@ -292,10 +315,10 @@ Ths plot shows that for 0 heading conditions, alongside conditions that are clos
 ```{r timecourse plotting of yaw rate change - UNSMOOTH}
 library(ggplot2)
 library(dplyr)
-library(gganimate)
-library(gifski)
-library(png)
-library(transformr)
+# library(gganimate)
+# library(gifski)
+# library(png)
+# library(transformr)
 
 # workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
 #   filter(Genuine_Response == TRUE & EarlyResponses == FALSE)

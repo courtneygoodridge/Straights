@@ -1,5 +1,8 @@
 import sys
 
+rootpath = "C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/ExpSimulation"
+sys.path.append(rootpath)
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pdb

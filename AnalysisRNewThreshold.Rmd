@@ -885,9 +885,13 @@ workingdatathresholdUnsmooth %>%
   group_by(heading) %>%
   summarise(skew = skewness(FirstSteeringTime))
 
-# histogram normality
+# histogram with normality curves
 ggplot(workingdatathresholdUnsmooth, aes(x = FirstSteeringTime)) +
-  geom_histogram() +
+  geom_histogram(aes(y = ..density..)) +
+  stat_function(
+		fun = dnorm, 
+		args = with(workingdatathresholdUnsmooth, c(mean = mean(FirstSteeringTime), sd = sd(FirstSteeringTime)))
+	) + 
   facet_wrap( ~ heading)
 
 # shapiro-wilk test for each heading - significant means not normally distributed

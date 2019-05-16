@@ -22,7 +22,7 @@ frames = data(:,1); % number of frames
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 0 heading %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 zerodata = data(:,6);
-[~,zeroPeakResponse] = findpeaks(zerodata,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
+[~,zeroPeakResponse] = findpeaks(zerodata,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough: was originally 0.05, 30
 
 limit = 0.01;                                    
 indx = 1;
@@ -66,7 +66,7 @@ avg_fallLevelzero = val_zeroPeakResponse - val_zeroresponseSTART;  % Average Fal
 %%%%%%%%%%-2 heading %%%%%%%%%
 
 minus2data_inverted = -data(:,2);
-[~,minus2PeakResponse] = findpeaks(minus2data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
+[~,minus2PeakResponse] = findpeaks(minus2data_inverted,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough
 
 minus2data = data(:,2);
 limit = 0.01;                                    
@@ -124,7 +124,7 @@ avg_fallLevelminus2 = val_minus2PeakResponse - val_minus2responseSTART;  % Avera
 %%%%%%%% - 1.5 heading %%%%%%%
 
 minus1_5data_inverted = -data(:,3);
-[~,minus1_5PeakResponse] = findpeaks(minus1_5data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
+[~,minus1_5PeakResponse] = findpeaks(minus1_5data_inverted,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough
 
 minus1_5data = data(:,3);
 limit = 0.01;                                    
@@ -181,7 +181,7 @@ avg_fallLevelminus1_5 = val_minus1_5PeakResponse - val_minus1_5responseSTART;  %
 %%%%%%%%% -1 heading %%%%%%%%%
 
 minus1data_inverted = -data(:,4);
-[~,minus1PeakResponse] = findpeaks(minus1data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
+[~,minus1PeakResponse] = findpeaks(minus1data_inverted,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough
 
 minus1data = data(:,4);
 limit = 0.01;                                    
@@ -221,7 +221,7 @@ avg_fallLevelminus1 = val_minus1PeakResponse - val_minus1responseSTART;  % Avera
 %%%%%%%%% -0.5 heading %%%%%%%%%
 
 minus0_5data_inverted = -data(:,5);
-[~,minus0_5PeakResponse] = findpeaks(minus0_5data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
+[~,minus0_5PeakResponse] = findpeaks(minus0_5data_inverted,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough
 
 minus0_5data = data(:,5);
 limit = 0.01;                                    
@@ -284,9 +284,9 @@ plot(minus0_5PeakResponse,smoothminus0_5data(minus0_5PeakResponse),'rs','MarkerF
 plot(minus0_5responseSTART,smoothminus0_5data(minus0_5responseSTART), 'rv','MarkerFaceColor','r')
 plot(minus0_5responseEND,smoothminus0_5data(minus0_5responseEND),'rv','MarkerFaceColor','k')
 % 0 %
-plot(zeroPeakResponse,smoothzerodata(zeroPeakResponse),'rs','MarkerFaceColor','b')
-plot(zeroresponseSTART,smoothzerodata(zeroresponseSTART), 'rv','MarkerFaceColor','r')
-plot(zeroresponseEND,smoothzerodata(zeroresponseEND),'rv','MarkerFaceColor','k')
+% plot(zeroPeakResponse,smoothzerodata(zeroPeakResponse),'rs','MarkerFaceColor','b')
+% plot(zeroresponseSTART,smoothzerodata(zeroresponseSTART), 'rv','MarkerFaceColor','r')
+% plot(zeroresponseEND,smoothzerodata(zeroresponseEND),'rv','MarkerFaceColor','k')
 axis([0 151 -0.30 0.30])
 grid on
 xlabel('Frames')
@@ -295,81 +295,81 @@ legend('-2 heading', '-1.5 heading', '-1 heading', '-0.5 heading', 'straight hea
 title('Filtered Yaw Rate Signal for negative heading conditions')
 
 % fall annotations for -2 heading
-dim = [.50 .45 0 0 ];
-str = sprintf('Average fall time is %f frames', avg_fallTimeminus2);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
-
-dim = [.50 .41 0 0 ];
-str = sprintf('Average decreased change in yaw rate is %f', avg_fallLevelminus2);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
-
-% rise annotations for -2 heading
-dim = [.50 .37 0 0 ]; 
-str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelminus2);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
-
-dim = [.50 .33 0 0 ];
-str = sprintf('Average rise time is %f frames', avg_riseTimeminus2);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
-
-
-
-% fall annotations for -1.5 heading
-dim = [.50 .29 0 0 ];
-str = sprintf('Average fall time is %f frames', avg_fallTimeminus1_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
-
-dim = [.50 .25 0 0 ];
-str = sprintf('Average yaw rate change decrease: %f', avg_fallLevelminus1_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
-
-% rise annotations for -1.5 heading
-dim = [.50 .21 0 0 ]; 
-str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelminus1_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
-
-dim = [.50 .17 0 0 ];
-str = sprintf('Average rise time is %f frames', avg_riseTimeminus1_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
-
-
-% fall annotations for -1 heading
-dim = [.70 .45 0 0 ];
-str = sprintf('Average fall time is %f frames', avg_fallTimeminus1);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 6.5);
-
-dim = [.70 .41 0 0 ];
-str = sprintf('Average decreased change in yaw rate is %f', avg_fallLevelminus1);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 6.5);
-
-% rise annotations for -1 heading
-dim = [.70 .37 0 0 ];
-str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelminus1);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 6.5);
-
-dim = [.70 .33 0 0 ];
-str = sprintf('Average rise time is %f frames', avg_riseTimeminus1);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 6.5);
-
-
-
-% fall annotations for -0.5 heading
-dim = [.70 .29 0 0 ];
-str = sprintf('Average fall time is %f frames', avg_fallTimeminus0_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 6.5);
-
-dim = [.70 .25 0 0 ];
-str = sprintf('Average yaw rate change decrease: %f', avg_fallLevelminus0_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 6.5);
-
-% rise annotations for -0,5 heading
-dim = [.70 .21 0 0 ];
-str = sprintf('Average yaw rate change increase: %f', avg_riseLevelminus0_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 6.5);
-
-dim = [.70 .17 0 0 ];
-str = sprintf('Average rise time is %f frames', avg_riseTimeminus0_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 6.5);
+% % dim = [.50 .45 0 0 ];
+% % str = sprintf('Average fall time is %f frames', avg_fallTimeminus2);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
+% % 
+% % dim = [.50 .41 0 0 ];
+% % str = sprintf('Average decreased change in yaw rate is %f', avg_fallLevelminus2);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
+% % 
+% % % rise annotations for -2 heading
+% % dim = [.50 .37 0 0 ]; 
+% % str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelminus2);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
+% % 
+% % dim = [.50 .33 0 0 ];
+% % str = sprintf('Average rise time is %f frames', avg_riseTimeminus2);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
+% % 
+% % 
+% % 
+% % % fall annotations for -1.5 heading
+% % dim = [.50 .29 0 0 ];
+% % str = sprintf('Average fall time is %f frames', avg_fallTimeminus1_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
+% % 
+% % dim = [.50 .25 0 0 ];
+% % str = sprintf('Average yaw rate change decrease: %f', avg_fallLevelminus1_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
+% % 
+% % % rise annotations for -1.5 heading
+% % dim = [.50 .21 0 0 ]; 
+% % str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelminus1_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
+% % 
+% % dim = [.50 .17 0 0 ];
+% % str = sprintf('Average rise time is %f frames', avg_riseTimeminus1_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
+% % 
+% % 
+% % % fall annotations for -1 heading
+% % dim = [.70 .45 0 0 ];
+% % str = sprintf('Average fall time is %f frames', avg_fallTimeminus1);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 6.5);
+% % 
+% % dim = [.70 .41 0 0 ];
+% % str = sprintf('Average decreased change in yaw rate is %f', avg_fallLevelminus1);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 6.5);
+% % 
+% % % rise annotations for -1 heading
+% % dim = [.70 .37 0 0 ];
+% % str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelminus1);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 6.5);
+% % 
+% % dim = [.70 .33 0 0 ];
+% % str = sprintf('Average rise time is %f frames', avg_riseTimeminus1);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 6.5);
+% % 
+% % 
+% % 
+% % % fall annotations for -0.5 heading
+% % dim = [.70 .29 0 0 ];
+% % str = sprintf('Average fall time is %f frames', avg_fallTimeminus0_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 6.5);
+% % 
+% % dim = [.70 .25 0 0 ];
+% % str = sprintf('Average yaw rate change decrease: %f', avg_fallLevelminus0_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 6.5);
+% % 
+% % % rise annotations for -0,5 heading
+% % dim = [.70 .21 0 0 ];
+% % str = sprintf('Average yaw rate change increase: %f', avg_riseLevelminus0_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 6.5);
+% % 
+% % dim = [.70 .17 0 0 ];
+% % str = sprintf('Average rise time is %f frames', avg_riseTimeminus0_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 6.5);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% plus values %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -377,7 +377,7 @@ annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'Font
 %%%%%%%%%% 0.5 %%%%%%%%%%
 
 plus0_5data = data(:,7);
-[~,plus0_5PeakResponse] = findpeaks(plus0_5data,'MinPeakHeight',0.05,'MinPeakDistance',30);
+[~,plus0_5PeakResponse] = findpeaks(plus0_5data,'MinPeakHeight',0.04,'MinPeakDistance',10);
                                 
 % inverted thresholding to find peak troughs
 
@@ -434,7 +434,7 @@ avg_fallLevelplus0_5 = val_plus0_5PeakResponse - val_plus0_5responseEND;  % Aver
 
 % finding peaks
 plus1data = data(:,8);
-[~,plus1PeakResponse] = findpeaks(plus1data,'MinPeakHeight',0.1,'MinPeakDistance',30);
+[~,plus1PeakResponse] = findpeaks(plus1data,'MinPeakHeight',0.04,'MinPeakDistance',10);
                                 
 % inverted thresholding to find peak troughs
 
@@ -490,7 +490,7 @@ avg_fallLevelplus1 = val_plus1PeakResponse - val_plus1responseEND;  % Average Fa
 %%%%%%%%%% 1.5 %%%%%%%%%
 
 plus1_5data = data(:,9);
-[~,plus1_5PeakResponse] = findpeaks(plus1_5data,'MinPeakHeight',0.1,'MinPeakDistance',30);
+[~,plus1_5PeakResponse] = findpeaks(plus1_5data,'MinPeakHeight',0.04,'MinPeakDistance',10);
                                 
 % inverted thresholding to find peak troughs
 
@@ -547,7 +547,7 @@ avg_fallLevelplus1_5 = val_plus1_5PeakResponse - val_plus1_5responseEND;  % Aver
 
 % finding peaks
 plus2data = data(:,10);
-[~,plus2PeakResponse] = findpeaks(plus2data,'MinPeakHeight',0.1,'MinPeakDistance',30);
+[~,plus2PeakResponse] = findpeaks(plus2data,'MinPeakHeight',0.04,'MinPeakDistance',10);
 
 limit = 0.01;                                    
 indx = 1;
@@ -625,9 +625,9 @@ plot(plus0_5PeakResponse,smoothplus0_5data(plus0_5PeakResponse),'rs','MarkerFace
 plot(plus0_5responseSTART,smoothplus0_5data(plus0_5responseSTART), 'rv','MarkerFaceColor','r')
 plot(plus0_5responseEND,smoothplus0_5data(plus0_5responseEND),'rv','MarkerFaceColor','k')
 % 0 %
-plot(zeroPeakResponse,smoothzerodata(zeroPeakResponse),'rs','MarkerFaceColor','b')
-plot(zeroresponseSTART,smoothzerodata(zeroresponseSTART), 'rv','MarkerFaceColor','r')
-plot(zeroresponseEND,smoothzerodata(zeroresponseEND),'rv','MarkerFaceColor','k')
+% plot(zeroPeakResponse,smoothzerodata(zeroPeakResponse),'rs','MarkerFaceColor','b')
+% plot(zeroresponseSTART,smoothzerodata(zeroresponseSTART), 'rv','MarkerFaceColor','r')
+% plot(zeroresponseEND,smoothzerodata(zeroresponseEND),'rv','MarkerFaceColor','k')
 axis([0 151 -0.30 0.30])
 grid on
 xlabel('Frames')
@@ -636,82 +636,82 @@ legend('+2 heading', '+1.5 heading', '+1 heading', '+0.5 heading', 'straight hea
 title('Filtered Yaw Rate Signal for negative heading conditions')
 
 % rise annotations for +2 heading
-dim = [.15 .50 0 0 ];
-str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelplus2);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
-
-dim = [.15 .45 0 0 ];
-str = sprintf('Average rise time is %f frames', avg_riseTimeplus2);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
-
-% fall annotations for +2 heading
-dim = [.15 .40 0 0 ]; 
-str = sprintf('Average fall time is %f frames', avg_fallTimeplus2);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
-
-dim = [.15 .35 0 0 ]; 
-str = sprintf('Average decreased change in yaw rate is %f', avg_fallLevelplus2);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
-
-
-
-% rise annotations for +1.5 heading
-dim = [.15 .30 0 0 ];
-str = sprintf('Average yaw rate change increase: %f', avg_riseLevelplus1_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
-
-dim = [.15 .25 0 0 ];
-str = sprintf('Average rise time: %f frames', avg_riseTimeplus1_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
-
-% fall annotations for +1.5 heading
-dim = [.15 .20 0 0 ]; 
-str = sprintf('Average fall time: %f frames', avg_fallTimeplus1_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
-
-dim = [.15 .15 0 0 ]; 
-str = sprintf('Average yaw rate change decrease: %f', avg_fallLevelplus1_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
-
-
-
-% rise annotations for +1 heading
-dim = [.40 .80 0 0 ];
-str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelplus1);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 7);
-
-dim = [.40 .75 0 0 ];
-str = sprintf('Average rise time is %f frames', avg_riseTimeplus1);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 7);
-
-% fall annotations for +1 heading
-dim = [.40 .70 0 0 ]; 
-str = sprintf('Average fall time is %f frames', avg_fallTimeplus1);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 7);
-
-dim = [.40 .65 0 0 ]; 
-str = sprintf('Average decreased change in yaw rate is %f', avg_fallLevelplus1);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue','FontSize', 7);
-
-
-
-% rise annotations for +0.5 heading
-dim = [.40 .35 0 0 ];
-str = sprintf('Average yaw rate change increase: %f', avg_riseLevelplus0_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 7);
-
-dim = [.40 .30 0 0 ];
-str = sprintf('Average rise time: %f frames', avg_riseTimeplus0_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 7);
-
-% fall annotations for +0.5 heading
-dim = [.40 .25 0 0 ]; 
-str = sprintf('Average fall time: %f frames', avg_fallTimeplus0_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 7);
-
-dim = [.40 .20 0 0 ]; 
-str = sprintf('Average yaw rate change decrease: %f', avg_fallLevelplus0_5);
-annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 7);
+% % dim = [.15 .50 0 0 ];
+% % str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelplus2);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
+% % 
+% % dim = [.15 .45 0 0 ];
+% % str = sprintf('Average rise time is %f frames', avg_riseTimeplus2);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
+% % 
+% % % fall annotations for +2 heading
+% % dim = [.15 .40 0 0 ]; 
+% % str = sprintf('Average fall time is %f frames', avg_fallTimeplus2);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
+% % 
+% % dim = [.15 .35 0 0 ]; 
+% % str = sprintf('Average decreased change in yaw rate is %f', avg_fallLevelplus2);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','red', 'FontSize', 7);
+% % 
+% % 
+% % 
+% % % rise annotations for +1.5 heading
+% % dim = [.15 .30 0 0 ];
+% % str = sprintf('Average yaw rate change increase: %f', avg_riseLevelplus1_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
+% % 
+% % dim = [.15 .25 0 0 ];
+% % str = sprintf('Average rise time: %f frames', avg_riseTimeplus1_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
+% % 
+% % % fall annotations for +1.5 heading
+% % dim = [.15 .20 0 0 ]; 
+% % str = sprintf('Average fall time: %f frames', avg_fallTimeplus1_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
+% % 
+% % dim = [.15 .15 0 0 ]; 
+% % str = sprintf('Average yaw rate change decrease: %f', avg_fallLevelplus1_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','yellow', 'FontSize', 7);
+% % 
+% % 
+% % 
+% % % rise annotations for +1 heading
+% % dim = [.40 .80 0 0 ];
+% % str = sprintf('Average increased change in yaw rate is %f', avg_riseLevelplus1);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 7);
+% % 
+% % dim = [.40 .75 0 0 ];
+% % str = sprintf('Average rise time is %f frames', avg_riseTimeplus1);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 7);
+% % 
+% % % fall annotations for +1 heading
+% % dim = [.40 .70 0 0 ]; 
+% % str = sprintf('Average fall time is %f frames', avg_fallTimeplus1);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue', 'FontSize', 7);
+% % 
+% % dim = [.40 .65 0 0 ]; 
+% % str = sprintf('Average decreased change in yaw rate is %f', avg_fallLevelplus1);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','blue','FontSize', 7);
+% % 
+% % 
+% % 
+% % % rise annotations for +0.5 heading
+% % dim = [.40 .35 0 0 ];
+% % str = sprintf('Average yaw rate change increase: %f', avg_riseLevelplus0_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 7);
+% % 
+% % dim = [.40 .30 0 0 ];
+% % str = sprintf('Average rise time: %f frames', avg_riseTimeplus0_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 7);
+% % 
+% % % fall annotations for +0.5 heading
+% % dim = [.40 .25 0 0 ]; 
+% % str = sprintf('Average fall time: %f frames', avg_fallTimeplus0_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 7);
+% % 
+% % dim = [.40 .20 0 0 ]; 
+% % str = sprintf('Average yaw rate change decrease: %f', avg_fallLevelplus0_5);
+% % annotation('textbox',dim,'String',str,'FitBoxToText','on','Color','green', 'FontSize', 7);
 
 %%%%% data saving %%%%%
 

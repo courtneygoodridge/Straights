@@ -22,7 +22,7 @@ frames = data(:,1); % number of frames
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 0 heading %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 zerodata = data(:,6);
-[~,zeroPeakResponse] = findpeaks(zerodata,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
+[~,zeroPeakResponse] = findpeaks(zerodata,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough: was originally 0.05, 30
 
 limit = 0.01;                                    
 indx = 1;
@@ -66,7 +66,7 @@ avg_fallLevelzero = val_zeroPeakResponse - val_zeroresponseSTART;  % Average Fal
 %%%%%%%%%%-2 heading %%%%%%%%%
 
 minus2data_inverted = -data(:,2);
-[~,minus2PeakResponse] = findpeaks(minus2data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
+[~,minus2PeakResponse] = findpeaks(minus2data_inverted,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough
 
 minus2data = data(:,2);
 limit = 0.01;                                    
@@ -124,7 +124,7 @@ avg_fallLevelminus2 = val_minus2PeakResponse - val_minus2responseSTART;  % Avera
 %%%%%%%% - 1.5 heading %%%%%%%
 
 minus1_5data_inverted = -data(:,3);
-[~,minus1_5PeakResponse] = findpeaks(minus1_5data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
+[~,minus1_5PeakResponse] = findpeaks(minus1_5data_inverted,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough
 
 minus1_5data = data(:,3);
 limit = 0.01;                                    
@@ -181,7 +181,7 @@ avg_fallLevelminus1_5 = val_minus1_5PeakResponse - val_minus1_5responseSTART;  %
 %%%%%%%%% -1 heading %%%%%%%%%
 
 minus1data_inverted = -data(:,4);
-[~,minus1PeakResponse] = findpeaks(minus1data_inverted,'MinPeakHeight',0.05,'MinPeakDistance',30); % find the response peak/trough
+[~,minus1PeakResponse] = findpeaks(minus1data_inverted,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough
 
 minus1data = data(:,4);
 limit = 0.01;                                    
@@ -221,7 +221,7 @@ avg_fallLevelminus1 = val_minus1PeakResponse - val_minus1responseSTART;  % Avera
 %%%%%%%%% -0.5 heading %%%%%%%%%
 
 minus0_5data_inverted = -data(:,5);
-[~,minus0_5PeakResponse] = findpeaks(minus0_5data_inverted,'MinPeakHeight',0.01,'MinPeakDistance',30); % find the response peak/trough
+[~,minus0_5PeakResponse] = findpeaks(minus0_5data_inverted,'MinPeakHeight',0.04,'MinPeakDistance',10); % find the response peak/trough
 
 minus0_5data = data(:,5);
 limit = 0.01;                                    
@@ -377,7 +377,7 @@ title('Filtered Yaw Rate Signal for negative heading conditions')
 %%%%%%%%%% 0.5 %%%%%%%%%%
 
 plus0_5data = data(:,7);
-[~,plus0_5PeakResponse] = findpeaks(plus0_5data,'MinPeakHeight',0.05,'MinPeakDistance',30);
+[~,plus0_5PeakResponse] = findpeaks(plus0_5data,'MinPeakHeight',0.04,'MinPeakDistance',10);
                                 
 % inverted thresholding to find peak troughs
 
@@ -434,7 +434,7 @@ avg_fallLevelplus0_5 = val_plus0_5PeakResponse - val_plus0_5responseEND;  % Aver
 
 % finding peaks
 plus1data = data(:,8);
-[~,plus1PeakResponse] = findpeaks(plus1data,'MinPeakHeight',0.05,'MinPeakDistance',30);
+[~,plus1PeakResponse] = findpeaks(plus1data,'MinPeakHeight',0.04,'MinPeakDistance',10);
                                 
 % inverted thresholding to find peak troughs
 
@@ -490,7 +490,7 @@ avg_fallLevelplus1 = val_plus1PeakResponse - val_plus1responseEND;  % Average Fa
 %%%%%%%%%% 1.5 %%%%%%%%%
 
 plus1_5data = data(:,9);
-[~,plus1_5PeakResponse] = findpeaks(plus1_5data,'MinPeakHeight',0.1,'MinPeakDistance',30);
+[~,plus1_5PeakResponse] = findpeaks(plus1_5data,'MinPeakHeight',0.04,'MinPeakDistance',10);
                                 
 % inverted thresholding to find peak troughs
 
@@ -547,7 +547,7 @@ avg_fallLevelplus1_5 = val_plus1_5PeakResponse - val_plus1_5responseEND;  % Aver
 
 % finding peaks
 plus2data = data(:,10);
-[~,plus2PeakResponse] = findpeaks(plus2data,'MinPeakHeight',0.1,'MinPeakDistance',30);
+[~,plus2PeakResponse] = findpeaks(plus2data,'MinPeakHeight',0.04,'MinPeakDistance',10);
 
 limit = 0.01;                                    
 indx = 1;

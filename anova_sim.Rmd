@@ -1,0 +1,58 @@
+---
+title: "anova_sim"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# rm(list = ls()) # clear workspace
+knitr::opts_chunk$set(echo = TRUE)
+install.packages(plyr) # apply a function to each subset of the df and save as new df
+install.packages(ggplot2)# plotting
+install.packages(dplyr) # data manipulation
+install.packages(psych) # simulating anova data
+install.packages(car) # anova analysis
+install.packages(ggpubr) # interaction plots
+```
+
+```{r simulate data}
+library(psych)
+
+df <- sim.anova(es1 = 0.8, n1 = 3, factors = TRUE, std = TRUE) # 1 IV, 3 levels
+
+DV <- c(0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264)
+IV1 <- c(-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1)
+df2 <- data.frame(IV1, DV)
+
+df$IV1 <- as.character(df$IV1)
+df$IV1[df$IV1 == 1] <- as.character(1.5)
+df$IV1[df$IV1 == 0] <- as.character(1)
+df$IV1[df$IV1 == -1] <- as.character(0.5)
+df$IV1 <- as.integer(df$IV1)
+
+# View(df)
+```
+
+```{r analyse anova sim data}
+library(car)
+
+anova <- aov(DV ~ IV1, data = df)
+summary(anova)
+
+resultTukey <- TukeyHSD(anova)
+resultTukey
+```
+
+```{r interaction plotting}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(ggpubr) # for interaction plots/boxplots
+
+ggline(df, x = "IV1", y = "DV", add = "mean", color = "red")
+
+# df_means <- ddply(df,.(IV1), summarise, val = mean(DV)) 
+# for IV1 in dataframe df, summarise the DV by calculating mean and save as "val"
+
+
+
+```

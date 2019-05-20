@@ -33,7 +33,7 @@ install.packages(transformr)
 # full datasets
 setwd("M:/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-temp = list.files(pattern = c("BenLui17")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_1")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
@@ -101,8 +101,8 @@ library(skimr)
 # init_hemm()
 
 # change in steering 
-magnitudethreshold = 0.140
-upperthreshold = 0.080 # 0.105 #  # upper threshold for consistent steering response
+# magnitudethreshold = 0.140
+upperthreshold = 0.140 # 0.105 #  # upper threshold for consistent steering response
 lowerthreshold = 0.001 # lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
 
 workingdata <- workingdata %>%
@@ -229,12 +229,11 @@ workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
 
 workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
   group_by(ppid_trialn) %>%
-  mutate(row_number(), Genuine_Response = if_else(PeakMagnitude >= magnitudethreshold, TRUE, FALSE), Spike = if_else(PeakMagnitude > 0.8, TRUE, FALSE)) %>%
   filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(abs(YawRateChange) > upperthreshold, 1))) %>% 
   slice(max(which(abs(YawRateChange) < lowerthreshold, 1))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange, Genuine_Response = Genuine_Response, PeakMagnitude = PeakMagnitude, Spike = Spike) %>%
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange) %>%
   mutate(steering_zscore = scale(FirstSteeringTime)) %>%
   mutate(EarlyResponses = steering_zscore <= -1)
 # returns TRUE if response is less than 1 SD below mean first steering time
@@ -320,8 +319,8 @@ library(dplyr)
 # library(transformr)
 
 workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
-  filter(Genuine_Response == TRUE & EarlyResponses == FALSE)
-# 
+  filter(Genuine_Response == TRUE)
+#  & EarlyResponses == FALSE
 
 ############################################################### MEAN PLOTS ########################################################
 
@@ -631,7 +630,7 @@ library(dplyr)
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -2), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -2), aes(xintercept = FirstSteeringTime, color = EarlyResponses)) +
   facet_wrap( ~ ppid_trialn) +
   ggtitle("-2 heading - unsmoothed")
 
@@ -696,7 +695,7 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1.5), aes(x = anc
 
 ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
-  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2), aes(xintercept = FirstSteeringTime, color = Genuine_Response)) +
+  geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2), aes(xintercept = FirstSteeringTime, color = EarlyResponses)) +
   facet_wrap( ~ ppid_trialn) +
   ggtitle("+2 heading - unsmoothed")
 

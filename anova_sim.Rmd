@@ -17,17 +17,25 @@ install.packages(ggpubr) # interaction plots
 ```{r simulate data}
 library(psych)
 
-df <- sim.anova(es1 = 0.8, n1 = 3, factors = TRUE, std = TRUE) # 1 IV, 3 levels
+df <- sim.anova(es1 = -0.8, n1 = 3, factors = TRUE, std = TRUE) # 1 IV, 3 levels
 
-DV <- c(0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264, 0.264)
+# DV <- c(0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4)
+# IV1 <- c(-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1)
+# df2 <- data.frame(IV1, DV)
+
+DV <- c(0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
 IV1 <- c(-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1)
-df2 <- data.frame(IV1, DV)
+df <- data.frame(IV1, DV)
 
-df$IV1 <- as.character(df$IV1)
-df$IV1[df$IV1 == 1] <- as.character(1.5)
-df$IV1[df$IV1 == 0] <- as.character(1)
-df$IV1[df$IV1 == -1] <- as.character(0.5)
-df$IV1 <- as.integer(df$IV1)
+DV2 <- c(0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1)
+IV1 <- c(-1, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1)
+df2 <- data.frame(IV1, DV2)
+
+# df$IV1 <- as.character(df$IV1)
+# df$IV1[df$IV1 == 1] <- as.character(1.5)
+# df$IV1[df$IV1 == 0] <- as.character(1)
+# df$IV1[df$IV1 == -1] <- as.character(0.5)
+# df$IV1 <- as.integer(df$IV1)
 
 # View(df)
 ```
@@ -35,7 +43,7 @@ df$IV1 <- as.integer(df$IV1)
 ```{r analyse anova sim data}
 library(car)
 
-anova <- aov(DV ~ IV1, data = df)
+anova <- aov(DV ~ IV1, data = df2)
 summary(anova)
 
 resultTukey <- TukeyHSD(anova)
@@ -48,7 +56,11 @@ library(plyr)
 library(dplyr)
 library(ggpubr) # for interaction plots/boxplots
 
-ggline(df, x = "IV1", y = "DV", add = "mean", color = "red")
+pAcc <- ggline(df, x = "IV1", y = "DV", add = "mean", color = "red")
+ggpar(pAcc, ticks = FALSE, tickslab = FALSE, xlab = c("Heading angle"), ylab = c("First steering reaction time"), title = c("Accumulation behavioural pattern example for heading offsets 0.5, 1.0 and 1.5"))
+
+pThresh <- ggline(df2, x = "IV1", y = "DV2", add = "mean", color = "red")
+ggpar(pThresh, ticks = FALSE, tickslab = FALSE, xlab = c("Heading angle"), ylab = c("First steering reaction time"), title = c("Threshold behavioural pattern example for heading offsets 0.5, 1.0 and 1.5"))
 
 # df_means <- ddply(df,.(IV1), summarise, val = mean(DV)) 
 # for IV1 in dataframe df, summarise the DV by calculating mean and save as "val"

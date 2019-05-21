@@ -66,8 +66,8 @@ MStarts
 figure(55);
 clf
 subplot(2,1,1)
-thresh_ls = {'c--';'c-';'c--o'}; % original -> 'c--';'c-';'c--o'
-accum_ls = {'m--';'m-';'m--o'}; % original -> 'm--';'m-';'m--o' 
+thresh_ls = {'w--';'w-';'w--o'}; % original -> 'c--';'c-';'c--o'
+accum_ls = {'w--';'w-';'w--o'}; % original -> 'm--';'m-';'m--o' 
 for r = 1:NRuns
   hold on
   for st = 1:3
@@ -89,9 +89,9 @@ end
 
 ylabel('Time until First Steering Wheel Movement (secs)')
 xlabel('Radii (degrees)')
-legendstr = {'Thr-0s','Acc-0s','Thr-.5s','Acc-.5s','Thr-1s','Acc-1s'}; %
-% legend('Threshold','Accumulator')
-legend(legendstr,'Orientation','horizontal')
+% legendstr = {'Thr-0s','Acc-0s','Thr-.5s','Acc-.5s','Thr-1s','Acc-1s'}; %
+legendstr = {'Threshold','Accumulator'}
+% legend(legendstr,'Orientation','horizontal')
 
 MAmps
 subplot(2,1,2)
@@ -115,5 +115,7 @@ for m=1:2
 end   
 ylabel('First Adjustment Amplitude log(gtilde)')
 xlabel('Radii (degrees)')
-% legend('Threshold','Accumulator')
+legendstr = {'Threshold','Accumulator'}
 legend(legendstr,'Orientation','horizontal')
+% legend('Threshold','Accumulator')
+% legend(legendstr,'Orientation','horizontal')

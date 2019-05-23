@@ -33,7 +33,7 @@ install.packages(transformr)
 # full datasets
 setwd("M:/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-temp = list.files(pattern = c("BenLui17")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_1_full")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
@@ -815,7 +815,8 @@ ggplot(data = filter(workingdatathresholdSmooth, Genuine_Response == TRUE & Earl
 ```
 
 
-```{r first steering time graphed example, fig.height = 18, fig.width = 26}
+```{r first steering time graphed example, fig.height = 7, fig.width = 15}
+# fig.height = 18, fig.width = 26
 library(dplyr)
 library(ggplot2)
 
@@ -827,9 +828,24 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = ancho
   ggtitle("Visualisation of data pre-processing for +2 heading") +
   xlab("Timestamp (secs)") +
   ylab("Yaw Rate Change") +
-  labs(color = "Early Responses") 
-  ggsave("Pre-processing_plot.png", width = 5, height = 5, units = "in")
+  labs(color = "Early Responses") +
+  theme(plot.title = element_text(size = 18),
+    legend.title = element_text(size = 18), 
+    legend.text = element_text(size = 18),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 20))
+#   ggsave("Pre-processing_plot.png", width = 5, height = 5, units = "in")
 
+  
+  # ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2, ppid_trialn == "1_2_16"), aes(x = anchored_timestamp, y = YawRateChange)) +
+  # geom_line() +
+  # geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2, ppid_trialn == "1_2_16"), aes(xintercept = FirstSteeringTime)) +
+  # scale_y_continuous(limits = c(-0.60, 0.80)) +
+  # ggtitle("A) Genuine response") +
+  # xlab("Timestamp (secs)") +
+  # ylab("Yaw Rate Change")
+  # ggsave("Pre-processing_plot.png", width = 5, height = 5, units = "in")
 ```
 
 ```{r mean first steering adjustment}

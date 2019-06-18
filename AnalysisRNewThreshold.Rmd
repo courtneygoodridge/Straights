@@ -33,7 +33,7 @@ install.packages(transformr)
 # full datasets
 setwd("M:/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-temp = list.files(pattern = c("BenLui17_1_full")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
@@ -327,27 +327,27 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -2), aes(x = anch
 
 ####### -1.5 heading #########
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1.5), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1.5), aes(x = anchored_timestamp, y = SWA, colour = ppid_trialn)) +
   geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -1.5) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
-  ggtitle("-1.5 heading - unsmoothed")
+  ggtitle("-1.5 heading - unsmoothed SWA")
 
 ######## -1 heading ##########
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -1), aes(x = anchored_timestamp, y = SWA, colour = ppid_trialn)) +
   geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -1) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
-  ggtitle("-1 heading - unsmoothed")
+  ggtitle("-1 heading - unsmoothed SWA")
 
 ######## -0.5 ###########
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -0.5), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+ggplot(data = filter(workingdatatimecourseUnsmooth, heading == -0.5), aes(x = anchored_timestamp, y = SWA, colour = ppid_trialn)) +
   geom_line(show.legend = FALSE) +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == -0.5) %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime)) +
-  ggtitle("0.5 heading - unsmoothed")
+  ggtitle("0.5 heading - unsmoothed SWA")
 
 ######## 0 heading ##########
 
@@ -778,6 +778,14 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == 2), aes(x = anchore
 ```{r boxplots for all angles}
 library(dplyr)
 library(ggplot2)
+
+ggplot(data = workingdatathresholdUnsmooth, aes(factor(heading), FirstSteeringTime)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
+  stat_summary(fun.y = mean, colour = "red", geom = "point") +
+  xlab("Heading angle (degrees)") +
+  ylab("Time until first steering correction (secs)")
+
+# violin plot example -> kernal density estimation generates an idea of the distribution. Provides probability calculations for where sample population would sit. 
 
 # middle line represents the median value with lower and upper hinges representing 25th and 75th percentiles
 

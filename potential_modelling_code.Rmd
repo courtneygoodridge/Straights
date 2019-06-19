@@ -1,0 +1,31 @@
+---
+title: "Model comparison"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# code that reads in and loads models information from matlab #
+```
+
+```{r create model dataframes}
+library(tidyr)
+library(dplyr)
+
+# predicted values from matlab simulation
+
+threshPredictedRTs <- c(15.9400, 3.5000, 0.1700, 0.1700)
+accPredictedRTs <- c(0.6600, 0.4100, 0.3300, 0.2900)
+angles <- c(0.5, 1.0, 1.5, 2.0)
+AvgFirstSteeringTime <- c(0.7191397, 0.5714078, 0.4917247, 0.4854216)
+
+data <- data.frame(threshPredictedRTs, accPredictedRTs, angles, AvgFirstSteeringTime)
+
+data_long <- gather(data, key = "model", value = "FirstSteeringTime", threshPredictedRTs, accPredictedRTs, AvgFirstSteeringTime)
+
+ggplot(data = data_long, aes(x = angles, y = FirstSteeringTime, color = model)) +
+  geom_point() +
+  geom_line()
+
+
+```

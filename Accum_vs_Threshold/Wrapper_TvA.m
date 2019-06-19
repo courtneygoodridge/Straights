@@ -21,7 +21,7 @@ Accumulator.bThreshold = false;
 
 %Run model over many radii
 initialoffset = 0; %for now, no offset.
-Vangles = linspace(0.2, 2, 9); % array of angles 
+Vangles = linspace(0.5, 2, 4); % array of angles - 0.2, 2, 9
 NRuns = 1;
 MStarts = zeros(NRuns,length(Vangles),2); %holds swaction times for each model run
 MAmps = zeros(NRuns,length(Vangles),2); %holds swaction times for each model run
@@ -96,7 +96,7 @@ for m=1:2
  end
 end   
 
-ylabel('Time until First Steering Wheel Movement (secs)')
+ylabel('First Steering RT(secs)')
 xlabel('Angles (degrees)')
 % legendstr = {'Thr','Acc'};
 legend('Threshold', 'Accumulator') %Threshold, Accumulator, Threshold average, Accumulator average
@@ -116,12 +116,12 @@ for m=1:2
  if m==1
    hold on
    %modelamps_avg
-   plot(Vangles,modelamps_avg,'b-','LineWidth',2); % log(modelamps_avg)
+   plot(Vangles,log(modelamps_avg),'b-','LineWidth',2); % log(modelamps_avg)
  elseif m==2  
-   plot(Vangles,modelamps_avg,'r-','LineWidth',2); % log(modelamps_avg)
+   plot(Vangles,log(modelamps_avg),'r-','LineWidth',2); % log(modelamps_avg)
  end
 end   
-ylabel('First Adjustment Amplitude log(gtilde)')
+ylabel('First Adjustment Amplitude')
 xlabel('Angles (degrees)')
-% legend('Threshold', 'Accumulator', 'Threshold average', 'Accumulator average')
+legend('Threshold', 'Accumulator') % , 'Threshold average', 'Accumulator average')
 % legend(legendstr,'Orientation','horizontal')

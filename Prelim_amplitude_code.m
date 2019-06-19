@@ -633,7 +633,7 @@ grid on
 xlabel('Frames')
 ylabel('Yaw Rate Change')
 legend('+2 heading', '+1.5 heading', '+1 heading', '+0.5 heading', 'straight heading', 'Peak Response', 'Response Start', 'Response end')
-title('Filtered Yaw Rate Signal for negative heading conditions')
+% title('Filtered Yaw Rate Signal for positive heading conditions')
 
 % rise annotations for +2 heading
 % % dim = [.15 .50 0 0 ];

@@ -78,11 +78,23 @@ library(ggplot2)
 
 # combinding predicted data and average human steering RTs
 
-cbind(predictedData, avgFirstSteeringTimes)
+predictedData <- cbind(predictedData, avgFirstSteeringTimes)
 
-data <- data.frame(threshPredictedRTs, accPredictedRTs, angles, AvgFirstSteeringTime)
+# collpasing magnitude data across headings
 
-data_long <- gather(data, key = "model", value = "FirstSteeringTime", threshPredictedRTs, accPredictedRTs, AvgFirstSteeringTime)
+humanMagnitude <- humanMagnitude %>%
+  mutate(heading = abs(heading), responseStart = abs(responseStart), responsePeak = abs(responsePeak), responseEnd = abs(responseEnd), YawRateChangeChange = abs(YawRateChangeChange)) %>%
+  group_by(heading) %>%
+  summarise(responseStart = mean(responseStart), responsePeak = mean(responsePeak), responseEnd = mean(responseEnd), YawRateChangeChange = mean(YawRateChangeChange), `YawRateChangeTime (frames)` = mean(`YawRateChangeTime (frames)`))
+
+predictedData <- cbind(predictedData, humanMagnitude[3])
+
+data_long_RT <- gather(predictedData, key = "datatype", value = "FirstSteeringTime", threshRT, accRT, humanRTdata)
+data_long_RT[1:2] <- NULL
+
+data_long_mag <- gather(predictedData, key = "datatype", value = "Magnitude", threshMagnitude, accMagnitude, responsePeak)
+data_long_mag[1:2] <- NULL
+
 
 ggplot(data = data_long, aes(x = angles, y = FirstSteeringTime, color = model)) +
   geom_point() +

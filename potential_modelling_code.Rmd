@@ -5,9 +5,15 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-# Write model magnitude parameters into R
-write.csv(ModelMagnitudeParameters, file = "ModelMagnitudeValues.csv") # magnitude data from model sims
-write.csv(ModelRTParamter, file = "ModelRTValues.csv") # RT data from model sims
+# Loading model parameters into R
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+ModelMagnitudeValues <- read.csv("ModelMagnitudeValues.csv", header = FALSE) # magnitude data from model sims
+ModelRTValues <- read.csv("ModelRTValues.csv", header = FALSE) # RT data from model sims
+
+# Loading human data into R
+
+humanMagnitude <- read.csv("magnitudedata.csv", header = FALSE)
+names(humanMagnitude) <- c("heading", "responseStart", "responsePeak", "responseEnd", "YawRateChangeChange", "YawRateChangeTime (frames)")
 
 ```
 
@@ -15,12 +21,60 @@ write.csv(ModelRTParamter, file = "ModelRTValues.csv") # RT data from model sims
 library(tidyr)
 library(dplyr)
 
-# predicted values from matlab simulation
+# good way of creating model sim data frames
 
-threshPredictedRTs <- c(15.9400, 3.5000, 0.1700, 0.1700)
-accPredictedRTs <- c(0.6600, 0.4100, 0.3300, 0.2900)
-angles <- c(0.5, 1.0, 1.5, 2.0)
-AvgFirstSteeringTime <- c(0.7191397, 0.5714078, 0.4917247, 0.4854216)
+threshPredicted <- as.data.frame(c(ModelMagnitudeValues[1:4], ModelRTValues[1:4]))
+
+threshPredicted <- threshPredicted %>%
+  gather(key = id_obs, value = "value") %>%
+  separate(id_obs, into = c("id", "obs"), sep = "\\.") %>%
+  mutate(final_colname = if_else(is.na(obs), "threshMagnitude", "threshRT")) %>%
+  select(-obs) %>%
+  spread(final_colname, value)
+
+threshPredicted[1] <- NULL
+
+accPredicted <- as.data.frame(c(ModelMagnitudeValues[5:8], ModelRTValues[5:8]))
+
+accPredicted <- accPredicted %>%
+  gather(key = id_obs, value = "value") %>%
+  separate(id_obs, into = c("id", "obs"), sep = "\\.") %>%
+  mutate(final_colname = if_else(is.na(obs), "accMagnitude", "accRT")) %>%
+  select(-obs) %>%
+  spread(final_colname, value)
+
+accPredicted[1] <- NULL
+
+angles <- as.data.frame(c(0.5, 1.0, 1.5, 2.0))
+colnames(angles) <- c("angles")
+
+predictedData <- cbind(threshPredicted, accPredicted, angles)
+View(predictedData)
+
+
+###### shit way of creating model sim dataframes ######
+
+# threshPredicted <- matrix(c(ModelMagnitudeValues[1:4], ModelRTValues[1:4]), nrow = 4, ncol = 2)
+# colnames(threshPredicted) <- c("threshMagnitude", "threshRT")
+# threshPredicted <- as.data.frame(threshPredicted)
+# 
+# accPredicted <- matrix(c(ModelMagnitudeValues[1:4], ModelRTValues[1:4]), nrow = 4, ncol = 2)
+# colnames(accPredicted) <- c("accMagnitude", "accRT")
+# accPredicted <- as.data.frame(accPredicted)
+# 
+# angles <- as.data.frame(c(0.5, 1.0, 1.5, 2.0))
+# colnames(angles) <- c("angles")
+# 
+# predictedData <- cbind(threshPredicted, accPredicted, angles)
+
+###### shit way of creating model sim dataframes ######
+
+```
+
+```{r add human data and create long dataframe}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
 
 data <- data.frame(threshPredictedRTs, accPredictedRTs, angles, AvgFirstSteeringTime)
 
@@ -29,6 +83,5 @@ data_long <- gather(data, key = "model", value = "FirstSteeringTime", threshPred
 ggplot(data = data_long, aes(x = angles, y = FirstSteeringTime, color = model)) +
   geom_point() +
   geom_line()
-
-
 ```
+

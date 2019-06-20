@@ -221,13 +221,19 @@ library(dplyr)
 library(tidyr)
 library(TTR)
 
+# collapsing conditions across headings
+
+workingdatatimecourseUnsmooth <-  workingdatatimecourseUnsmooth %>%
+  group_by(ppid_trialn) %>%
+  mutate(heading_collapsed = abs(heading))
+
 workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
   group_by(ppid_trialn) %>%
   filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(abs(YawRateChange) > upperthreshold, 1))) %>% 
   slice(max(which(abs(YawRateChange) < lowerthreshold, 1))) %>% # which() returns rows where a condition is true. Taking the min() of all the rows that are greater than the criteria will return the first row where that is true.
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange) %>%
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange, heading_collapsed) %>%
   mutate(steering_zscore = scale(FirstSteeringTime)) %>%
   mutate(EarlyResponses = steering_zscore <= -1)
 # returns TRUE if response is less than 1 SD below mean first steering time
@@ -779,7 +785,7 @@ ggplot(data = filter(workingdatatimecourseSmooth, heading == 2), aes(x = anchore
 library(dplyr)
 library(ggplot2)
 
-ggplot(data = workingdatathresholdUnsmooth, aes(factor(heading), FirstSteeringTime)) +
+ggplot(data = workingdatathresholdUnsmooth, aes(factor(heading_collapsed), FirstSteeringTime)) +
   geom_violin(draw_quantiles = c(0.25, 0.5, 0.75)) +
   stat_summary(fun.y = mean, colour = "red", geom = "point") +
   xlab("Heading angle (degrees)") +
@@ -859,29 +865,16 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = ancho
 ```{r mean first steering adjustment}
 library(dplyr)
 
-workingdatathresholdUnsmooth %>%
-  group_by(heading) %>%
-  summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE))
+avgFirstSteeringTimes <- workingdatathresholdUnsmooth %>%
+  filter(heading_collapsed > 0) %>%
+  group_by(heading_collapsed) %>%
+  summarise(humanRTdata = mean(FirstSteeringTime, na.rm = TRUE))
+
+avgFirstSteeringTimes[1] <- NULL
 
 workingdatathresholdUnsmooth %>%
-  filter(Genuine_Response == TRUE & EarlyResponses == FALSE) %>%
-  group_by(heading) %>%
+  group_by(heading_collapsed) %>%
   summarise(meanFirstSteeringTimeTRUE = mean(FirstSteeringTime, na.rm = TRUE), medianFirstSteeringTime = median(FirstSteeringTime), sdFirstSteeringTime = sd(FirstSteeringTime), minFirstSteeringTime = min(FirstSteeringTime), maxFirstSteeringTime = max(FirstSteeringTime))
-
-workingdatathresholdUnsmooth %>%
-  filter(Genuine_Response == TRUE & EarlyResponses == FALSE & Spike == FALSE) %>%
-  group_by(heading) %>%
-  summarise(meanFirstSteeringTimeTRUE = mean(FirstSteeringTime, na.rm = TRUE))
-
-
-workingdatathresholdSmooth %>%
-  group_by(heading) %>%
-  summarise(meanFirstSteeringTimeALLRESPONSES = mean(FirstSteeringTime, na.rm = TRUE))
-
-workingdatathresholdSmooth %>%
-  filter(Genuine_Response == TRUE & EarlyResponses == FALSE) %>%
-  group_by(heading) %>%
-  summarise(meanFirstSteeringTimeGENUINERESPONSES = mean(FirstSteeringTime, na.rm = TRUE))
 
 ```
 
@@ -1057,10 +1050,10 @@ library(dplyr)
 library(tidyr)
 
 avgtimecourse <- workingdatatimecourseUnsmooth %>%
-  group_by(heading, frame) %>%
+  group_by(heading_collapsed, frame) %>%
   summarise(meanYawRateChange = mean(YawRateChange))
 
-avgtimecourse <- spread(avgtimecourse, heading, meanYawRateChange)
+avgtimecourse <- spread(avgtimecourse, heading_collapsed, meanYawRateChange)
 
 # Write CSV in R
 write.csv(avgtimecourse, file = "avgtimecourse.csv")

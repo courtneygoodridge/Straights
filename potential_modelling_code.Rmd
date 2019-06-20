@@ -76,6 +76,10 @@ library(tidyr)
 library(dplyr)
 library(ggplot2)
 
+# combinding predicted data and average human steering RTs
+
+cbind(predictedData, avgFirstSteeringTimes)
+
 data <- data.frame(threshPredictedRTs, accPredictedRTs, angles, AvgFirstSteeringTime)
 
 data_long <- gather(data, key = "model", value = "FirstSteeringTime", threshPredictedRTs, accPredictedRTs, AvgFirstSteeringTime)

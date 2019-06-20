@@ -403,18 +403,18 @@ end % first point after the trough
 plus0_5responseEND = indx; % response has ended
 
 % plot average peak response trough on time series
-% figure
-% hold on 
-% plot(frames,plus0_5data)
-% plot(plus0_5PeakResponse,plus0_5data(plus0_5PeakResponse),'rs','MarkerFaceColor','b')
-% plot(plus0_5responseSTART,plus0_5data(plus0_5responseSTART), 'rv','MarkerFaceColor','r')
-% plot(plus0_5responseEND,plus0_5data(plus0_5responseEND),'rv','MarkerFaceColor','k')
-% axis([0 151 -0.30 0.30])
-% grid on
-% legend('Yaw Rate', 'Peak Response', 'Response Start', 'Response end')
-% xlabel('Frames');
-% ylabel('Yaw Rate Change')
-% title('+0.5 heading average time series')
+figure
+hold on 
+plot(frames,plus0_5data)
+plot(plus0_5PeakResponse,plus0_5data(plus0_5PeakResponse),'rs','MarkerFaceColor','b')
+plot(plus0_5responseSTART,plus0_5data(plus0_5responseSTART), 'rv','MarkerFaceColor','r')
+plot(plus0_5responseEND,plus0_5data(plus0_5responseEND),'rv','MarkerFaceColor','k')
+axis([0 151 -0.30 0.30])
+grid on
+legend('Yaw Rate', 'Peak Response', 'Response Start', 'Response end')
+xlabel('Frames');
+ylabel('Yaw Rate Change')
+title('+0.5 heading average time series')
 
 % smoothing the signal for -1 heading 
 smoothplus0_5data = sgolayfilt(plus0_5data,7,21);
@@ -722,7 +722,7 @@ responseend = [val_minus2responseEND; val_minus1_5responseEND; val_minus1respons
 avgyawratechangeToPeak = [avg_fallLevelminus2; avg_fallLevelminus1_5; avg_fallLevelminus1; avg_fallLevelminus0_5; avg_riseLevelplus0_5; avg_riseLevelplus1; avg_riseLevelplus1_5; avg_riseLevelplus2];
 avgyawratechangetime = [avg_fallTimeminus2; avg_fallTimeminus1_5; avg_fallTimeminus1; avg_fallTimeminus0_5; avg_riseTimeminus0_5; avg_riseTimeminus1; avg_riseTimeminus1_5; avg_riseTimeminus2];
 
-% for analysis, I have to use absolute value of avgyawratechangeToPeak, or split them by the sign of the heading offset
+% for analysis, I have to use absolute value of avgyawratechangeToPeak/responsepeak or split them by the sign of the heading offset
 magnitudedata = [heading, responsestart, responsepeak, responseend, avgyawratechangeToPeak, avgyawratechangetime]; 
 
 csvwrite('magnitudedata.csv', magnitudedata);

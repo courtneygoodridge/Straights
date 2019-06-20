@@ -214,6 +214,20 @@ View(c)
 
 ```
 
+```{r averaging data and saving for matlab}
+library(dplyr)
+library(tidyr)
+
+avgtimecourse <- workingdatatimecourseUnsmooth %>%
+  group_by(heading, frame) %>%
+  summarise(meanYawRateChange = mean(YawRateChange))
+
+avgtimecourse <- spread(avgtimecourse, heading, meanYawRateChange)
+
+# Write CSV in R
+write.csv(avgtimecourse, file = "avgtimecourse.csv")
+
+```
 
 ```{r calculating genuine responses, formulating threshold data UNSMOOTH}
 library(zoo)
@@ -1041,24 +1055,6 @@ workingdatatimecourseFiltered %>%
 
 
 
-
-```
-
-
-```{r averaging data and saving for matlab}
-library(dplyr)
-library(tidyr)
-
-avgtimecourse <- workingdatatimecourseUnsmooth %>%
-  group_by(heading_collapsed, frame) %>%
-  summarise(meanYawRateChange = mean(YawRateChange))
-
-avgtimecourse <- spread(avgtimecourse, heading_collapsed, meanYawRateChange)
-
-# Write CSV in R
-write.csv(avgtimecourse, file = "avgtimecourse.csv")
-
-# write.csv(avgtimecourse, file = "avgtimecourseGENUINE.csv")
 
 ```
 

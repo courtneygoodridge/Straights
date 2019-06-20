@@ -7,16 +7,16 @@
 %SBestFitThreshold = load('ThresholdModelFittingResults_ChiSquareCorrected_FurtherOptimised.mat');
 
 Threshold.k = NaN; 
-Threshold.sigma_n = 0 %0; %0.0057; %%%%% refers to noise
-Threshold.Athreshold = .025 % .025 %.035%0.01829; %%%% point at which the threshold is set for this model
-Threshold.sigma_m = 0 %0;%0.65547; %%%%% refers to noise
+Threshold.sigma_n = 0 %0; %%%%% refers to noise
+Threshold.Athreshold = .04 % .025; % 0.0183 %%%% point at which the threshold is set for this model
+Threshold.sigma_m = 0 %0; %0.65547  %%%%% refers to noise
 Threshold.bThreshold = true; %%%% indicates an arbitrary threshold
 
 %SBestFitAccumulator = load('AccumulatorModelFittingResults_ChiSquareCorrected_FurtherOptimised.mat');
 Accumulator.k = 200;
-Accumulator.sigma_n = 0 ;%0, %0.8; %%%%% refers to noise
+Accumulator.sigma_n = 0 %0; %0.8 %%%%% refers to noise
 Accumulator.Athreshold = 1; %1; %%%% set at one as the threshold is overconme once enough evidence has been accumulated
-Accumulator.sigma_m = 0 ;% 0, %0.8; %%%%% refers to noise
+Accumulator.sigma_m = 0 %0; %0.8 %%%%% refers to noise
 Accumulator.bThreshold = false;
 
 %Run model over many radii
@@ -125,3 +125,7 @@ ylabel('First Adjustment Amplitude')
 xlabel('Angles (degrees)')
 legend('Threshold', 'Accumulator') % , 'Threshold average', 'Accumulator average')
 % legend(legendstr,'Orientation','horizontal')
+
+csvwrite('ModelMagnitudeValues.csv', MAmps)
+csvwrite('ModelRTValues.csv', MStarts)
+

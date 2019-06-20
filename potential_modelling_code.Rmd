@@ -5,7 +5,10 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-# code that reads in and loads models information from matlab #
+# Write model magnitude parameters into R
+write.csv(ModelMagnitudeParameters, file = "ModelMagnitudeValues.csv") # magnitude data from model sims
+write.csv(ModelRTParamter, file = "ModelRTValues.csv") # RT data from model sims
+
 ```
 
 ```{r create model dataframes}

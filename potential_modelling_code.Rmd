@@ -71,7 +71,7 @@ View(predictedData)
 
 ```
 
-```{r add human data and create long dataframe}
+```{r add human data to predicted data}
 library(tidyr)
 library(dplyr)
 library(ggplot2)
@@ -89,15 +89,74 @@ humanMagnitude <- humanMagnitude %>%
 
 predictedData <- cbind(predictedData, humanMagnitude[3])
 
+```
+
+```{r linear model for comparing thresh and acc MAGNITUDE DATA}
+
+# threshold model versus human data
+threshmodelComp <- lm(responsePeak ~ threshMagnitude, predictedData) # creates linear model comparing threshold and human data magnitudes
+
+plot(predict(threshmodelComp), predictedData$responsePeak, xlab = "predicted", ylab = "actual")
+abline(a = 0, b = 1)
+
+summary(threshmodelComp)
+AIC(threshmodelComp)
+logLik(threshmodelComp)
+
+# accumulator versus human data
+
+accmodelComp <- lm(responsePeak ~ accMagnitude, predictedData) # creates linear model comparing threshold and human data magnitudes
+
+plot(predict(accmodelComp), predictedData$responsePeak, xlab = "predicted", ylab = "actual")
+abline(a = 0, b = 1)
+
+summary(accmodelComp)
+AIC(accmodelComp)
+logLik(accmodelComp)
+
+```
+
+
+```{r linear model for comparing thresh and acc RT DATA}
+
+# threshold model versus human data
+threshmodelCompRT <- lm(humanRTdata ~ threshRT, predictedData) # creates linear model comparing threshold and human data magnitudes
+
+plot(predict(threshmodelCompRT), predictedData$humanRTdata, xlab = "predicted", ylab = "actual")
+abline(a = 0, b = 1)
+
+summary(threshmodelCompRT)
+
+AIC(threshmodelCompRT)
+logLik(threshmodelCompRT)
+
+# accumulator model versus human data
+
+accmodelCompRT <- lm(humanRTdata ~ accRT, predictedData) # creates linear model comparing threshold and human data magnitudes
+
+plot(predict(accmodelCompRT), predictedData$humanRTdata, xlab = "predicted", ylab = "actual")
+abline(a = 0, b = 1)
+
+summary(accmodelCompRT)
+AIC(accmodelCompRT)
+logLik(accmodelCompRT)
+
+```
+
+
+```{r creating long dataframes}
+library(tidyr)
+
+# code below creates long data frames for magnitude and RT data
+
 data_long_RT <- gather(predictedData, key = "datatype", value = "FirstSteeringTime", threshRT, accRT, humanRTdata)
 data_long_RT[1:2] <- NULL
 
 data_long_mag <- gather(predictedData, key = "datatype", value = "Magnitude", threshMagnitude, accMagnitude, responsePeak)
-data_long_mag[1:2] <- NULL
+data_long_mag[2] <- NULL
 
-
-ggplot(data = data_long, aes(x = angles, y = FirstSteeringTime, color = model)) +
+ggplot(data = data_long_RT, aes(x = angles, y = FirstSteeringTime, color = datatype)) +
   geom_point() +
   geom_line()
-```
 
+```

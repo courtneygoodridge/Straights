@@ -34,6 +34,8 @@ workingdatatimecourse = workingdata[workingdata["StraightVisible"] == True]
 
 
 
+
+
 ### practice - selects timestamp column
 # timestamp = workingdata[['timestamp']]
 # print(timestamp)

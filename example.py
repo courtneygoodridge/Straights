@@ -2,7 +2,7 @@ import pandas as pd # imports dataframes
 import matplotlib.pyplot as plt #imports plotting capabilities
 import glob
 
-path = r"M:/PhD/Project/Experiment_Code/Straights/Full_Data" # use your path
+path = r"C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code\Straight/Full_Data" # use your path
 all_files = glob.glob(path + "/*.csv") # select path and file identifier 
 
 li = [] # empty for csv files to be put

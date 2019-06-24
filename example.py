@@ -18,6 +18,10 @@ workingdata['ppid_trialn'] = workingdata.ppid.astype(str).str.cat(workingdata.tr
 
 del workingdata['X.1'] # delete unnecessary columns
 
+# filtering trials to only include time where road is visible
+
+workingdata.groupby(['ppid_trialn'])
+
 
 
 

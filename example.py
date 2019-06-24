@@ -2,7 +2,7 @@ import pandas as pd # imports dataframes
 import matplotlib.pyplot as plt #imports plotting capabilities
 import glob
 
-path = r"C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code\Straight/Full_Data" # use your path
+path = r"C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data" # use your path
 all_files = glob.glob(path + "/*.csv") # select path and file identifier 
 
 li = [] # empty for csv files to be put
@@ -18,10 +18,12 @@ workingdata['ppid_trialn'] = workingdata.ppid.astype(str).str.cat(workingdata.tr
 
 del workingdata['X.1'] # delete unnecessary columns
 
-# filtering trials to only include time where road is visible
+# changes StraightVisible from series to string type
+workingdata.StraightVisible.apply(str)
 
-workingdata.groupby(['ppid_trialn'])
-
+# create boolean series of StraightVisible rows that are true
+# use this as an index to generate only data where straight is visible
+workingdatatimecourse = workingdata[workingdata["StraightVisible"] == True] 
 
 
 

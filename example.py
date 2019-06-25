@@ -14,10 +14,8 @@ for filename in all_files:
 
 workingdata = pd.concat(li, axis = 0, ignore_index = True) # concatenate all of the data 
 
-workingdata['ppid_trialn'] = workingdata.ppid.astype(str).str.cat(workingdata.trialn.astype(str), sep ='_')
 # unite ppid and trialn column
-
-del workingdata['X.1'] # delete unnecessary columns
+workingdata['ppid_trialn'] = workingdata.ppid.astype(str).str.cat(workingdata.trialn.astype(str), sep ='_')
 
 # changes StraightVisible from series to string type
 workingdata.StraightVisible.apply(str)
@@ -31,14 +29,9 @@ workingdatatimecourse['YawRateChange'] = workingdatatimecourse.groupby(['ppid_tr
 
 # creating anchored timestamp
 
-workingdatatimecourse['anchored_timestamp'] = workingdatatimecourse.groupby(['ppid_trialn'])['timestamp' - min(['timestamp'])]
+# workingdatatimecourse['anchored_timestampNEW'] = workingdatatimecourse.groupby(['ppid_trialn']).timestamp.subtract(min(timestamp)
 
-
-
-
-
-
-
+workingdatatimecourse['anchored_timestamp'] = workingdatatimecourse.groupby(['ppid_trialn']).[timestamp - min(timestamp)]
 
 ### practice - selects timestamp column
 # timestamp = workingdata[['timestamp']]
@@ -47,5 +40,4 @@ workingdatatimecourse['anchored_timestamp'] = workingdatatimecourse.groupby(['pp
 ### practicie - red scatter plot of timestamp versus steering wheel angle 
 # workingdata.plot(kind='scatter',x='timestamp',y='SWA',color='red')
 # plt.show()
-
 

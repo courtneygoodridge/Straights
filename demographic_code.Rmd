@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set working directory
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-temp = list.files(pattern = c("BenLui17_11_", "*.csv")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_12_", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
@@ -22,7 +22,7 @@ library(dplyr)
 
 workingdata <- workingdata %>%
   group_by(trialn) %>%
-  mutate(gender = 1, age = 27, licenseTime = 108, contacts_glasses = TRUE, pNum = 11, handedness = 1) %>% # female = 1, male = 2; license time in months; right = 1, left = 2
+  mutate(gender = 2, age = 25, licenseTime = 30, contacts_glasses = FALSE, pNum = 12, handedness = 1) %>% # female = 1, male = 2; license time in months; right = 1, left = 2
   ungroup()
 
 ```
@@ -32,20 +32,19 @@ workingdata <- workingdata %>%
 # full datasets
 setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-temp = list.files(pattern = c("BenLui17_1_full")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_10_full")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
-workingdata[1:2] <- NULL
 
-
+# workingdata[1:2] <- NULL
 
 ```
 
 ```{r saving new combined data frame}
 
 setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") # set directory for data saving
-write.csv(workingdata, file = "BenLui17_11_full.csv")
+write.csv(workingdata, file = "BenLui17_12_full.csv")
 
 ```
 

@@ -6,7 +6,9 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 # Loading model parameters into R
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
 ModelMagnitudeValues <- read.csv("ModelMagnitudeValues.csv", header = FALSE) # magnitude data from model sims
 ModelRTValues <- read.csv("ModelRTValues.csv", header = FALSE) # RT data from model sims
 
@@ -94,6 +96,7 @@ predictedData <- cbind(predictedData, humanMagnitude[3])
 ```{r linear model for comparing thresh and acc MAGNITUDE DATA}
 
 # threshold model versus human data
+
 threshmodelComp <- lm(responsePeak ~ threshMagnitude, predictedData) # creates linear model comparing threshold and human data magnitudes
 
 plot(predict(threshmodelComp), predictedData$responsePeak, xlab = "predicted", ylab = "actual")
@@ -120,6 +123,7 @@ logLik(accmodelComp)
 ```{r linear model for comparing thresh and acc RT DATA}
 
 # threshold model versus human data
+
 threshmodelCompRT <- lm(humanRTdata ~ threshRT, predictedData) # creates linear model comparing threshold and human data magnitudes
 
 plot(predict(threshmodelCompRT), predictedData$humanRTdata, xlab = "predicted", ylab = "actual")
@@ -157,6 +161,12 @@ data_long_mag[2] <- NULL
 
 ggplot(data = data_long_RT, aes(x = angles, y = FirstSteeringTime, color = datatype)) +
   geom_point() +
-  geom_line()
+  geom_line() +
+  ggtitle("RT model values and human data")
+
+ggplot(data = data_long_mag, aes(x = angles, y = Magnitude, color = datatype)) +
+  geom_point() +
+  geom_line() +
+  ggtitle("Magnitude model values and human data")
 
 ```

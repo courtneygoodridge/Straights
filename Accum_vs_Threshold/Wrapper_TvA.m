@@ -126,6 +126,6 @@ xlabel('Angles (degrees)')
 legend('Threshold', 'Accumulator') % , 'Threshold average', 'Accumulator average')
 % legend(legendstr,'Orientation','horizontal')
 
-csvwrite('ModelMagnitudeValues.csv', MAmps)
-csvwrite('ModelRTValues.csv', MStarts)
+% csvwrite('ModelMagnitudeValues.csv', MAmps)
+% csvwrite('ModelRTValues.csv', MStarts)
 

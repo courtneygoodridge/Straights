@@ -31,12 +31,11 @@ workingdatatimecourse['YawRateChange'] = workingdatatimecourse.groupby(['ppid_tr
 # creating anchored timestamp
 workingdatatimecourse['anchored_timestamp'] = workingdatatimecourse.groupby('ppid_trialn')['timestamp'].transform(lambda x: x-x.min())
 
+# create index for each frame
+workingdatatimecourse['frame'] = workingdatatimecourse.groupby('ppid_trialn').cumcount()+1; workingdatatimecourse
+
 # creating avgtimecourse
-# workingdatatimecourse['frame'] = workingdatatimecourse.groupby('ppid_trialn').np.arrange(len(workingdatatimecourse))
-
-workingdatatimecourse['frame'] = workingdatatimecourse.groupby('ppid_trialn').reset_index()
-
-# avgtimecourse = workingdatatimecourse.groupby(['ppid_trialn', 'frame'])['YawRateChange'].transform(lambda x: mean(x))
+avgtimecourse = workingdatatimecourse.groupby(['ppid_trialn', 'frame'])['YawRateChange'].transform(lambda x: mean(x))
 
 
 ### practice - selects timestamp column

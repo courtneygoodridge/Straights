@@ -31,7 +31,7 @@ workingdatatimecourse['YawRateChange'] = workingdatatimecourse.groupby(['ppid_tr
 
 # workingdatatimecourse['anchored_timestampNEW'] = workingdatatimecourse.groupby(['ppid_trialn']).timestamp.subtract(min(timestamp)
 
-workingdatatimecourse['anchored_timestamp'] = workingdatatimecourse.groupby(['ppid_trialn']).[timestamp - min(timestamp)]
+workingdatatimecourse['anchored_timestamp'] = workingdatatimecourse.groupby('ppid_trialn')['timestamp'].transform(lambda x: x-x.min())
 
 ### practice - selects timestamp column
 # timestamp = workingdata[['timestamp']]

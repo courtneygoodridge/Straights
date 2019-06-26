@@ -35,9 +35,11 @@ workingdatatimecourse['anchored_timestamp'] = workingdatatimecourse.groupby('ppi
 workingdatatimecourse['frame'] = workingdatatimecourse.groupby('ppid_trialn').cumcount()+1; workingdatatimecourse
 
 # creating avgtimecourse
-avgtimecourse = workingdatatimecourse.groupby(['ppid_trialn', 'frame'])['YawRateChange'].transform(lambda x: mean(x))
+avgtimecourse = workingdatatimecourse.groupby(['heading', 'frame'])['YawRateChange'].agg(['mean'])
+avgtimecourse = avgtimecourse.reset_index() # changes heading from index to column
+# a = pd.melt(avgtimecourse, 'heading', 'mean')
 
-
+#  Above code averages over heading and frame, but still need to melt (gather) to make the data frame wide 
 ### practice - selects timestamp column
 # timestamp = workingdata[['timestamp']]
 # print(timestamp)

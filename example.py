@@ -1,9 +1,10 @@
 import pandas as pd # imports dataframes
 import matplotlib.pyplot as plt #imports plotting capabilities
 import glob
+import numpy as np
 
-# path = r"C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data"
-path = r"C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data" # use your path
+path = r"C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data"
+# path = r"C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data" # use your path
 all_files = glob.glob(path + "/*.csv") # select path and file identifier 
 
 li = [] # empty for csv files to be put
@@ -28,10 +29,15 @@ workingdatatimecourse = workingdata[workingdata["StraightVisible"] == True]
 workingdatatimecourse['YawRateChange'] = workingdatatimecourse.groupby(['ppid_trialn'])['YawRate_seconds'].diff(periods = 1).fillna(0)
 
 # creating anchored timestamp
-
-# workingdatatimecourse['anchored_timestampNEW'] = workingdatatimecourse.groupby(['ppid_trialn']).timestamp.subtract(min(timestamp)
-
 workingdatatimecourse['anchored_timestamp'] = workingdatatimecourse.groupby('ppid_trialn')['timestamp'].transform(lambda x: x-x.min())
+
+# creating avgtimecourse
+# workingdatatimecourse['frame'] = workingdatatimecourse.groupby('ppid_trialn').np.arrange(len(workingdatatimecourse))
+
+workingdatatimecourse['frame'] = workingdatatimecourse.groupby('ppid_trialn').reset_index()
+
+# avgtimecourse = workingdatatimecourse.groupby(['ppid_trialn', 'frame'])['YawRateChange'].transform(lambda x: mean(x))
+
 
 ### practice - selects timestamp column
 # timestamp = workingdata[['timestamp']]

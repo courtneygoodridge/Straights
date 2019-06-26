@@ -39,7 +39,8 @@ avgtimecourse = workingdatatimecourse.groupby(['heading', 'frame'])['YawRateChan
 avgtimecourse = avgtimecourse.reset_index() # changes heading from index to column
 # a = pd.melt(avgtimecourse, 'heading', 'mean')
 
-#  Above code averages over heading and frame, but still need to melt (gather) to make the data frame wide 
+#  Above code averages over heading and frame, but still need to melt (gather) to make the data frame wide
+ 
 ### practice - selects timestamp column
 # timestamp = workingdata[['timestamp']]
 # print(timestamp)

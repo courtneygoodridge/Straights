@@ -187,6 +187,9 @@ select(ppid_trialn, heading, frame, YawRateChange) # selects correct data for ma
 mag_data <- mag_data %>%
 group_by(ppid_trialn) %>%
 
+# code below and the one thaat generates RTs gives me starting frame and yaw rate of the start of response because it selects for
+# the start of the reaction time
+# all I need to do now is alter it to select the max per ppid_trialn
 mag_data_response_start <- mag_data %>%
   group_by(ppid_trialn) %>%
   filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < magthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold

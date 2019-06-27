@@ -31,8 +31,8 @@ install.packages(transformr)
 # install.packages(magrittr)
 
 # full datasets
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -110,26 +110,6 @@ workingdata <- workingdata %>%
   group_by(ppid_trialn) %>%
   mutate(frame = row_number()) %>%
   ungroup()
-
-# workingdata$YawRateChange[workingdata$YawRateChange >= 0.73499999] <- 0 # removes random spikes
-
-# colnames(workingdata)[colnames(workingdata)=="SWA"] <- "SWV"
-
-# 
-# workingdata <- workingdata %>%
-#   mutate(SWA = SWV * 90)
-
-# find out if frames have been dropped
-# rows <- workingdata %>%
-#   group_by(trialn) %>%
-#   summarise(rows = n())
-# View(rows)
-
-# workingdata <- workingdata %>%
-#   mutate(SWA = SWV * 90)
-
-
-
 ```
 
 ```{r Callum function fo r removing spikes - ask Callum about this}
@@ -165,8 +145,6 @@ workingdata <- workingdata %>%
 #   }
 # 
 # steerdata <- steerdata %>% group_by(trialid) %>% mutate(newYawRate = correctTimestamp(timestamp_diff,YawRate))
-
-
 ```
 
 ```{r anchoring timestamps at 2.5 seconds and calculating frames column}
@@ -182,48 +160,36 @@ workingdatatimecourseUnsmooth <- workingdata %>%
 # rows <- workingdata %>%
 #   group_by(ppid, trialn, heading) %>%
 #   summarise(rows = n())
-# 
 # View(rows)
-# 
-# rowsgenuine <- rows %>%
-#   filter(rows > 270)
-
-# workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
-#   group_by(ppid_trialn, heading) %>% 
-#   filter(frame >= 150)
 
 # spike trial remover 1
 
-b <- workingdatatimecourseUnsmooth %>% 
-  group_by(ppid_trialn) %>% # group by trials
-  filter(!(max(YawRateChange) > 0.8)) # removes group who max YawRateChange is greater than 1
-# ! operator selects groups where the defined condition (max(YawRateChange) > 1) is not true
-View(b)
+# b <- workingdatatimecourseUnsmooth %>% 
+  # group_by(ppid_trialn) %>% # group by trials
+  # filter(!(max(YawRateChange) > 0.8)) # removes group who max YawRateChange is greater than 1
+       #! operator selects groups where the defined condition (max(YawRateChange) > 1) is not true
+# View(b)
 
 # spike trial remover 2
 
-threshold = 0.8
-
-grps_to_filt <- unique(workingdatatimecourseUnsmooth[workingdatatimecourseUnsmooth$YawRateChange > threshold, "ppid_trialn", drop = TRUE])
-
-c <- workingdatatimecourseUnsmooth[!workingdatatimecourseUnsmooth$ppid_trialn %in% grps_to_filt, , drop = FALSE]
-
-View(c)
-
-
-
+# threshold = 0.8
+# grps_to_filt <- unique(workingdatatimecourseUnsmooth[workingdatatimecourseUnsmooth$YawRateChange > threshold, "ppid_trialn", drop = TRUE])
+# c <- workingdatatimecourseUnsmooth[!workingdatatimecourseUnsmooth$ppid_trialn %in% grps_to_filt, , drop = FALSE]
+# View(c)
 ```
 
-```{r averaging data and saving for matlab}
+```{r averaging data and saving for magnitude matlab data}
 library(dplyr)
 library(tidyr)
 
 avgtimecourse <- workingdatatimecourseUnsmooth %>%
+  group_by(ppid_trialn) %>%
+  filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>%
+  ungroup() %>%
   group_by(heading, frame) %>%
   summarise(meanYawRateChange = mean(YawRateChange))
 
-avgtimecourse <- spread(avgtimecourse, heading, meanYawRateChange)
-
+  avgtimecourse <- spread(avgtimecourse, heading, meanYawRateChange) # spreads long to wide
 # Write CSV in R
 write.csv(avgtimecourse, file = "avgtimecourse.csv")
 
@@ -1037,23 +1003,6 @@ summary(nonpara_ancova)
 
 resultTukey <-TukeyHSD(nonpara_ancova)
 resultTukey
-
-
-```
-
-```{r filtering timecourses for steering magnitude}
-library(dplyr)
-
-workingdatatimecourseFiltered <- workingdatatimecourseUnsmooth %>%
-  group_by(ppid_trialn) %>%
-  filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold)
-# Filters timecourse data so only genuine timecourses are passed through to steering magnitude calculation.
-
-workingdatatimecourseFiltered %>%
-  filter(heading == 0) %>%
-  summarise(trials = length(unique(ppid_trialn)))
-
-
 
 
 ```

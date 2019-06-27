@@ -181,10 +181,23 @@ workingdatatimecourseUnsmooth <- workingdata %>%
 ```{r constructing magnitude dataframe}
 library(dplyr)
 
+mag_data <- workingdatatimecourseUnsmooth %>%
+select(ppid_trialn, heading, frame, YawRateChange) # selects correct data for magnitude manipulation
+
+mag_data <- mag_data %>%
+group_by(ppid_trialn) %>%
+
+mag_data_response_start <- mag_data %>%
+  group_by(ppid_trialn) %>%
+  filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < magthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
+  slice(1:min(which(abs(YawRateChange) > upperthreshold, 1))) %>% 
+  slice(min(which(abs(YawRateChange) < magthreshold, 1))) %>%
+  ungroup %>%
+  transmute(ppid_trialn, heading, frame, YawRateChange)
 
 ```
 
-```{r averaging data and saving for magnitude matlab data}
+```{r averaging data and saving for magnitude matlab data OLD}
 library(dplyr)
 library(tidyr)
 
@@ -207,11 +220,11 @@ positive_timecourse <- avgtimecourse %>%
 
 avgtimecourse_collapsed <- rbind(negative_timecourse, positive_timecourse)
 
-avgtimecourse_collapsed <- avg_coll %>%
+avgtimecourse_collapsed <- avgtimecourse_collapsed %>%
   group_by(heading_coll, frame) %>%
   summarise(meanYaw = mean(meanYaw))
 
-  avgtimecourse <- spread(avgtimecourse, heading, meanYawRateChange) # spreads long to wide
+  avgtimecourse <- spread(avgtimecourse_collapsed, heading_coll, meanYaw) # spreads long to wide
 # Write CSV in R
 write.csv(avgtimecourse, file = "avgtimecourse.csv")
 

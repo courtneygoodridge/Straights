@@ -178,6 +178,12 @@ workingdatatimecourseUnsmooth <- workingdata %>%
 # View(c)
 ```
 
+```{r constructing magnitude dataframe}
+library(dplyr)
+
+
+```
+
 ```{r averaging data and saving for magnitude matlab data}
 library(dplyr)
 library(tidyr)
@@ -188,6 +194,22 @@ avgtimecourse <- workingdatatimecourseUnsmooth %>%
   ungroup() %>%
   group_by(heading, frame) %>%
   summarise(meanYawRateChange = mean(YawRateChange))
+
+negative_timecourse <- avgtimecourse %>%
+  filter(heading < 0) %>%
+  mutate(heading_coll = abs(heading)) %>%
+  mutate(meanYaw = -(meanYawRateChange))
+
+positive_timecourse <- avgtimecourse %>%
+  filter(heading >= 0) %>%
+  mutate(heading_coll = abs(heading)) %>%
+  mutate(meanYaw = meanYawRateChange)
+
+avgtimecourse_collapsed <- rbind(negative_timecourse, positive_timecourse)
+
+avgtimecourse_collapsed <- avg_coll %>%
+  group_by(heading_coll, frame) %>%
+  summarise(meanYaw = mean(meanYaw))
 
   avgtimecourse <- spread(avgtimecourse, heading, meanYawRateChange) # spreads long to wide
 # Write CSV in R

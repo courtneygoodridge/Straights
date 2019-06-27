@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt #imports plotting capabilities
 import glob
 import numpy as np
 
-path = r"C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data"
-# path = r"C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data" # use your path
+# path = r"C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data"
+path = r"C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data" # use your path
 all_files = glob.glob(path + "/*.csv") # select path and file identifier 
 
 li = [] # empty for csv files to be put
@@ -41,6 +41,12 @@ avgtimecourse = avgtimecourse.reset_index() # changes heading from index to colu
 
 #  Above code averages over heading and frame, but still need to melt (gather) to make the data frame wide
  
+# create collapsed heading column
+workingdatatimecourse['heading_collapsed'] = workingdatatimecourse.groupby(['ppid_trialn'])['heading'].apply(np.abs)
+
+# selecting first reaction times
+# workingdatathreshold = workingdatatimecourse.groupby('ppid_trialn')[max(abs('YawRateChange')) > upperthreshold & (min(abs('YawRateChange')) < lowerthreshold]
+
 ### practice - selects timestamp column
 # timestamp = workingdata[['timestamp']]
 # print(timestamp)

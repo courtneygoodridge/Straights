@@ -179,28 +179,6 @@ workingdatatimecourseUnsmooth <- workingdata %>%
 # View(c)
 ```
 
-```{r constructing magnitude dataframe}
-library(dplyr)
-
-mag_data <- workingdatatimecourseUnsmooth %>%
-select(ppid_trialn, heading, frame, YawRateChange) # selects correct data for magnitude manipulation
-
-mag_data <- mag_data %>%
-group_by(ppid_trialn) %>%
-
-# code below and the one thaat generates RTs gives me starting frame and yaw rate of the start of response because it selects for
-# the start of the reaction time
-# all I need to do now is alter it to select the max per ppid_trialn
-mag_data_response_start <- mag_data %>%
-  group_by(ppid_trialn) %>%
-  filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < magthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
-  slice(1:min(which(abs(YawRateChange) > upperthreshold, 1))) %>% 
-  slice(min(which(abs(YawRateChange) < magthreshold, 1))) %>%
-  ungroup %>%
-  transmute(ppid_trialn, heading, frame, YawRateChange)
-
-```
-
 ```{r averaging data and saving for magnitude matlab data OLD}
 library(dplyr)
 library(tidyr)
@@ -234,7 +212,42 @@ write.csv(avgtimecourse, file = "avgtimecourse.csv")
 
 ```
 
-```{r calculating genuine responses, formulating threshold data}
+```{r formulating response start magnitude data}
+library(dplyr)
+library(tidyr)
+
+workingdata_magResponse_start <- workingdatatimecourseUnsmooth %>% 
+select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>% 
+group_by(ppid_trialn) %>%
+  filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
+  slice(1:min(which(abs(YawRateChange) > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
+  slice(min(which(abs(YawRateChange) > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
+  ungroup() %>%
+  transmute(ppid_trialn, heading, start_frame = frame, start_yaw = YawRateChange, FirstSteeringTime = anchored_timestamp) %>%
+  mutate(steering_zscore = scale(FirstSteeringTime)) %>%
+  mutate(EarlyResponses = steering_zscore <= -1)
+
+
+
+example <- workingdatatimecourseUnsmooth %>%
+select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>%
+group_by(ppid_trialn) %>%
+mutate(peakYaw = max(YawRateChange)) %>%
+filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>% 
+slice(1:max(which(abs(YawRateChange) > upperthreshold, 1))) %>%
+slice(max(which(abs(YawRateChange) == peakYaw))) %>%
+ungroup() %>%
+transmute(ppid_trialn, heading, peak_frame = frame, peak_yaw = YawRateChange, peak_time = anchored_timestamp)
+
+merge(example, workingdata_magResponse_start, by.x = "ppid_trialn")
+
+ # %in% might help when I'm combiining peak and response start dataframes 
+workingdata_magResponse_start <- workingdata_magResponse_start %>%
+  filter(EarlyResponses == FALSE)
+
+```
+
+```{r calculating genuine responses, formulating threshold RT data}
 library(zoo)
 library(dplyr)
 library(tidyr)
@@ -255,11 +268,11 @@ workingdatatimecourseUnsmooth <-  workingdatatimecourseUnsmooth %>%
   group_by(ppid_trialn) %>%
   mutate(heading_collapsed = abs(heading))
 
-workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
+workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
   group_by(ppid_trialn) %>%
   filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(abs(YawRateChange) > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
-  slice(min(which(abs(YawRateChange) > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
+  slice(max(which(abs(YawRateChange) < lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
   transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange, heading_collapsed) %>%
   mutate(steering_zscore = scale(FirstSteeringTime)) %>%
@@ -302,7 +315,7 @@ library(dplyr)
 # library(png)
 # library(transformr)
 
-workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
+workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
   filter(EarlyResponses == FALSE)
 
 ############################################################### MEAN PLOTS ########################################################

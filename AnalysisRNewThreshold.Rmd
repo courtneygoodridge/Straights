@@ -216,6 +216,7 @@ write.csv(avgtimecourse, file = "avgtimecourse.csv")
 library(dplyr)
 library(tidyr)
 
+# code below is identical to the RT data selection - both trying to find the same thing (start of the response)
 mag_response_start <- workingdatatimecourseUnsmooth %>% 
 select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>% 
 group_by(ppid_trialn) %>%

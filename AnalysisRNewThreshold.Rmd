@@ -216,7 +216,7 @@ write.csv(avgtimecourse, file = "avgtimecourse.csv")
 library(dplyr)
 library(tidyr)
 
-workingdata_magResponse_start <- workingdatatimecourseUnsmooth %>% 
+mag_response_start <- workingdatatimecourseUnsmooth %>% 
 select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>% 
 group_by(ppid_trialn) %>%
   filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
@@ -227,9 +227,31 @@ group_by(ppid_trialn) %>%
   mutate(steering_zscore = scale(FirstSteeringTime)) %>%
   mutate(EarlyResponses = steering_zscore <= -1)
 
+  # inverts values
 
+  negative_magnitude <- mag_response_start %>%
+  filter(heading < 0) %>%
+  mutate(heading_coll = abs(heading)) %>%
+  mutate(start_yaw = -(start_yaw))
 
-example <- workingdatatimecourseUnsmooth %>%
+  positive_magnitude <- mag_response_start %>%
+  filter(heading >= 0) %>%
+  mutate(heading_coll = abs(heading)) %>%
+  mutate(start_yaw = (start_yaw))
+
+  mag_response_start <- rbind(negative_magnitude, positive_magnitude)
+  
+  # filters out early responses
+  mag_response_start <- mag_response_start %>%
+  filter(EarlyResponses == FALSE)
+
+```
+
+``` {r formulating response peak magnitude data}
+library(dplyr)
+library(tidyr)
+
+mag_response_peak <- workingdatatimecourseUnsmooth %>%
 select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>%
 group_by(ppid_trialn) %>%
 mutate(peakYaw = max(YawRateChange)) %>%
@@ -237,13 +259,24 @@ filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lower
 slice(1:max(which(abs(YawRateChange) > upperthreshold, 1))) %>%
 slice(max(which(abs(YawRateChange) == peakYaw))) %>%
 ungroup() %>%
-transmute(ppid_trialn, heading, peak_frame = frame, peak_yaw = YawRateChange, peak_time = anchored_timestamp)
+transmute(ppid_trialn, peak_frame = frame, peak_yaw = YawRateChange, peak_time = anchored_timestamp)
 
-merge(example, workingdata_magResponse_start, by.x = "ppid_trialn")
+# inverts values
+negative_magnitude <- mag_response_peak %>%
+filter(heading < 0) %>%
+mutate(heading_coll = abs(heading)) %>%
+mutate(start_yaw = -(start_yaw))
 
- # %in% might help when I'm combiining peak and response start dataframes 
-workingdata_magResponse_start <- workingdata_magResponse_start %>%
-  filter(EarlyResponses == FALSE)
+positive_magnitude <- mag_response_peak %>%
+filter(heading >= 0) %>%
+mutate(heading_coll = abs(heading)) %>%
+mutate(start_yaw = (start_yaw))
+
+mag_response_peak <- rbind(negative_magnitude, positive_magnitude)
+
+# merge response start and response peak dataframes
+
+magnitudedata <- merge(mag_response_start, mag_response_peak, by = "ppid_trialn")
 
 ```
 

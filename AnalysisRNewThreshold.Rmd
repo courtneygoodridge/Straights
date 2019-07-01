@@ -247,7 +247,12 @@ group_by(ppid_trialn) %>%
   filter(EarlyResponses == FALSE)
 
 ```
+```{r example code for plotting peak yaw rate on timecourse}
+ggplot(data = filter(workingdatatimecourseUnsmooth, ppid_trialn == "1_2_1"), aes(x = anchored_timestamp, y = YawRateChange)) +
++ geom_smooth() +
++ geom_hline(data = filter(mag_response_peak, ppid_trialn == "1_2_1"), aes(yintercept = peak_yaw))
 
+```
 ``` {r formulating response peak magnitude data}
 library(dplyr)
 library(tidyr)
@@ -302,15 +307,16 @@ workingdatatimecourseUnsmooth <-  workingdatatimecourseUnsmooth %>%
   group_by(ppid_trialn) %>%
   mutate(heading_collapsed = abs(heading))
 
-workingdatatimecourseUnsmooth <- workingdatatimecourseUnsmooth %>%
+workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
   group_by(ppid_trialn) %>%
   filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(abs(YawRateChange) > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
-  slice(max(which(abs(YawRateChange) < lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
+  slice(min(which(abs(YawRateChange) > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
   transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange, heading_collapsed) %>%
   mutate(steering_zscore = scale(FirstSteeringTime)) %>%
   mutate(EarlyResponses = steering_zscore <= -1)
+  
 # returns TRUE if response is less than 1 SD below mean first steering time
 # guards against too fast responses
 # mean(workingdatathresholdUnsmooth$FirstSteeringTime) - sd(workingdatathresholdUnsmooth$FirstSteeringTime) calculates the threshold for what is considered too fast i.e. below 0.25 seconds
@@ -504,7 +510,7 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = ancho
                summarise(medianFirstSteeringTime = median(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = medianFirstSteeringTime)) +
   ggtitle("+2 heading - unsmoothed")
 
-
+###### facet wrapped plot for median value ######
 
 ggplot(data = workingdatatimecourseUnsmooth, aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
   geom_line(show.legend = FALSE) +
@@ -514,7 +520,7 @@ ggplot(data = workingdatatimecourseUnsmooth, aes(x = anchored_timestamp, y = Yaw
   scale_y_continuous(name="Yaw rate change", limits=c(-1, 2.5)) +
   scale_x_continuous(name="Timestamp (secs)", limits=c(0, 2.5))
 
-
+###### facet wrapped plot for median AND mean value ######
 
 ggplot(data = workingdatatimecourseUnsmooth, aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
   geom_line(show.legend = FALSE) +

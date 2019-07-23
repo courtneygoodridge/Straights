@@ -26,6 +26,8 @@ install.packages(gganimate) # animate plots
 install.packages(gifski) # animate plots
 install.packages(png)
 install.packages(transformr)
+install.packages(signal) # package needed for sgolayfilt function for steering magnitude 
+install.packages(conflicted) # heloful package to show when packages have conflicted functions # conflict_prefer("filter", "dplyr") means filter function from dplyr is prioritised
 
 # install.packages(matlabr)
 # install.packages(magrittr)
@@ -91,13 +93,14 @@ mutate(frame = row_number()) # create frame number column
 
 ```
 
+
 ```{r  thresholds, removing trials with dropped frames, calculating yaw rate change}
 library(dplyr)
 library(tidyr)
 library(TTR)
 # library(hemm)
 library(searcher)
-library(skimr)
+# library(skimr)
 # init_hemm()
 
 # change in steering 
@@ -113,102 +116,36 @@ workingdata <- workingdata %>%
 
 ```
 
-```{r Callum function fo r removing spikes - ask Callum about this}
-# library(dplyr)
-
-# steerdata <- steerdata %>% group_by(trialid) %>% mutate(timestamp_diff = append(diff(timestamp),NA))
-# 
-# #quick function for averaging out implausible fluctuations in yaw-rate due to variations in recorded timestamps.
-# correctTimestamp<- 
-#   function(x,y){ #x needs to be timestamp_diff, y needs to be yaw signal.
-#     Tvec = which(x >.017) # Means dropped frames.
-#     len = length(y)
-#     for (i in 1:length(Tvec)){
-#       p = Tvec[i]
-#       t1 = x[p] #dropped frame.
-#       t2 = x[p+1] #sometimes this is close to zero. If it is, average the two yaw rates. If it isn't, average the preceding and subsequent.
-#       if (p+2 < len){
-#         if (t2 < .015){ ##take the corresponding two datapoints in yaw rate and average
-#           YR1 = y[p+1] 
-#           YR2 = y[p+2]
-#           YR_avg = (YR1+YR2) / 2
-#           y[p+1] = YR_avg
-#           y[p+2] = YR_avg  
-#         } else { #means it is an isolated dropped frame. average before and after yaw-rates
-#           YR1 = y[p]
-#           YR2 = y[p+2]
-#           YR_avg = (YR1+YR2) / 2
-#           y[p+1] = YR_avg
-#         }
-#       }
-#     }
-#     return(y)
-#   }
-# 
-# steerdata <- steerdata %>% group_by(trialid) %>% mutate(newYawRate = correctTimestamp(timestamp_diff,YawRate))
-```
 
 ```{r anchoring timestamps at 2.5 seconds and calculating frames column}
 library(dplyr)
 
-workingdatatimecourseUnsmooth <- workingdata %>%
+workingdata <- workingdata %>%
   group_by(ppid_trialn) %>%
   mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
   filter(anchored_timestamp <= min(anchored_timestamp) + 2.5) %>% # add for seconds fro the original data 
   ungroup() # create anchored timestamp and then only select first 2.5 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
 
-# how many frames in each trial?
-# rows <- workingdata %>%
-#   group_by(ppid, trialn, heading) %>%
-#   summarise(rows = n())
-# View(rows)
-
-# spike trial remover 1
-
-# b <- workingdatatimecourseUnsmooth %>% 
-  # group_by(ppid_trialn) %>% # group by trials
-  # filter(!(max(YawRateChange) > 0.8)) # removes group who max YawRateChange is greater than 1
-       #! operator selects groups where the defined condition (max(YawRateChange) > 1) is not true
-# View(b)
-
-# spike trial remover 2
-
-# threshold = 0.8
-# grps_to_filt <- unique(workingdatatimecourseUnsmooth[workingdatatimecourseUnsmooth$YawRateChange > threshold, "ppid_trialn", drop = TRUE])
-# c <- workingdatatimecourseUnsmooth[!workingdatatimecourseUnsmooth$ppid_trialn %in% grps_to_filt, , drop = FALSE]
-# View(c)
 ```
 
-```{r averaging data and saving for magnitude matlab data OLD}
+```{r number of trials per condition for magnitude data}
+
+magnitudedata %>%
+  group_by(heading.x) %>%
+  summarise(heading = n())
+
+```
+
+```{r number of trials be condition - overall }
 library(dplyr)
-library(tidyr)
 
-avgtimecourse <- workingdatatimecourseUnsmooth %>%
+workingdata %>%
   group_by(ppid_trialn) %>%
-  filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>%
-  ungroup() %>%
-  group_by(heading, frame) %>%
-  summarise(meanYawRateChange = mean(YawRateChange))
-
-negative_timecourse <- avgtimecourse %>%
-  filter(heading < 0) %>%
-  mutate(heading_coll = abs(heading)) %>%
-  mutate(meanYaw = -(meanYawRateChange))
-
-positive_timecourse <- avgtimecourse %>%
-  filter(heading >= 0) %>%
-  mutate(heading_coll = abs(heading)) %>%
-  mutate(meanYaw = meanYawRateChange)
-
-avgtimecourse_collapsed <- rbind(negative_timecourse, positive_timecourse)
-
-avgtimecourse_collapsed <- avgtimecourse_collapsed %>%
-  group_by(heading_coll, frame) %>%
-  summarise(meanYaw = mean(meanYaw))
-
-  avgtimecourse <- spread(avgtimecourse_collapsed, heading_coll, meanYaw) # spreads long to wide
-# Write CSV in R
-write.csv(avgtimecourse, file = "avgtimecourse.csv")
+  summarise(headingtype = head(heading, n = 1)) %>% # select first heading value for each trial
+  ungroup() %>% 
+  group_by(headingtype) %>% # group the heading values
+  summarise(heading = n()) %>% # calculate the number of each heading
+  ungroup()
 
 ```
 
@@ -217,7 +154,7 @@ library(dplyr)
 library(tidyr)
 
 # code below is identical to the RT data selection - both trying to find the same thing (start of the response)
-mag_response_start <- workingdatatimecourseUnsmooth %>% 
+mag_response_start <- workingdata %>% 
 select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>% 
 group_by(ppid_trialn) %>%
   filter(max(abs(YawRateChange)) > upperthreshold, min(abs(YawRateChange)) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
@@ -248,11 +185,11 @@ group_by(ppid_trialn) %>%
 
 ```
 
-``` {r formulating response peak magnitude data}
+```{r formulating response peak magnitude data}
 library(dplyr)
 library(tidyr)
 
-mag_response_peak <- workingdatatimecourseUnsmooth %>%
+mag_response_peak <- workingdata %>%
 select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>%
 group_by(ppid_trialn) %>%
 mutate(peakYaw = max(YawRateChange)) %>%
@@ -298,7 +235,7 @@ library(TTR)
 
 # collapsing conditions across headings
 
-workingdatatimecourseUnsmooth <-  workingdatatimecourseUnsmooth %>%
+workingdatatimecourseUnsmooth <-  workingdata %>%
   group_by(ppid_trialn) %>%
   mutate(heading_collapsed = abs(heading))
 
@@ -320,24 +257,21 @@ workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
 
 ```
 
-```{r checking initial SWA and repsonse time}
+```{r practice plotting}
 library(ggplot2)
+library(dplyr)
+library(signal)
 
-# ggplot(workingdatathresholdUnsmooth, aes(x = absInitialSWA, y = FirstSteeringTime, color = as.factor(heading))) +
-#   geom_point() +
-#   geom_smooth(method = "lm", se = FALSE) +
-#   ggtitle("Initial steering wheel angle and first steering response time") +
-#   xlab("Initial steering wheel angle (degrees)") +
-#   ylab("First steering response time (seconds)") +
-#   labs(color = "Heading")
-# 
-# ggplot(filter(workingdatathresholdUnsmooth, heading == 0), aes(x = absInitialSWA, y = FirstSteeringTime, color = as.factor(heading))) +
-#   geom_point() +
-#   geom_smooth(method = "lm", se = FALSE) +
-#   ggtitle("Initial steering wheel angle and first steering response time for 0 heading") +
-#   xlab("Initial steering wheel angle (degrees)") +
-#   ylab("First steering response time (seconds)") +
-#   labs(color = "Heading")
+workingdata <- workingdata %>%
+  group_by(ppid_trialn) %>%
+  mutate(yawrate_smooth = sgolayfilt(YawRateChange)) %>%
+  ungroup()
+
+ggplot(data = dplyr::filter(workingdata, heading == 2), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +
+  geom_line(show.legend = FALSE)
+
+ggplot(data = dplyr::filter(workingdata, heading == 2), aes(x = anchored_timestamp, y = yawrate_smooth, colour = ppid_trialn)) +
+  geom_line(show.legend = FALSE) 
 
 ```
 
@@ -1068,4 +1002,46 @@ names(data) <- c("heading", "responseStart", "responsePeak", "responseEnd", "Yaw
 
 ```
 
+
+
+
+OLD CODE
+
+
+
+
+```{r Callum function fo r removing spikes - ask Callum about this}
+# library(dplyr)
+
+# steerdata <- steerdata %>% group_by(trialid) %>% mutate(timestamp_diff = append(diff(timestamp),NA))
+# 
+# #quick function for averaging out implausible fluctuations in yaw-rate due to variations in recorded timestamps.
+# correctTimestamp<- 
+#   function(x,y){ #x needs to be timestamp_diff, y needs to be yaw signal.
+#     Tvec = which(x >.017) # Means dropped frames.
+#     len = length(y)
+#     for (i in 1:length(Tvec)){
+#       p = Tvec[i]
+#       t1 = x[p] #dropped frame.
+#       t2 = x[p+1] #sometimes this is close to zero. If it is, average the two yaw rates. If it isn't, average the preceding and subsequent.
+#       if (p+2 < len){
+#         if (t2 < .015){ ##take the corresponding two datapoints in yaw rate and average
+#           YR1 = y[p+1] 
+#           YR2 = y[p+2]
+#           YR_avg = (YR1+YR2) / 2
+#           y[p+1] = YR_avg
+#           y[p+2] = YR_avg  
+#         } else { #means it is an isolated dropped frame. average before and after yaw-rates
+#           YR1 = y[p]
+#           YR2 = y[p+2]
+#           YR_avg = (YR1+YR2) / 2
+#           y[p+1] = YR_avg
+#         }
+#       }
+#     }
+#     return(y)
+#   }
+# 
+# steerdata <- steerdata %>% group_by(trialid) %>% mutate(newYawRate = correctTimestamp(timestamp_diff,YawRate))
+```
 

@@ -88,7 +88,7 @@ workingdata$StraightVisible <- as.numeric(workingdata$StraightVisible) # changes
 
 workingdata <- workingdata %>%
 group_by(ppid_trialn) %>%
-filter(StraightVisible == 2) %>% # filter for only data where central line is visible
+dplyr::filter(StraightVisible == 2) %>% # filter for only data where central line is visible
 mutate(frame = row_number()) # create frame number column
 
 ```
@@ -105,8 +105,8 @@ library(searcher)
 
 # change in steering 
 # magnitudethreshold = 0.140
-upperthreshold = 0.130 # 0.105 #  # upper threshold for consistent steering response
-lowerthreshold = 0.001 # lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
+upperthreshold = 0.13 # 0.105 #  # upper threshold for consistent steering response
+lowerthreshold = 0.05 # 0.001 lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
 
 workingdata <- workingdata %>%
   mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% #difference in yaw rate
@@ -123,7 +123,7 @@ library(dplyr)
 workingdata <- workingdata %>%
   group_by(ppid_trialn) %>%
   mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
-  filter(anchored_timestamp <= min(anchored_timestamp) + 2.5) %>% # add for seconds fro the original data 
+  dplyr::filter(anchored_timestamp <= min(anchored_timestamp) + 2.5) %>% # add for seconds fro the original data 
   ungroup() # create anchored timestamp and then only select first 2.5 seconds of data for each each ppid_trialn (only interested in the first steering adjustment as this point)
 
 ```
@@ -153,6 +153,20 @@ workingdata %>%
 library(dplyr)
 library(tidyr)
 
+
+negativetimecourse <- workingdata %>%
+  filter(heading < 0) %>%
+  mutate(heading = abs(heading)) %>%
+  mutate(YawRateChange = -(YawRateChange))
+
+positivetimecourse <- workingdata %>%
+  filter(heading >= 0) %>%
+  mutate(heading = abs(heading)) %>%
+  mutate(YawRateChange = (YawRateChange))
+
+workingdata <- rbind(negativetimecourse, positivetimecourse)
+
+
 # code below is identical to the RT data selection - both trying to find the same thing (start of the response)
 mag_response_start <- workingdata %>% 
 select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>% 
@@ -162,22 +176,22 @@ group_by(ppid_trialn) %>%
   slice(min(which(abs(YawRateChange) > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
   transmute(ppid_trialn, heading, start_frame = frame, start_yaw = YawRateChange, FirstSteeringTime = anchored_timestamp) %>%
-  mutate(steering_zscore = scale(FirstSteeringTime)) %>%
-  mutate(EarlyResponses = steering_zscore <= -1)
+  # mutate(steering_zscore = scale(FirstSteeringTime)) %>%
+  mutate(EarlyResponses = FirstSteeringTime <= 0.15)
 
   # inverts values
 
-  negative_magnitude <- mag_response_start %>%
-  filter(heading < 0) %>%
-  mutate(heading_coll = abs(heading)) %>%
-  mutate(start_yaw = -(start_yaw))
-
-  positive_magnitude <- mag_response_start %>%
-  filter(heading >= 0) %>%
-  mutate(heading_coll = abs(heading)) %>%
-  mutate(start_yaw = (start_yaw))
-
-  mag_response_start <- rbind(negative_magnitude, positive_magnitude)
+  # negative_magnitude <- mag_response_start %>%
+  # filter(heading < 0) %>%
+  # mutate(heading_coll = abs(heading)) %>%
+  # mutate(start_yaw = -(start_yaw))
+  # 
+  # positive_magnitude <- mag_response_start %>%
+  # filter(heading >= 0) %>%
+  # mutate(heading_coll = abs(heading)) %>%
+  # mutate(start_yaw = (start_yaw))
+  # 
+  # mag_response_start <- rbind(negative_magnitude, positive_magnitude)
   
   # filters out early responses
   mag_response_start <- mag_response_start %>%
@@ -246,8 +260,8 @@ workingdatathresholdUnsmooth <- workingdatatimecourseUnsmooth %>%
   slice(min(which(abs(YawRateChange) > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
   transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange, heading_collapsed) %>%
-  mutate(steering_zscore = scale(FirstSteeringTime)) %>%
-  mutate(EarlyResponses = steering_zscore <= -1)
+  # mutate(steering_zscore = scale(FirstSteeringTime)) %>%
+  mutate(EarlyResponses = FirstSteeringTime <= 0.15)
   
 # returns TRUE if response is less than 1 SD below mean first steering time
 # guards against too fast responses
@@ -264,7 +278,7 @@ library(signal)
 
 workingdata <- workingdata %>%
   group_by(ppid_trialn) %>%
-  mutate(yawrate_smooth = sgolayfilt(YawRateChange)) %>%
+  mutate(YawRateChange = sgolayfilt(YawRateChange, n = 11)) %>%
   ungroup()
 
 ggplot(data = dplyr::filter(workingdata, heading == 2), aes(x = anchored_timestamp, y = YawRateChange, colour = ppid_trialn)) +

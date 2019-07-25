@@ -293,7 +293,10 @@ ggplot(data = avgtimecourse, aes(x = timestamp, y = meanYaw, colour = heading_fa
 library(dplyr)
 library(ggplot2)
 
-
+magnitudedata %>%
+  group_by(heading) %>%
+  summarise(AveragePeakYaw = mean(PeakYaw), MedianPeakYaw = median(PeakYaw), AverageStartYaw = mean(StartYaw), AverageStartTime = mean(FirstSteeringTime), AveragePeakTime = mean(PeakSteeringTime)) %>%
+  mutate(AverageYawIncrease = AveragePeakYaw - AverageStartYaw, AverageTimeToPeak = AveragePeakTime - AverageStartTime)
 
 
 

@@ -162,18 +162,6 @@ workingdata <- workingdata %>%
 
 ```
 
-```{r number of trials be condition - overall}
-library(dplyr)
-
-workingdata %>%
-  group_by(ppid_trialn) %>%
-  summarise(headingtype = head(heading, n = 1)) %>% # select first heading value for each trial
-  ungroup() %>% 
-  group_by(headingtype) %>% # group the heading values
-  summarise(heading = n()) %>% # calculate the number of each heading
-  ungroup()
-
-```
 
 ```{r formulating response start magnitude data}
 library(dplyr)
@@ -196,6 +184,7 @@ mag_response_start <- mag_response_start %>%
   dplyr::filter(EarlyResponses == FALSE)
 
 ```
+
 
 ```{r formulating response peak magnitude data}
 library(dplyr)
@@ -220,6 +209,7 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 
 ```
 
+
 ```{r calculating genuine responses, formulating threshold RT data}
 library(zoo)
 library(dplyr)
@@ -237,13 +227,42 @@ workingdatathresholdUnsmooth <- workingdata %>%
   
 ```
 
-```{r number of TRUEtrials per condition for}
+```{r number of trials per condition - overall and genuine resposnes}
+library(dplyr)
 
-workingdatathresholdUnsmooth %>%
+# overall number of trials per condition
+
+overalltrials <- workingdata %>%
+  group_by(ppid_trialn) %>%
+  summarise(HeadingCondition = head(heading, n = 1)) %>% # select first heading value for each trial
+  ungroup() %>% 
+  group_by(HeadingCondition) %>% # group the heading values
+  summarise(OverallTrials = n()) %>% # calculate the number of each heading
+  ungroup()
+
+# number of trials that survive the thresholding mechanism
+
+recordedresponses <- workingdatathresholdUnsmooth %>%
   group_by(heading) %>%
-  summarise(headingnumber = n())
+  summarise(FirstStageTrials = n())
 
+# number of trials that survive the early response threshold
+
+trueresponses <- workingdatathresholdUnsmooth %>%
+  dplyr::filter(EarlyResponses == FALSE) %>%
+  group_by(heading) %>%
+  summarise(SecondStageTrials = n())
+
+d <- cbind(overalltrials, recordedresponses$FirstStageTrials, trueresponses$SecondStageTrials)
+
+colnames(d) <- c("heading", "OverallTrials", "RecordedResponses", "TrueResponses")
+
+d %>%
+  group_by(heading) %>%
+  summarise(RecordedResponsesPer = (RecordedResponses / OverallTrials) * 100, TrueResponsesPer = (TrueResponses / OverallTrials) * 100)
+  
 ```
+
 
 ```{r filtering TRUE timecourses}
 library(dplyr)

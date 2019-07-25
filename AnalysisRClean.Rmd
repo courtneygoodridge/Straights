@@ -106,7 +106,7 @@ library(searcher)
 # change in steering 
 # magnitudethreshold = 0.140
 upperthreshold = 0.13 # 0.105 #  # upper threshold for consistent steering response
-lowerthreshold = 0.05 # 0.001 lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
+lowerthreshold = 0.05 # 0.001, 0.05 lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
 
 workingdata <- workingdata %>%
   mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% #difference in yaw rate
@@ -183,7 +183,7 @@ library(tidyr)
 mag_response_start <- workingdata %>% 
 select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>% 
 group_by(ppid_trialn) %>%
-  filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
+  dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
   slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
@@ -193,7 +193,7 @@ group_by(ppid_trialn) %>%
 
 # filters out early responses
 mag_response_start <- mag_response_start %>%
-  filter(EarlyResponses == FALSE)
+  dplyr::filter(EarlyResponses == FALSE)
 
 ```
 
@@ -205,7 +205,7 @@ mag_response_peak <- workingdata %>%
 select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>%
 group_by(ppid_trialn) %>%
 mutate(peakYaw = max(YawRateChange)) %>%
-filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% 
+dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% 
 slice(1:max(which(YawRateChange > upperthreshold, 1))) %>%
 slice(max(which(YawRateChange == peakYaw))) %>%
 ungroup() %>%
@@ -228,7 +228,7 @@ library(TTR)
 
 workingdatathresholdUnsmooth <- workingdata %>%
   group_by(ppid_trialn) %>%
-  filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
+  dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
   slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
@@ -251,13 +251,13 @@ library(tidyr)
 library(ggplot2)
 
 workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
-  filter(EarlyResponses == FALSE)
+  dplyr::filter(EarlyResponses == FALSE)
 
-trueresponses <- filter(workingdatathresholdUnsmooth, EarlyResponses == FALSE) # filters true threshold responses
+trueresponses <- dplyr::filter(workingdatathresholdUnsmooth, EarlyResponses == FALSE) # filters true threshold responses
 trueresponses <- trueresponses$ppid_trialn # selects ID tags of true responses
 trueresponses <- as.vector(trueresponses) # creates ID vector for filtering 
 
-trueworkingdata <- filter(workingdata, ppid_trialn %in% trueresponses) # filter the IDs in the ID vector
+trueworkingdata <- dplyr::filter(workingdata, ppid_trialn %in% trueresponses) # filter the IDs in the ID vector
 
 ###### facet wrapped plot for median AND mean value ######
 
@@ -278,13 +278,26 @@ ggplot(data = trueworkingdata, aes(x = anchored_timestamp, y = YawRateChange, co
 library(dplyr)
 library(ggplot2)
 
-trueworkingdata %>%
-  filter(heading == 1.5) %>%
-  group_by(frame) %>%
-  summarise(meanYaw = mean(YawRateChange))
+avgtimecourse <- trueworkingdata %>%
+  group_by(heading, frame) %>%
+  summarise(meanYaw = mean(YawRateChange)) %>%
+  mutate(heading_factor = as.factor(heading)) %>%
+  mutate(timestamp = frame / 60)
+
+ggplot(data = avgtimecourse, aes(x = timestamp, y = meanYaw, colour = heading_factor)) + 
+  geom_line()
 
 ```
 
+```{r magnituide of response across conditions}
+library(dplyr)
+library(ggplot2)
+
+
+
+
+
+```
 
 
 ```{r timecourse plotting of yaw rate change - UNSMOOTH}
@@ -438,7 +451,6 @@ View(per)
 total_trials <- length(unique(workingdata$ppid_trialn)) # total trials from all participants
 
 length(unique(workingdatathresholdUnsmooth$ppid_trialn)) # number of valid trials when unsmoothed
-length(unique(workingdatathresholdSmooth$ppid_trialn)) # number of valid trials when smoothed
 
 ```
 
@@ -449,7 +461,7 @@ library(dplyr)
 
 #### 0 ########
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0), aes(x = anchored_timestamp, y = YawRateChange)) +
+ggplot(data = filter(trueworkingdata, heading == 0), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 0), aes(xintercept = FirstSteeringTime, color = EarlyResponses)) +
   facet_wrap( ~ ppid_trialn) +
@@ -457,7 +469,7 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0), aes(x = ancho
 
 ##### +0.5 #####
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0.5), aes(x = anchored_timestamp, y = YawRateChange)) +
+ggplot(data = filter(trueworkingdata, heading == 0.5), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 0.5), aes(xintercept = FirstSteeringTime, color = EarlyResponses)) +
   facet_wrap( ~ ppid_trialn) +
@@ -466,7 +478,7 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 0.5), aes(x = anc
 
 ###### +1 ######
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1), aes(x = anchored_timestamp, y = YawRateChange)) +
+ggplot(data = filter(trueworkingdata, heading == 1), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 1), aes(xintercept = FirstSteeringTime, color = EarlyResponses)) +
   facet_wrap( ~ ppid_trialn) +
@@ -474,7 +486,7 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1), aes(x = ancho
 
 #### 1.5 ####
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1.5), aes(x = anchored_timestamp, y = YawRateChange)) +
+ggplot(data = filter(trueworkingdata, heading == 1.5), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 1.5), aes(xintercept = FirstSteeringTime, color = EarlyResponses)) +
   facet_wrap( ~ ppid_trialn) +
@@ -482,7 +494,7 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 1.5), aes(x = anc
 
 ##### +2 #####
 
-ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = anchored_timestamp, y = YawRateChange)) +
+ggplot(data = filter(trueworkingdata, heading == 2), aes(x = anchored_timestamp, y = YawRateChange)) +
   geom_line() +
   geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2), aes(xintercept = FirstSteeringTime, color = EarlyResponses)) +
   facet_wrap( ~ ppid_trialn) +

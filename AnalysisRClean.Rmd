@@ -29,6 +29,8 @@ install.packages(transformr)
 install.packages(signal) # package needed for sgolayfilt function for steering magnitude 
 install.packages(conflicted) # heloful package to show when packages have conflicted functions # conflict_prefer("filter", "dplyr") means filter function from dplyr is prioritised
 
+
+
 # install.packages(matlabr)
 # install.packages(magrittr)
 
@@ -224,7 +226,7 @@ workingdatathresholdUnsmooth <- workingdata %>%
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
   slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange) %>%
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange, pNum = pNum) %>%
   mutate(EarlyResponses = FirstSteeringTime <= 0.15)
   
 ```
@@ -294,6 +296,42 @@ ggplot(data = trueworkingdata, aes(x = anchored_timestamp, y = YawRateChange, co
 
 ```
 
+```{r filter NON-responses}
+
+'%!in%' <- function(x,y)!('%in%'(x,y)) # oppsite of %in%
+
+responseid <- workingdatathresholdUnsmooth$ppid_trialn # gets IDs of responses
+responseid <- as.vector(responseid) # convert IDs to vector
+nonresponses <- dplyr::filter(workingdata, ppid_trialn %!in% responseid) # filter IDs that are not response IDs
+
+nonresponses <- nonresponses %>%
+  group_by(ppid_trialn) %>%
+  mutate(response = "nosteer", response_num = 1, FirstSteeringTime = 2.5) %>%
+    slice(1) %>% # selects one row of each trial
+  ungroup() 
+
+a <- nonresponses %>%
+  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime)
+
+workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
+  group_by(ppid_trialn) %>%
+  mutate(response = "steer", response_num = 2)
+
+b <- workingdatathresholdUnsmooth %>%
+  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime)
+
+dat <- cbind(a, b) #WHY DON'T YOU FUCKING WORK!!!!!!!
+
+ppid_trialn <- c(a$ppid_trialn, b$ppid_trialn)
+heading <- c(a$heading, b$heading)
+pNum <- c(a$pNum, b$pNum)
+response <- c(a$response, b$response)
+response_num <- c(a$response_num, b$response_num)
+FirstSteeringTime <- c(a$FirstSteeringTime, b$FirstSteeringTime)
+
+c <- as.data.frame(cbind(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime))
+
+```
 
 ```{r average timecourse magnitudes}
 library(dplyr)
@@ -750,47 +788,3 @@ magnitude <- read.csv("magnitudedata.csv", header = FALSE)
 names(data) <- c("heading", "responseStart", "responsePeak", "responseEnd", "YawRateChangeChange", "YawRateChangeTime")
 
 ```
-
-
-
-
-OLD CODE
-
-
-
-
-```{r Callum function fo r removing spikes - ask Callum about this}
-# library(dplyr)
-
-# steerdata <- steerdata %>% group_by(trialid) %>% mutate(timestamp_diff = append(diff(timestamp),NA))
-# 
-# #quick function for averaging out implausible fluctuations in yaw-rate due to variations in recorded timestamps.
-# correctTimestamp<- 
-#   function(x,y){ #x needs to be timestamp_diff, y needs to be yaw signal.
-#     Tvec = which(x >.017) # Means dropped frames.
-#     len = length(y)
-#     for (i in 1:length(Tvec)){
-#       p = Tvec[i]
-#       t1 = x[p] #dropped frame.
-#       t2 = x[p+1] #sometimes this is close to zero. If it is, average the two yaw rates. If it isn't, average the preceding and subsequent.
-#       if (p+2 < len){
-#         if (t2 < .015){ ##take the corresponding two datapoints in yaw rate and average
-#           YR1 = y[p+1] 
-#           YR2 = y[p+2]
-#           YR_avg = (YR1+YR2) / 2
-#           y[p+1] = YR_avg
-#           y[p+2] = YR_avg  
-#         } else { #means it is an isolated dropped frame. average before and after yaw-rates
-#           YR1 = y[p]
-#           YR2 = y[p+2]
-#           YR_avg = (YR1+YR2) / 2
-#           y[p+1] = YR_avg
-#         }
-#       }
-#     }
-#     return(y)
-#   }
-# 
-# steerdata <- steerdata %>% group_by(trialid) %>% mutate(newYawRate = correctTimestamp(timestamp_diff,YawRate))
-```
-

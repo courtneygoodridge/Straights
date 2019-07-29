@@ -11,30 +11,47 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(lattice)
 
+# select variables from main data set
+
+example <- magnitudedata %>%
+  select(pNum, heading, FirstSteeringTime)
+
+# create one choice response variables
+
+example <- example %>%
+  group_by(pNum) %>%
+  mutate(response = "steer", response_num = 1)
+
 agg_RT <- magnitudedata %>%
   group_by(heading) %>% 
-  summarise(prop = mean(PeakYaw), mean_rt = mean(FirstSteeringTime), median_rt = median(FirstSteeringTime)) %>% 
+  summarise(mean_rt = mean(FirstSteeringTime), median_rt = median(FirstSteeringTime)) %>% 
   ungroup()
 
-xyplot(prop ~ heading, agg_RT, type = "b", auto.key = list(lines = TRUE))
+xyplot(mean_rt ~ heading, agg_RT, type = "b", auto.key = list(lines = TRUE))
 
 ```
 
-Effect of strength of the error signal on the proportion of the response (peak yaw). In example, strengh th refers to brightness of pixels but in mine, strength refers to heading (increased rate of change in error)
+Effect of strength of the error signal on the proportion of the response (peak yaw). In example, strength refers to brightness of pixels but in my experiment, strength refers to heading (increased rate of change in error)
 
 ```{r quantiles}
 library(dplyr)
 library(lattice)
+library(latticeExtra)
+library(purrr)
+library(rtdists)
+library(binom)
+
+quantiles <- c(0.1, 0.3, 0.5, 0.7, 0.9)
 
 quantiles_RT <- magnitudedata %>%
-  group_by(heading) %>%
+  group_by(pNum, heading) %>%
   nest() %>%
   mutate(quantiles = map(data, ~ as.data.frame(t(quantile(.x$FirstSteeringTime, probs = quantiles))))) %>% 
   unnest(quantiles) %>%
   gather("quantile", "rt",`10%`:`90%`) %>% 
   arrange(heading)
 
-xyplot(rt ~ heading, quantiles_RT, group = quantile, type = "b", 
+xyplot(rt ~ heading|pNum, quantiles_RT, group = quantile, type = "b", 
        auto.key = list(lines = TRUE), ylab = "RT (in seconds)")
 
 ```
@@ -46,22 +63,23 @@ library(dplyr)
 
 # This creates a nested dataframe, where each ppid_trialn has column containing all of it's data  
 
-d_nested <- magnitudedata %>% 
-  group_by(ppid_trialn) %>%
-  nest()
+d_nested <- example %>% 
+  group_by(pNum) %>% 
+  nest() # nest the participants, not the trials
 View(d_nested) 
 
 ```
 
 ```{r diffusion wrapper function}
 
-objective_diffusion_separate <- function(pars, rt, drift, ...) {
+# objective function for diffusion with 1 a. loops over drift to assign drift rates to strength
+objective_diffusion_separate <- function(pars, rt, response, drift, ...) {
   non_v_pars <- grep("^v", names(pars), invert = TRUE, value = TRUE)
   base_par <- length(non_v_pars)  # number of non-drift parameters
   densities <- vector("numeric", length(rt))
   for (i in seq_along(levels(drift))) {
     densities[drift == levels(drift)[i]] <- 
-      ddiffusion(rt[drift == levels(drift)[i]], 
+      ddiffusion(rt[drift == levels(drift)[i]], response = "lower", 
                  a=pars["a"], t0=pars["t0"],  
                  sv=pars["sv"],
                  sz=if ("sz" %in% non_v_pars) pars["sz"] else 0.1,
@@ -72,6 +90,7 @@ objective_diffusion_separate <- function(pars, rt, drift, ...) {
   if (any(densities == 0)) return(1e6)
   return(-sum(log(densities)))
 }
+
 
 # function that creates random start values, also 
 get_start <- function(base_par, n_drift = 5) {
@@ -106,16 +125,14 @@ ensure_fit <-
     while(start_ll == 1e+06) {
       start <- start_function(base_pars, n_drift=n_drift)
       start_ll <- objective_function(start, 
-                                     rt = data$rt, 
-                                     drift = factor(data$strength_bin, seq_len(n_drift)), 
-                                     instruction = data$instruction)
+                                     rt = example$FirstSteeringTime, response = example$response_num, 
+                                     drift = factor(example$heading, seq_len(n_drift)))
     }
     cat("\nstart fitting.\n") # just for information to see if it is stuck
 
     fit <- nlminb(start, objective_function, 
-                  rt = data$rt, 
-                  drift = factor(data$strength_bin, seq_len(n_drift)), 
-                  instruction = data$instruction,
+                  rt = example$FirstSteeringTime, response = example$response_num, 
+                  drift = factor(example$heading, seq_len(n_drift)),
                   lower = lower)
 
     if (fit$objective < best_fit$objective) best_fit <- fit
@@ -138,7 +155,5 @@ fit_diffusion <- d_nested %>%
                             objective_function = objective_diffusion_separate, 
                             base_pars = c("a", "t0", "sv", "sz", "z")))) %>% 
   unnest(fit)
-
-* CHANGE STRENGTH_BIN TO HEADING *
 
 ```

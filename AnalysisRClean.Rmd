@@ -99,7 +99,7 @@ library(dplyr)
 library(tidyr)
 library(TTR)
 # library(hemm)
-library(searcher)
+# library(searcher)
 # library(skimr)
 # init_hemm()
 
@@ -169,13 +169,13 @@ library(tidyr)
 
 # code below is identical to the RT data selection - both trying to find the same thing (start of the response)
 mag_response_start <- workingdata %>% 
-select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>% 
+select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>% 
 group_by(ppid_trialn) %>%
   dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
   slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
-  transmute(ppid_trialn, heading, StartFrame = frame, StartYaw = YawRateChange, FirstSteeringTime = anchored_timestamp) %>%
+  transmute(ppid_trialn, heading, StartFrame = frame, StartYaw = YawRateChange, FirstSteeringTime = anchored_timestamp, pNum = pNum) %>%
   # mutate(steering_zscore = scale(FirstSteeringTime)) %>%
   mutate(EarlyResponses = FirstSteeringTime <= 0.15)
 
@@ -191,21 +191,23 @@ library(dplyr)
 library(tidyr)
 
 mag_response_peak <- workingdata %>%
-select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp) %>%
+select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>%
 group_by(ppid_trialn) %>%
 mutate(peakYaw = max(YawRateChange)) %>%
 dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% 
 slice(1:max(which(YawRateChange > upperthreshold, 1))) %>%
 slice(max(which(YawRateChange == peakYaw))) %>%
 ungroup() %>%
-transmute(ppid_trialn, heading, PeakFrame = frame, PeakYaw = YawRateChange, PeakSteeringTime = anchored_timestamp)
+transmute(ppid_trialn, heading, PeakFrame = frame, PeakYaw = YawRateChange, PeakSteeringTime = anchored_timestamp, pNum = pNum)
 
 # merge response start and response peak dataframes
 magnitudedata <- merge(mag_response_start, mag_response_peak, by = "ppid_trialn")
 
 magnitudedata$heading.y <- NULL # remove duplicate column
+magnitudedata$pNum.y <- NULL # rmeove duplicate
 
 colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
+colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 
 ```
 
@@ -312,12 +314,11 @@ ggplot(data = avgtimecourse, aes(x = timestamp, y = meanYaw, colour = heading_fa
 library(dplyr)
 library(ggplot2)
 
-magnitudedata %>%
-  group_by(heading) %>%
-  summarise(AveragePeakYaw = mean(PeakYaw), MedianPeakYaw = median(PeakYaw), AverageStartYaw = mean(StartYaw), AverageStartTime = mean(FirstSteeringTime), AveragePeakTime = mean(PeakSteeringTime)) %>%
-  mutate(AverageYawIncrease = AveragePeakYaw - AverageStartYaw, AverageTimeToPeak = AveragePeakTime - AverageStartTime)
+# calculates the yaw increase and time taken to reach peak response
 
-
+magnitudedata <- magnitudedata %>%
+  group_by(ppid_trialn) %>%
+  mutate(YawIncrease = PeakYaw - StartYaw, TimeToPeak = PeakSteeringTime - FirstSteeringTime)
 
 ```
 
@@ -593,26 +594,6 @@ ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2), aes(x = ancho
     axis.text.x = element_text(size = 12),
     axis.text.y = element_text(size = 12),
     axis.title = element_text(size = 20))
-#   ggsave("Pre-processing_plot.png", width = 5, height = 5, units = "in")
-
-  
-  # ggplot(data = filter(workingdatatimecourseUnsmooth, heading == 2, ppid_trialn == "1_2_16"), aes(x = anchored_timestamp, y = YawRateChange)) +
-  # geom_line() +
-  # geom_vline(data = filter(workingdatathresholdUnsmooth, heading == 2, ppid_trialn == "1_2_16"), aes(xintercept = FirstSteeringTime)) +
-  # scale_y_continuous(limits = c(-0.60, 0.80)) +
-  # ggtitle("A) Genuine response") +
-  # xlab("Timestamp (secs)") +
-  # ylab("Yaw Rate Change")
-  # ggsave("Pre-processing_plot.png", width = 5, height = 5, units = "in")
-```
-
-```{r mean first steering adjustment}
-library(dplyr)
-
-workingdatathresholdUnsmooth %>%
-  group_by(heading) %>%
-  summarise(meanFirstSteeringTimeTRUE = mean(FirstSteeringTime, na.rm = TRUE), medianFirstSteeringTime = median(FirstSteeringTime), sdFirstSteeringTime = sd(FirstSteeringTime), minFirstSteeringTime = min(FirstSteeringTime), maxFirstSteeringTime = max(FirstSteeringTime))
-
 ```
 
 ```{r normality assumptions tests}
@@ -624,26 +605,23 @@ library(MBESS) # for apa tables
 library(WRS2) # for non-parametric
 library(e1071) # for skewness calculation
 
-# skim of the data
-skim(clean_smooth_data)
-
 # calculates skewness for each condition
-workingdatathresholdUnsmooth %>%
+magnitudedata %>%
   group_by(heading) %>%
   summarise(skew = skewness(FirstSteeringTime))
 
 # histogram with normality curves
-ggplot(workingdatathresholdUnsmooth, aes(x = FirstSteeringTime)) +
+ggplot(magnitudedata, aes(x = FirstSteeringTime)) +
   geom_histogram(aes(y = ..density..)) +
   stat_function(
 		fun = dnorm, 
-		args = with(workingdatathresholdUnsmooth, c(mean = mean(FirstSteeringTime), sd = sd(FirstSteeringTime)))
+		args = with(magnitudedata, c(mean = mean(FirstSteeringTime), sd = sd(FirstSteeringTime)))
 	) + 
   facet_wrap( ~ heading)
 
 # shapiro-wilk test for each heading - significant means not normally distributed
-workingdatathresholdUnsmooth2 <- filter(workingdatathresholdUnsmooth, heading == -0.5)
-shapiro.test(workingdatathresholdUnsmooth2$FirstSteeringTime)
+magnitudedata2 <- dplyr::filter(magnitudedata, heading == 2)
+shapiro.test(magnitudedata2$FirstSteeringTime)
 
 # need to make grouping variable a factor for levene's test - doesn't assume normality so significant means data is not normal
 workingdatathresholdUnsmooth$heading_fact<-as.factor(workingdatathresholdUnsmooth$heading)

@@ -155,6 +155,8 @@ zerotimecourse <- workingdata %>%
 
 workingdata <- rbind(negativetimecourse, positivetimecourse, zerotimecourse)
 
+rm(negativetimecourse, positivetimecourse, zerotimecourse)
+
 # golay filter data
 
 workingdata <- workingdata %>%
@@ -204,6 +206,8 @@ transmute(ppid_trialn, heading, PeakFrame = frame, PeakYaw = YawRateChange, Peak
 
 # merge response start and response peak dataframes
 magnitudedata <- merge(mag_response_start, mag_response_peak, by = "ppid_trialn")
+
+rm(mag_response_start, mag_response_peak)
 
 magnitudedata$heading.y <- NULL # remove duplicate column
 magnitudedata$pNum.y <- NULL # rmeove duplicate
@@ -330,6 +334,8 @@ response_num <- c(a$response_num, b$response_num)
 FirstSteeringTime <- c(a$FirstSteeringTime, b$FirstSteeringTime)
 
 dat <- as.data.frame(cbind(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime))
+
+rm(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, nonresponses, responseid, a, b)
 
 ```
 

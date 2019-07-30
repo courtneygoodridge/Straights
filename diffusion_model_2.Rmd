@@ -18,6 +18,8 @@ library(binom)  # for binomial confidence intervals
 lattice.options(default.theme = standard.theme(color = FALSE))
 lattice.options(default.args = list(as.table = TRUE))
 options(digits = 3)
+library(conflicted)
+conflict_prefer("filter", "dplyr")
 
 # converts first steering time from factor to numeric data type
 
@@ -49,6 +51,11 @@ heading2 <- dat %>%
   mutate(heading = 5)
 
 dat2 <- rbind(heading0, heading0_5, heading1, heading1_5, heading2)
+
+rm(heading0, heading0_5, heading1, heading1_5, heading2)
+
+dat2$heading <- as.factor(dat2$heading)
+dat2$response_num <- as.integer(dat2$response_num)
 
 ```
 
@@ -86,7 +93,7 @@ xyplot(rt ~ heading|pNum, quantiles_dat, group = quantile, type = "b",
 
 ## quantiles plot for repsonses where there is a steering response
 
-dat_steer <- dat %>%
+dat_steer <- dat2 %>%
   filter(response == "steer")
 
 
@@ -128,9 +135,7 @@ p1 + as.layer(p2)
 
 ```{r nesting data}
 
-dat2 <- dat2[sample(nrow(dat2)),]
-
-d_nested <- dat2 %>% 
+d_nested <- rr98 %>% 
   group_by(pNum) %>% # we loop across both, id and instruction
   nest()
 d_nested
@@ -192,7 +197,8 @@ ensure_fit <-
     while(start_ll == 1e+06) {
       start <- start_function(base_pars, n_drift=n_drift)
       start_ll <- objective_function(start, 
-                                     rt = data$FirstSteeringTime, response = data$response_num, drift = factor(data$heading, seq_len(n_drift)))
+                                     rt = data$FirstSteeringTime, response = data$response_num, 
+                                     drift = factor(data$heading, seq_len(n_drift)))
     }
     cat("\nstart fitting.\n") # just for information to see if it is stuck
 
@@ -219,7 +225,6 @@ fit_diffusion <- d_nested %>%
                             objective_function = objective_diffusion_separate, 
                             base_pars = c("a", "t0", "sv", "sz", "z")))) %>% 
   unnest(fit)
-
 
 ```
 

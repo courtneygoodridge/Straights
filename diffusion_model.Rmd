@@ -56,7 +56,7 @@ xyplot(rt ~ heading|pNum, quantiles_RT, group = quantile, type = "b",
 
 ```
 
-Appears to show a larger effect of strength for higher quantiles i.e. the slower of the responses.
+Appears to show a larger effect of strength for higher quantiles i.e. the slower of the responses. For example, slower response times are more varied across heading conditions. 
 
 ```{r diffusion model analysis}
 library(dplyr)

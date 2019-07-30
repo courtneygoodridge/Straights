@@ -155,6 +155,8 @@ zerotimecourse <- workingdata %>%
 
 workingdata <- rbind(negativetimecourse, positivetimecourse, zerotimecourse)
 
+rm(negativetimecourse, positivetimecourse, zerotimecourse)
+
 # golay filter data
 
 workingdata <- workingdata %>%
@@ -204,6 +206,8 @@ transmute(ppid_trialn, heading, PeakFrame = frame, PeakYaw = YawRateChange, Peak
 
 # merge response start and response peak dataframes
 magnitudedata <- merge(mag_response_start, mag_response_peak, by = "ppid_trialn")
+
+rm(mag_response_start, mag_response_peak)
 
 magnitudedata$heading.y <- NULL # remove duplicate column
 magnitudedata$pNum.y <- NULL # rmeove duplicate
@@ -320,7 +324,7 @@ workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
 b <- workingdatathresholdUnsmooth %>%
   select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime)
 
-dat <- cbind(a, b) #WHY DON'T YOU FUCKING WORK!!!!!!!
+# dat <- rbind(a, b) # WHY DON'T YOU FUCKING WORK!!!!!!!
 
 ppid_trialn <- c(a$ppid_trialn, b$ppid_trialn)
 heading <- c(a$heading, b$heading)
@@ -329,7 +333,9 @@ response <- c(a$response, b$response)
 response_num <- c(a$response_num, b$response_num)
 FirstSteeringTime <- c(a$FirstSteeringTime, b$FirstSteeringTime)
 
-c <- as.data.frame(cbind(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime))
+dat <- as.data.frame(cbind(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime))
+
+rm(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, nonresponses, responseid, a, b)
 
 ```
 
@@ -357,6 +363,10 @@ library(ggplot2)
 magnitudedata <- magnitudedata %>%
   group_by(ppid_trialn) %>%
   mutate(YawIncrease = PeakYaw - StartYaw, TimeToPeak = PeakSteeringTime - FirstSteeringTime)
+
+magnitudedata %>%
+  group_by(heading) %>%
+  summarise(meanincrease = mean(YawIncrease), meantime = mean(FirstSteeringTime))
 
 ```
 
@@ -480,45 +490,12 @@ ggplot(data = workingdatatimecourseUnsmooth, aes(x = anchored_timestamp, y = Yaw
   
 ```
 
-```{r genuine repsonse numbers}
-library(dplyr)
-
-workingdatathresholdUnsmooth %>%
-  filter(EarlyResponses == TRUE) %>%
-  group_by(heading) %>%
-  summarise(NumberOfEarlyRespones = n())
-
-workingdatathresholdUnsmooth %>%
-  filter(Genuine_Response == FALSE) %>%
-  group_by(heading) %>%
-  summarise(NumberOfNonGenuineResponses = n())
-
-genuine <- workingdatathresholdUnsmooth %>%
-  filter(Genuine_Response == TRUE & EarlyResponses == FALSE) %>%
-  group_by(heading) %>%
-  summarise(trials = n()) %>%
-  ungroup() # overall number of trials in each conditon after early and non-genuine responses have been removed
-
-workingdatathresholdUnsmooth %>%
-  group_by(heading) %>%
-  summarise(trials = n()) # overall number of trials in each condition
-
-# percentage of trials kept after removing non-genuine responses
-heading <- c('-2', '-1.5', '-1', '-0.5', '0', '0.5', '1', '+1.5', '+2')
-percentagetrialskept <- (genuine$trials/overall$trials * 100)
-per <- data.frame(heading, percentagetrialskept) # percentage of trials kept after data cleaning 
-View(per)
-
-total_trials <- length(unique(workingdata$ppid_trialn)) # total trials from all participants
-
-length(unique(workingdatathresholdUnsmooth$ppid_trialn)) # number of valid trials when unsmoothed
-
-```
-
 
 ```{r timecourse plotting for individual trials - UNSMOOTH, fig.height = 18, fig.width = 26}
 library(ggplot2)
 library(dplyr)
+library(conflicted)
+conflict_prefer("filter", "dplyr")
 
 #### 0 ########
 

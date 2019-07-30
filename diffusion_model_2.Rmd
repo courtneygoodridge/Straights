@@ -1,0 +1,230 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r preparing data}
+library(rtdists)
+library(dplyr)   # for data manipulations and looping
+library(tidyr)   # for data manipulations
+library(purrr)   # for data manipulations
+library(lattice) # for plotting and corresponding themes
+library(latticeExtra)
+library(binom)  # for binomial confidence intervals
+lattice.options(default.theme = standard.theme(color = FALSE))
+lattice.options(default.args = list(as.table = TRUE))
+options(digits = 3)
+library(conflicted)
+conflict_prefer("filter", "dplyr")
+
+# converts first steering time from factor to numeric data type
+
+# must convert to character first as factors are saved as integer codes which change your values when you convert using as.numeric first
+
+dat$FirstSteeringTime <- as.character(dat$FirstSteeringTime)
+dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
+
+# creates "strength bins" with regard to stimuluis intensity, decimal places throw an error
+
+heading0 <- dat %>%
+  filter(heading == 0) %>%
+  mutate(heading = 1)
+
+heading0_5 <- dat %>%
+  filter(heading == 0.5) %>%
+  mutate(heading = 2)
+
+heading1 <- dat %>%
+  filter(heading == 1) %>%
+  mutate(heading = 3)
+
+heading1_5 <- dat %>%
+  filter(heading == 1.5) %>%
+  mutate(heading = 4)
+
+heading2 <- dat %>%
+  filter(heading == 2) %>%
+  mutate(heading = 5)
+
+dat2 <- rbind(heading0, heading0_5, heading1, heading1_5, heading2)
+
+rm(heading0, heading0_5, heading1, heading1_5, heading2)
+
+dat2$heading <- as.factor(dat2$heading)
+dat2$response_num <- as.integer(dat2$response_num)
+
+```
+
+```{r descriptive data - proportion of steering responses}
+
+# aggregate data for first plot:
+agg_dat <- dat2  %>% 
+  group_by(pNum, heading) %>% 
+  summarise(prop = mean(response == "steer"), mean_rt = mean(FirstSteeringTime), median_rt = mean(FirstSteeringTime)) %>% 
+  ungroup()
+
+xyplot(prop ~ heading|pNum, agg_dat, type = "b", 
+       auto.key = list(lines = TRUE), ylab = "Proportion of 'steer' responses")
+
+```
+Higher proportion of steer responses as heading increases. Increased heading means an increased rate of change of error information, so participants are more likely to make a response. This is fairly consistent across participants. 
+
+```{r RT quantiles}
+
+quantiles <- c(0.1, 0.3, 0.5, 0.7, 0.9)
+
+## aggregate data for quantile plot
+
+quantiles_dat <- dat2  %>% 
+  group_by(pNum, heading) %>% 
+  nest() %>% 
+  mutate(quantiles = map(data, ~ as.data.frame(t(quantile(.x$FirstSteeringTime, probs = quantiles))))) %>% 
+  unnest(quantiles) %>% 
+  gather("quantile", "rt",`10%`:`90%`) %>% 
+  arrange(pNum, heading)
+
+xyplot(rt ~ heading|pNum, quantiles_dat, group = quantile, type = "b", 
+       auto.key = list(lines = TRUE), ylab = "RT (in seconds)")
+
+
+## quantiles plot for repsonses where there is a steering response
+
+dat_steer <- dat2 %>%
+  filter(response == "steer")
+
+
+quantiles_dat2 <- dat_steer  %>% 
+  group_by(pNum, heading) %>% 
+  nest() %>% 
+  mutate(quantiles = map(data, ~ as.data.frame(t(quantile(.x$FirstSteeringTime, probs = quantiles))))) %>% 
+  unnest(quantiles) %>% 
+  gather("quantile", "rt",`10%`:`90%`) %>% 
+  arrange(pNum, heading)
+
+xyplot(rt ~ heading|pNum, quantiles_dat2, group = quantile, type = "b", 
+       auto.key = list(lines = TRUE), ylab = "RT (in seconds)")
+
+```
+Lower quantiles response times (fast response times) vary less across the heading conditions. Upper quantiles resposnes times (slow response times) do not vary due to the nature of having to cap RTs at 2.5 seconds for no responses.
+
+When filtering for only responses where steering occurred, repsonse time distributions are less varied across heading conditions. Biggest variation is between 0 and 0.5 degrees of heading angle, as would be expected. 
+
+```{r combing RT distrbutions for steer and non steer responses (not working yet)}
+
+agg2_dat_response <- dat  %>% 
+  group_by(pNum, heading, response) %>% 
+  nest() %>% 
+  mutate(quantiles = map(data, ~ as.data.frame(t(quantile(.x$FirstSteeringTime, probs = quantiles))))) %>% 
+  unnest(quantiles) %>% 
+  gather("quantile", "rt",`10%`:`90%`) %>% 
+  arrange(pNum, response, heading)
+
+p1 <- xyplot(rt ~ heading|pNum, agg2_dat_response, group = quantile, type = "b", 
+             auto.key = list(lines = TRUE), ylab = "RT (in seconds)", 
+             subset = response == "steer", layout = c(3,1))
+p2 <- xyplot(rt ~ heading|pNum, agg2_dat_response, group = quantile, type = "b", 
+             auto.key = list(lines = TRUE), ylab = "RT (in seconds)", 
+             subset = response == "nosteer", col = "grey")
+p1 + as.layer(p2)
+
+```
+
+```{r nesting data}
+
+d_nested <- rr98 %>% 
+  group_by(pNum) %>% # we loop across both, id and instruction
+  nest()
+d_nested
+
+
+```
+
+```{r objective function}
+# objective function for diffusion with 1 a. loops over drift to assign drift rates to strength
+objective_diffusion_separate <- function(pars, rt, response, drift, ...) {
+  non_v_pars <- grep("^v", names(pars), invert = TRUE, value = TRUE)
+  base_par <- length(non_v_pars)  # number of non-drift parameters
+  densities <- vector("numeric", length(rt))
+  for (i in seq_along(levels(drift))) {
+    densities[drift == levels(drift)[i]] <- 
+      ddiffusion(rt[drift == levels(drift)[i]], response=response[drift == levels(drift)[i]], 
+                 a=pars["a"], t0=pars["t0"],  
+                 sv=pars["sv"],
+                 sz=if ("sz" %in% non_v_pars) pars["sz"] else 0.1,
+                 z=if ("z" %in% non_v_pars) pars["z"]*pars["a"] else 0.5*pars["a"],
+                 st0=if ("st0" %in% non_v_pars) pars["st0"] else 0, 
+                 v=pars[base_par+i])
+  }
+  if (any(densities == 0)) return(1e6)
+  return(-sum(log(densities)))
+}
+
+```
+
+```{r start value functions}
+# function that creates random start values, also 
+get_start <- function(base_par, n_drift = 5) {
+  start1 <- c(
+    a = runif(1, 0.5, 3),
+    a_1 = runif(1, 0.5, 3), 
+    a_2 = runif(1, 0.5, 3),
+    t0 = runif(1, 0, 0.5), 
+    z = runif(1, 0.4, 0.6), 
+    sz = runif(1, 0, 0.5),
+    sv = runif(1, 0, 0.5),
+    st0 = runif(1, 0, 0.5),
+    d = rnorm(1, 0, 0.05)
+  )
+  start2 <- sort(rnorm(n_drift), decreasing = FALSE)
+  names(start2) <- paste0("v_", seq_len(n_drift))
+  c(start1[base_par], start2)
+}
+
+# function that tries different random start values until it works:
+ensure_fit <- 
+  function(data, start_function, objective_function, 
+           base_pars, n_drift = 5, n_fits = 1, 
+           lower = c(rep(0, length(base_pars)), -Inf,
+                     rep(-Inf,length(start_function(base_pars))-length(base_pars)))) {
+    best_fit <- list(objective = 1e+06)
+  for (i in seq_len(n_fits)) {
+    start_ll <- 1e+06
+    #browser()
+    while(start_ll == 1e+06) {
+      start <- start_function(base_pars, n_drift=n_drift)
+      start_ll <- objective_function(start, 
+                                     rt = data$FirstSteeringTime, response = data$response_num, 
+                                     drift = factor(data$heading, seq_len(n_drift)))
+    }
+    cat("\nstart fitting.\n") # just for information to see if it is stuck
+
+    fit <- nlminb(start, objective_function, 
+                  rt = data$FirstSteeringTime, response = data$response_num, 
+                  drift = factor(data$heading, seq_len(n_drift)),
+                  lower = lower)
+
+    if (fit$objective < best_fit$objective) best_fit <- fit
+  }
+  out <- as.data.frame(t(unlist(best_fit[1:3])))
+  colnames(out) <- sub("par.", "", colnames(out))
+  out
+}
+
+```
+
+```{r obtain diffusion fit}
+
+fit_diffusion <- d_nested %>% 
+  mutate(fit = 
+           map(data, 
+               ~ensure_fit(data = ., start_function = get_start, 
+                            objective_function = objective_diffusion_separate, 
+                            base_pars = c("a", "t0", "sv", "sz", "z")))) %>% 
+  unnest(fit)
+
+```
+

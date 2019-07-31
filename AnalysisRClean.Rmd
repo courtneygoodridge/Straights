@@ -37,7 +37,7 @@ install.packages(conflicted) # heloful package to show when packages have confli
 # full datasets
 setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-temp = list.files(pattern = c("BenLui17_18")) # list all CSV files in the directory
+temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 

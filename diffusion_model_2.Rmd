@@ -7,7 +7,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r preparing data}
+
+```{r package prep}
 library(rtdists)
 library(dplyr)   # for data manipulations and looping
 library(tidyr)   # for data manipulations
@@ -21,45 +22,26 @@ options(digits = 3)
 library(conflicted)
 conflict_prefer("filter", "dplyr")
 
-# converts first steering time from factor to numeric data type
+```
 
-# must convert to character first as factors are saved as integer codes which change your values when you convert using as.numeric first
 
-dat$FirstSteeringTime <- as.character(dat$FirstSteeringTime)
-dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
+```{r load data} 
+# rm(list = ls())
+# load data
 
-# creates "strength bins" with regard to stimuluis intensity, decimal places throw an error
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set working directory
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+temp = list.files(pattern = c("dat2", "*.csv")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+dat2 <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
-heading0 <- dat %>%
-  filter(heading == 0) %>%
-  mutate(heading = 1)
+View(dat2)
 
-heading0_5 <- dat %>%
-  filter(heading == 0.5) %>%
-  mutate(heading = 2)
-
-heading1 <- dat %>%
-  filter(heading == 1) %>%
-  mutate(heading = 3)
-
-heading1_5 <- dat %>%
-  filter(heading == 1.5) %>%
-  mutate(heading = 4)
-
-heading2 <- dat %>%
-  filter(heading == 2) %>%
-  mutate(heading = 5)
-
-dat2 <- rbind(heading0, heading0_5, heading1, heading1_5, heading2)
-
-rm(heading0, heading0_5, heading1, heading1_5, heading2)
-
-dat2$heading <- as.factor(dat2$heading)
-dat2$response_num <- as.integer(dat2$response_num)
+# heading variable out into "bins" from 1 to 5, 1 being 0 degree offset and 5 being 2 degree offset
 
 ```
 
-```{r descriptive data - proportion of steering responses}
+```{r descriptive data - proportion of steering responses for each participant for each "bin"}
 
 # aggregate data for first plot:
 agg_dat <- dat2  %>% 
@@ -109,33 +91,35 @@ xyplot(rt ~ heading|pNum, quantiles_dat2, group = quantile, type = "b",
        auto.key = list(lines = TRUE), ylab = "RT (in seconds)")
 
 ```
-Lower quantiles response times (fast response times) vary less across the heading conditions. Upper quantiles resposnes times (slow response times) do not vary due to the nature of having to cap RTs at 2.5 seconds for no responses.
+Lower quantiles response times (fast response times) vary less across the heading conditions. Upper quantile resposnes times (slow response times) do not vary due to the nature of having to cap RTs at 2.5 seconds for no responses.
 
-When filtering for only responses where steering occurred, repsonse time distributions are less varied across heading conditions. Biggest variation is between 0 and 0.5 degrees of heading angle, as would be expected. 
+When filtering for only responses where steering occurred, repsonse time distributions are less varied across heading conditions. Biggest variation is between 0 and 0.5 degrees of heading angle.
 
-```{r combing RT distrbutions for steer and non steer responses (not working yet)}
+```{r comparing RT distrbutions for steer and non steer responses}
 
-agg2_dat_response <- dat  %>% 
-  group_by(pNum, heading, response) %>% 
+agg2_dat_response <- dat2  %>% 
+  group_by(pNum, heading, response_num) %>% 
   nest() %>% 
   mutate(quantiles = map(data, ~ as.data.frame(t(quantile(.x$FirstSteeringTime, probs = quantiles))))) %>% 
   unnest(quantiles) %>% 
   gather("quantile", "rt",`10%`:`90%`) %>% 
-  arrange(pNum, response, heading)
+  arrange(pNum, response_num, heading)
 
 p1 <- xyplot(rt ~ heading|pNum, agg2_dat_response, group = quantile, type = "b", 
              auto.key = list(lines = TRUE), ylab = "RT (in seconds)", 
-             subset = response == "steer", layout = c(3,1))
+             subset = response_num == 2, layout = c(3,1))
 p2 <- xyplot(rt ~ heading|pNum, agg2_dat_response, group = quantile, type = "b", 
              auto.key = list(lines = TRUE), ylab = "RT (in seconds)", 
-             subset = response == "nosteer", col = "grey")
+             subset = response_num == 1, col = "grey")
 p1 + as.layer(p2)
 
 ```
+This plot doesn't make much sense in my example, as I have to cap no steer responses at 2.5 seconds.
+```{r nesting data for model analysis}
 
-```{r nesting data}
+dat2 <- dat2[sample(nrow(dat2)),]
 
-d_nested <- dat %>% 
+d_nested <- dat2 %>% 
   group_by(pNum) %>% # we loop across both, id and instruction
   nest()
 d_nested
@@ -144,6 +128,7 @@ d_nested
 ```
 
 ```{r objective function}
+
 # objective function for diffusion with 1 a. loops over drift to assign drift rates to strength
 objective_diffusion_separate <- function(pars, rt, response, drift, ...) {
   non_v_pars <- grep("^v", names(pars), invert = TRUE, value = TRUE)
@@ -166,7 +151,8 @@ objective_diffusion_separate <- function(pars, rt, response, drift, ...) {
 ```
 
 ```{r start value functions}
-# function that creates random start values, also 
+
+# function that creates random start values
 get_start <- function(base_par, n_drift = 5) {
   start1 <- c(
     a = runif(1, 0.5, 3),
@@ -198,13 +184,13 @@ ensure_fit <-
       start <- start_function(base_pars, n_drift=n_drift)
       start_ll <- objective_function(start, 
                                      rt = data$FirstSteeringTime, response = data$response_num, 
-                                     drift = factor(data$strength_bin, seq_len(n_drift)))
+                                     drift = factor(data$heading, seq_len(n_drift)))
     }
     cat("\nstart fitting.\n") # just for information to see if it is stuck
 
     fit <- nlminb(start, objective_function, 
                   rt = data$FirstSteeringTime, response = data$response_num, 
-                  drift = factor(data$strength_bin, seq_len(n_drift)),
+                  drift = factor(data$heading, seq_len(n_drift)),
                   lower = lower)
 
     if (fit$objective < best_fit$objective) best_fit <- fit
@@ -213,7 +199,6 @@ ensure_fit <-
   colnames(out) <- sub("par.", "", colnames(out))
   out
 }
-
 ```
 
 ```{r obtain diffusion fit}
@@ -227,4 +212,110 @@ fit_diffusion <- d_nested %>%
   unnest(fit)
 
 ```
+
+
+```{r predicited response rates}
+
+
+# aggregate data for response probability plot:
+agg_dat2_bin <- dat2 %>% 
+  group_by(pNum, heading) %>%
+  summarise(n = n(), 
+            steer = sum(response == "steer"),
+            nosteer = sum(response == "nosteer")) %>%
+  ungroup() %>%
+  mutate(prop = map2(steer, n, ~ binom.confint(.x, .y, methods = "agresti-coull"))) %>% 
+  unnest(prop)
+
+
+# get predicted response proportions
+pars_separate_l <- fit_diffusion %>% 
+  gather("heading", "v", starts_with("v"))
+pars_separate_l$heading <- factor(substr(pars_separate_l$heading, 3,3), 
+                                       levels = as.character(seq_len(length(bins)-1)))
+#pars_separate_l <- inner_join(pars_separate_l, agg_rr98_bin)
+pars_separate_l <- pars_separate_l  %>% 
+  group_by(pNum, heading) %>%
+  mutate(resp_prop = pdiffusion(rt=Inf, response="upper", a=a, v=v, t0=t0, sz = sz, z=a*z, sv=sv))
+
+p1 <- xyplot(mean ~ heading|pNum, agg_dat2_bin, type = "b", auto.key = 
+               list(lines = TRUE), ylab = "Proportion of 'steer' responses", col = "grey")
+p2 <- segplot(heading ~ upper+lower|pNum, agg_dat2_bin, 
+              auto.key = list(lines = TRUE), ylab = "Proportion of 'steer' responses", 
+              col = "grey", horizontal = FALSE, segments.fun = panel.arrows,  
+              draw.bands = FALSE, angle = 90, length = 0.05, ends = "both")
+p3 <- xyplot(resp_prop ~ heading|pNum, pars_separate_l, type = "b", 
+             auto.key = list(lines = TRUE), ylab = "Proportion of 'steer' responses", 
+             col = "black")
+p2 + as.layer(p1) + as.layer(p3)
+
+```
+Hard to decipher because the the participant numbers are not displayed, however it appears for 4/5 of the fitted model, the predicted models model the proporation of steer responses fairly well. 
+
+```{r predicted median RTs}
+
+quantiles <- c(0.1, 0.3, 0.5, 0.7, 0.9)
+
+# get predicted quantiles (uses predicted response proportions)
+separate_pred_dark <- pars_separate_l %>% 
+  do(as.data.frame(t(
+  qdiffusion(quantiles*.$resp_prop, response="upper", 
+             a=.$a, v=.$v, t0=.$t0, sz = .$sz, z = .$z*.$a, sv=.$sv)))) %>% 
+  ungroup() %>% 
+  gather("quantiles", "steer", V1:V5)
+separate_pred_light <- pars_separate_l %>% 
+  do(as.data.frame(t(
+  qdiffusion(quantiles*(1-.$resp_prop), response="lower", 
+             a=.$a, v=.$v, t0=.$t0, sz = .$sz, z = .$z*.$a, sv=.$sv)))) %>% 
+  ungroup() %>% 
+  gather("quantiles", "nosteer", V1:V5)
+
+#separate_pred_light %>% filter(is.na(light))
+separate_pred <- inner_join(separate_pred_dark, separate_pred_light)
+separate_pred$quantiles <- factor(separate_pred$quantiles, 
+                                  levels = c("V5", "V4", "V3", "V2", "V1"), 
+                                  labels = c("90%", "70%", "50%", "30%", "10%"))
+separate_pred <- separate_pred %>% 
+  gather("response", "FirstSteeringTime", steer, nosteer)
+
+# get SE for observed quantiles
+agg2_dat2_response_se <- dat2  %>% 
+  group_by(pNum, heading, response) %>% 
+  summarise(se_median = sqrt(pi/2)*(sd(FirstSteeringTime)/sqrt(n()))) %>%
+  ungroup()
+
+
+agg2_dat2_response <- dat2  %>% 
+  group_by(pNum, heading, response) %>% 
+  nest() %>% 
+  mutate(quantiles = map(data, ~ as.data.frame(t(quantile(.x$FirstSteeringTime, probs = quantiles))))) %>% 
+  unnest(quantiles) %>% 
+  gather("quantile", "FirstSteeringTime",`10%`:`90%`) %>% 
+  arrange(pNum, heading, response)
+
+# calculate error bars for quantiles.
+agg2_dat2_response <- left_join(agg2_dat2_response, agg2_dat2_response_se)
+agg2_dat2_response <- agg2_dat2_response %>%
+  mutate(lower = FirstSteeringTime - se_median, upper = FirstSteeringTime + se_median)
+
+
+p1 <- xyplot(FirstSteeringTime ~ heading|pNum + response, agg2_dat2_response, type = "b", 
+             auto.key = list(lines = TRUE), ylab = "RT (in seconds)", 
+             subset = quantile == "50%", 
+             layout = c(3,2), col = "grey")
+
+p1e <- segplot(heading ~ upper+lower|pNum + response, agg2_dat2_response, 
+               auto.key = list(lines = TRUE), ylab = "Proportion of 'dark' responses", 
+               col = "grey", horizontal = FALSE, segments.fun = panel.arrows,  
+               draw.bands = FALSE, angle = 90, length = 0.05, ends = "both", quantile == "50%", layout = c(3,2))
+
+p2 <- xyplot(FirstSteeringTime ~ heading|pNum + response, separate_pred, type = "b", 
+             auto.key = list(lines = TRUE), ylab = "RT (in seconds)", quantiles == "50%", 
+             scales = list(y = list(limits = c(0.25, 0.5))))
+
+p2 + as.layer(p1) + as.layer(p1e)
+
+
+```
+
 

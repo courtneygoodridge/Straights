@@ -7,9 +7,52 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r bin method from my example}
+# converts first steering time from factor to numeric data type
+
+# must convert to character first as factors are saved as integer codes which change your values when you convert using as.numeric first
+
+dat$FirstSteeringTime <- as.character(dat$FirstSteeringTime)
+dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
+dat$response_num <- as.integer(dat$response_num)
+
+# creates "strength bins" with regard to stimuluis intensity, decimal places throw an error
+
+heading0 <- dat %>%
+  filter(heading == 0) %>%
+  mutate(heading = 1)
+
+heading0_5 <- dat %>%
+  filter(heading == 0.5) %>%
+  mutate(heading = 2)
+
+heading1 <- dat %>%
+  filter(heading == 1) %>%
+  mutate(heading = 3)
+
+heading1_5 <- dat %>%
+  filter(heading == 1.5) %>%
+  mutate(heading = 4)
+
+heading2 <- dat %>%
+  filter(heading == 2) %>%
+  mutate(heading = 5)
+
+dat2 <- rbind(heading0, heading0_5, heading1, heading1_5, heading2)
+
+rm(heading0, heading0_5, heading1, heading1_5, heading2)
+
+dat2$heading <- as.factor(dat2$heading)
+
+```
+
+```
+
 ```{r 1}
 
 data("rr98")
+
+rr98$instruction <- NULL
 
 # try and implement strength bins into my own data...
 
@@ -20,7 +63,7 @@ levels(rr98$strength_bin) <- as.character(1:7)
 
 # aggregate data for response probability plot:
 agg_rr98_bin <- rr98 %>% 
-  group_by(id, instruction, strength_bin) %>%
+  group_by(id, strength_bin) %>%
   summarise(n = n(), 
             dark = sum(response == "dark"),
             light = sum(response == "light")) %>%
@@ -30,7 +73,7 @@ agg_rr98_bin <- rr98 %>%
 
 
 knitr::kable(
-  rr98 %>% group_by(id, instruction, strength_bin, response) %>%
+  rr98 %>% group_by(id, strength_bin, response) %>%
     summarise(n = n()) %>%
     spread(strength_bin, n)
 )
@@ -38,7 +81,7 @@ knitr::kable(
 
 ```{r 2}
 d_nested <- rr98 %>% 
-  group_by(id, instruction) %>% # we loop across both, id and instruction
+  group_by(id) %>% # we loop across both, id and instruction
   nest()
 d_nested
 

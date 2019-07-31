@@ -135,7 +135,7 @@ p1 + as.layer(p2)
 
 ```{r nesting data}
 
-d_nested <- rr98 %>% 
+d_nested <- dat %>% 
   group_by(pNum) %>% # we loop across both, id and instruction
   nest()
 d_nested
@@ -198,13 +198,13 @@ ensure_fit <-
       start <- start_function(base_pars, n_drift=n_drift)
       start_ll <- objective_function(start, 
                                      rt = data$FirstSteeringTime, response = data$response_num, 
-                                     drift = factor(data$heading, seq_len(n_drift)))
+                                     drift = factor(data$strength_bin, seq_len(n_drift)))
     }
     cat("\nstart fitting.\n") # just for information to see if it is stuck
 
     fit <- nlminb(start, objective_function, 
                   rt = data$FirstSteeringTime, response = data$response_num, 
-                  drift = factor(data$heading, seq_len(n_drift)),
+                  drift = factor(data$strength_bin, seq_len(n_drift)),
                   lower = lower)
 
     if (fit$objective < best_fit$objective) best_fit <- fit

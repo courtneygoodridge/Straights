@@ -100,7 +100,7 @@ mutate(frame = row_number()) # create frame number column
 ```{r  thresholds, removing trials with dropped frames, calculating yaw rate change}
 library(dplyr)
 library(tidyr)
-library(TTR)
+# library(TTR)
 # library(hemm)
 # library(searcher)
 # library(skimr)
@@ -174,13 +174,13 @@ library(tidyr)
 
 # code below is identical to the RT data selection - both trying to find the same thing (start of the response)
 mag_response_start <- workingdata %>% 
-select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>% 
+select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum, block) %>% 
 group_by(ppid_trialn) %>%
   dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
   slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
-  transmute(ppid_trialn, heading, StartFrame = frame, StartYaw = YawRateChange, FirstSteeringTime = anchored_timestamp, pNum = pNum) %>%
+  transmute(ppid_trialn, heading, StartFrame = frame, StartYaw = YawRateChange, FirstSteeringTime = anchored_timestamp, pNum = pNum, block = block) %>%
   # mutate(steering_zscore = scale(FirstSteeringTime)) %>%
   mutate(EarlyResponses = FirstSteeringTime <= 0.15)
 
@@ -196,14 +196,14 @@ library(dplyr)
 library(tidyr)
 
 mag_response_peak <- workingdata %>%
-select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>%
+select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum, block) %>%
 group_by(ppid_trialn) %>%
 mutate(peakYaw = max(YawRateChange)) %>%
 dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% 
 slice(1:max(which(YawRateChange > upperthreshold, 1))) %>%
 slice(max(which(YawRateChange == peakYaw))) %>%
 ungroup() %>%
-transmute(ppid_trialn, heading, PeakFrame = frame, PeakYaw = YawRateChange, PeakSteeringTime = anchored_timestamp, pNum = pNum)
+transmute(ppid_trialn, heading, PeakFrame = frame, PeakYaw = YawRateChange, PeakSteeringTime = anchored_timestamp, pNum = pNum, block = block)
 
 # merge response start and response peak dataframes
 magnitudedata <- merge(mag_response_start, mag_response_peak, by = "ppid_trialn")
@@ -212,18 +212,20 @@ rm(mag_response_start, mag_response_peak)
 
 magnitudedata$heading.y <- NULL # remove duplicate column
 magnitudedata$pNum.y <- NULL # rmeove duplicate
+magnitudedata$block.y <- NULL
 
 colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
+colnames(magnitudedata)[colnames(magnitudedata) == 'block.x'] <- 'block'
 
 ```
 
 
 ```{r calculating genuine responses, formulating threshold RT data}
-library(zoo)
+# library(zoo)
 library(dplyr)
 library(tidyr)
-library(TTR)
+# library(TTR)
 
 workingdatathresholdUnsmooth <- workingdata %>%
   group_by(ppid_trialn) %>%
@@ -231,7 +233,7 @@ workingdatathresholdUnsmooth <- workingdata %>%
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
   slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses, ThresYawRateChange = YawRateChange, pNum = pNum) %>%
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds,ThresYawRateChange = YawRateChange, pNum = pNum, block = block) %>% #  gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasse(removed for test modelling)
   mutate(EarlyResponses = FirstSteeringTime <= 0.15)
   
 ```
@@ -316,14 +318,14 @@ nonresponses <- nonresponses %>%
   ungroup() 
 
 a <- nonresponses %>%
-  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime)
+  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, block)
 
 workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
   group_by(ppid_trialn) %>%
   mutate(response = "steer", response_num = 2)
 
 b <- workingdatathresholdUnsmooth %>%
-  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime)
+  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, block)
 
 # dat <- rbind(a, b) # WHY DON'T YOU FUCKING WORK!!!!!!!
 
@@ -333,10 +335,12 @@ pNum <- c(a$pNum, b$pNum)
 response <- c(a$response, b$response)
 response_num <- c(a$response_num, b$response_num)
 FirstSteeringTime <- c(a$FirstSteeringTime, b$FirstSteeringTime)
+block <- c(a$block, b$block)
 
-dat <- as.data.frame(cbind(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime))
 
-rm(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, nonresponses, responseid, a, b)
+dat <- as.data.frame(cbind(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, block))
+
+rm(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, nonresponses, responseid, a, b, block)
 
 ```
 

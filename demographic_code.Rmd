@@ -24,19 +24,22 @@ library(dplyr)
 
 ###### for block 1 dataframes
 workingdata <- workingdata %>%
-  mutate(block = "first")
+  mutate(block = "first") %>%
+  mutate(pNum = 15)
 
 
 
 
 ###### for block 2 dataframes
 workingdataFirst <- workingdata %>%
-  filter(trialn <= 45) %>%
-  mutate(block = "first")
+  dplyr::filter(trialn <= 45) %>%
+  mutate(block = "first") %>%
+  mutate(pNum = 15)
 
 workingdataSecond <- workingdata %>%
-  filter(trialn > 45) %>%
-  mutate(block = "second")
+  dplyr::filter(trialn > 45) %>%
+  mutate(block = "second") %>%
+  mutate(pNum = 15)
 
 workingdata <- rbind(workingdataFirst, workingdataSecond)
 
@@ -44,7 +47,8 @@ workingdata <- rbind(workingdataFirst, workingdataSecond)
 
 ####### for block 3 dataframes
 workingdata <- workingdata %>%
-  mutate(block = "second")
+  mutate(block = "second") %>%
+  mutate(pNum = 15)
 
 
 ```

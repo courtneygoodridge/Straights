@@ -115,6 +115,7 @@ p1 + as.layer(p2)
 
 ```
 This plot doesn't make much sense in my example, as I have to cap no steer responses at 2.5 seconds.
+
 ```{r nesting data for model analysis}
 
 dat2 <- dat2[sample(nrow(dat2)),]
@@ -126,6 +127,7 @@ d_nested
 
 
 ```
+
 
 ```{r objective function}
 

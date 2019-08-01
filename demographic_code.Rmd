@@ -9,9 +9,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # load data
 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set working directory
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-temp = list.files(pattern = c("BenLui17_18_2", "*.csv")) # list all CSV files in the directory
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set working directory
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+temp = list.files(pattern = c("BenLui17_15_3", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
@@ -24,7 +24,7 @@ library(dplyr)
 
 ###### for block 1 dataframes
 workingdata <- workingdata %>%
-  mutate(block = first)
+  mutate(block = "first")
 
 
 
@@ -44,7 +44,7 @@ workingdata <- rbind(workingdataFirst, workingdataSecond)
 
 ####### for block 3 dataframes
 workingdata <- workingdata %>%
-  mutate(block = second)
+  mutate(block = "second")
 
 
 ```
@@ -53,8 +53,8 @@ create new block variable
 
 ```{r saving first/second half datadframe}
 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/test_example") # set directory for data saving
-write.csv(workingdata, file = "BenLui17_18_2.csv") # save the same name but in a different place
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example") # set directory for data saving
+write.csv(workingdata, file = "BenLui17_15_3.csv") # save the same name but in a different place
 
 ```
 
@@ -66,9 +66,9 @@ save block dataframe as the same name but in a different place. Do this for 3 bl
 
 # load data
 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/test_example") # set working directory
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-temp = list.files(pattern = c("BenLui17_18_2", "*.csv")) # list all CSV files in the directory
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/test_example") # set working directory
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example")
+temp = list.files(pattern = c("BenLui17_15", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
@@ -78,8 +78,8 @@ load in 3 blocks and combine them but no point creating demographioc columns for
 
 ```{r saving new combined data frame}
 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/test_example/Full_Data") # set directory for data saving
-write.csv(workingdata, file = "BenLui17_18_full.csv")
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example/Full_Data") # set directory for data saving
+write.csv(workingdata, file = "BenLui17_15_full.csv")
 
 ```
 

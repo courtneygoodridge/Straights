@@ -11,35 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 # rm(list = ls())
 library(brms)
 library(rtdists)
+library(RWiener)
 
 ```
 
-```{r loading and cleaning data}
-
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set working directory
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-temp = list.files(pattern = c("dat2", "*.csv")) # list all CSV files in the directory
-myfiles = lapply(temp, read.csv) # read these CSV in the directory
-dat2 <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
-
-# nosteer <- dat2 %>%
-#   filter(response == "nosteer") %>%
-#   mutate(response_num = 0)
-# 
-# steer <- dat2 %>%
-#   filter(response == "steer") %>%
-#   mutate(response_num = 1)
-
-dat3 <- dat2 # rbind(steer, nosteer)
-
-dat3$heading <- as.factor(dat3$heading)
-dat3$pNum <- as.factor(dat3$pNum)
-
-View(dat3)
-
-```
-Changes repsonse_num to lower bound = 0, upper bound = 1 to match example and change variables to factors
-
+data should be loaded from AnalysisRClean script of the 3 test participants.
 
 ```{r model formula}
 
@@ -51,14 +27,14 @@ formula <- bf(FirstSteeringTime | dec(response_num) ~ 0 + heading +
 
 
 ```
-Above code sets the model forumula. Specifies reaction time column, response (dec) column. Drift rate is allowed to vary depending on the heading value.
+Above code sets the model forumula. Specifies reaction time column, response (dec) column. Drift rate is allowed to vary depending on the heading value (original example used two variables that drift can vary by however I really only have one).
 
-bs, ndt and bias are all parameters in the model, that are allowed to vary depending on the heading for each participant
+bs, ndt and bias are all parameters in the model, that are allowed to vary depending on the heading for each participant. bs is the boundary separtion, ndt is the non-decision time and bias is the starting point
 
 ```{r get priors for model parameters}
 
 get_prior(formula,
-          data = dat3, 
+          data = dat, 
           family = wiener(link_bs = "identity", 
                           link_ndt = "identity", 
                           link_bias = "identity"))
@@ -82,7 +58,7 @@ make_stancode(formula,
               family = wiener(link_bs = "identity", 
                               link_ndt = "identity",
                               link_bias = "identity"),
-              data = dat3, 
+              data = dat, 
               prior = prior)
 
 ```
@@ -92,8 +68,42 @@ tmp_dat <- make_standata(formula,
                          family = wiener(link_bs = "identity", 
                               link_ndt = "identity",
                               link_bias = "identity"),
-                            data = dat3, prior = prior)
+                            data = dat, prior = prior)
 
 str(tmp_dat, 1, give.attr = FALSE)
+
+
+initfun <- function() {
+  list(
+    b = rnorm(tmp_dat$K),
+    b_bs = runif(tmp_dat$K_bs, 1, 2),
+    b_ndt = runif(tmp_dat$K_ndt, 0.1, 0.15),
+    b_bias = rnorm(tmp_dat$K_bias, 0.5, 0.1),
+    sd_1 = runif(tmp_dat$M_1, 0.5, 1),
+    z_1 = matrix(rnorm(tmp_dat$M_1*tmp_dat$N_1, 0, 0.01),
+                 tmp_dat$M_1, tmp_dat$N_1),
+    L_1 = diag(tmp_dat$M_1)
+  )
+}
+
+```
+
+```{r model estimation}
+
+fit_wiener <- brm(formula, 
+                  data = dat,
+                  family = wiener(link_bs = "identity", 
+                                  link_ndt = "identity",
+                                  link_bias = "identity"),
+                  prior = prior, inits = initfun,
+                  iter = 1000, warmup = 500, 
+                  chains = 4, cores = 4, 
+                  control = list(max_treedepth = 15))
+NPRED <- 500
+pred_wiener <- predict(fit_wiener, 
+                       summary = FALSE, 
+                       negative_rt = TRUE, 
+                       nsamples = NPRED)
+
 ```
 

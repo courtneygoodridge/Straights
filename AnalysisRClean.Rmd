@@ -35,9 +35,13 @@ install.packages(conflicted) # heloful package to show when packages have confli
 # install.packages(magrittr)
 
 # full datasets
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") # set working directory on personal laptop
+# set working directory on pffice laptop
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/test_example/Full_Data") 
+
+# set working directory on personal laptop
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example/Full_Data")
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example/Full_Data")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -214,9 +218,11 @@ magnitudedata$heading.y <- NULL # remove duplicate column
 magnitudedata$pNum.y <- NULL # rmeove duplicate
 magnitudedata$block.y <- NULL
 
+
 colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 colnames(magnitudedata)[colnames(magnitudedata) == 'block.x'] <- 'block'
+
 
 ```
 
@@ -233,7 +239,7 @@ workingdatathresholdUnsmooth <- workingdata %>%
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
   slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
-  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds,ThresYawRateChange = YawRateChange, pNum = pNum, block = block) %>% #  gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasse(removed for test modelling)
+  transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds,ThresYawRateChange = YawRateChange, pNum = pNum, block = block) %>% # gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses (removed for test modelling)
   mutate(EarlyResponses = FirstSteeringTime <= 0.15)
   
 ```
@@ -337,12 +343,44 @@ response_num <- c(a$response_num, b$response_num)
 FirstSteeringTime <- c(a$FirstSteeringTime, b$FirstSteeringTime)
 block <- c(a$block, b$block)
 
-
 dat <- as.data.frame(cbind(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, block))
 
 rm(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, nonresponses, responseid, a, b, block)
 
+sapply(dat, class)
+
+dat$FirstSteeringTime <- as.character(dat$FirstSteeringTime)
+dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
+
+dat$response_num <- as.character(dat$response_num)
+dat$response_num <- as.numeric(dat$response_num)
+
+
+dat <- dat %>%
+  dplyr::filter(FirstSteeringTime > 0.15)
+
+
 ```
+
+```{r data saving for Rachel}
+
+# converting data types
+dat$FirstSteeringTime <- as.character(dat$FirstSteeringTime)
+dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
+dat$trial_number <- as.numeric(dat$trial_number)
+
+# arranging data
+
+subject8_block3 <- dat %>%
+  dplyr::filter(FirstSteeringTime > 0.15) %>%
+  arrange(trial_number) %>%
+  select(trial_number, heading, response, response_num, FirstSteeringTime)
+
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
+write.csv(subject8_block3, file = "subject8_block3.csv")
+
+```
+
 
 ```{r average timecourse magnitudes}
 library(dplyr)

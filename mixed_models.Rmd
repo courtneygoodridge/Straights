@@ -1,0 +1,126 @@
+---
+title: "Mixed models"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{load packages}
+library(car)
+library(MASS)
+library(dplyr)
+library(EnvStats)
+
+```
+
+```{r data prep}
+
+sapply(magnitudedata, class)
+
+magnitudedata$heading <- as.factor(magnitudedata$heading)
+
+sapply(magnitudedata, class)
+
+magnitudedata <- magnitudedata %>%
+  group_by(ppid_trialn) %>%
+  mutate(YawIncrease = PeakYaw - StartYaw, TimeToPeak = PeakSteeringTime - FirstSteeringTime)
+
+```
+
+
+```{r which probability distribution best fits the data}
+
+library(actuar)
+library(fitdistrplus)
+# inverse <- fitdist(magnitudedata$FirstSteeringTime, "invgauss", start = list(mean = 5, shape = 1))
+# qqp(magnitudedata$FirstSteeringTime, "inverse")
+
+# normal distributions
+qqp(magnitudedata$FirstSteeringTime, "norm")
+
+# lnorm means lognormal
+qqp(magnitudedata$FirstSteeringTime, "lnorm")
+
+# gamma distribution
+gamma <- fitdistr(magnitudedata$FirstSteeringTime, "gamma")
+qqp(magnitudedata$FirstSteeringTime, "gamma", shape = gamma$estimate[[1]], rate = gamma$estimate[[2]])
+
+# logistic distribution
+qqp(magnitudedata$FirstSteeringTime, "logis")
+
+# exponential distribution
+qqp(magnitudedata$FirstSteeringTime, "exp")
+
+# extreme distribution
+qqp(magnitudedata$FirstSteeringTime, "evd")
+
+# generalised extreme distribution
+qqp(magnitudedata$FirstSteeringTime, "gevd")
+
+
+# nbinom <- fitdistr(recog$Aggression.t, "Negative Binomial")
+# qqp(recog$Aggression.t, "nbinom", size = nbinom$estimate[[1]], mu = nbinom$estimate[[2]])
+# 
+# 
+# poisson <- fitdistr(dat2$FirstSteeringTime, "Poisson")
+# qqp(dat2$FirstSteeringTime, "pois", poisson$estimate)
+
+```
+First we want to see which distributions best fits the data. Solid lines represent a perfect fit to the distribution and the dashed lines represent the confidence intervals. 
+
+Ideally you want to pick a distribution where most of the data points fall between the dash lines. From the online example, the log normal distribution captures a majority of my data points. For some reason, the negative binomial and poisson distributions fail when i try to plot using the qqp function...
+
+Possion distribution will not work because it can only handle whole numbers. Possion and negative binomial distributions also only work with discrete variable which might be why they're not working for my response variable... 
+
+```{r fitting mixed model to data - not normally distributed}
+
+PQL <- glmmPQL(FirstSteeringTime ~ 1 +( 1 + heading | pNum), family = gaussian(link = "log"),
+    data = magnitudedata, verbose = FALSE)
+
+summary(PQL)
+
+
+```
+The FirstSteeringTime variable is not a discrete variable, thus the glmmPQL method can be used. 
+
+Using this method, the mixed effects model demonstrates that there is an effect of heading - that increases heading decreaes the reaction time. 
+
+```{r median RT per participant}
+
+ggplot(magnitudedata %>%
+         dplyr::filter(heading > 0) %>%
+         group_by(pNum, heading) %>%
+         summarise(medianRT = median(FirstSteeringTime)), aes(x = heading, y = medianRT)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~ pNum)
+
+```
+Visually at least, it appears there is not much variation between participants for heading against median FirstSteeringTime
+
+```{r visulising the data}
+library(ggplot2)
+
+ggplot(magnitudedata, aes(x = FirstSteeringTime)) + 
+  geom_density() + 
+  facet_wrap(~ heading)
+
+```
+Density plots show that FirstSteeringTime is positively skewed across most of the heading angles conditions.
+
+```{r graph the residuals of the model}
+
+plot(exp(fitted(PQL)), residuals(PQL), xlab = "Fitted Values", ylab = "Residuals")
+abline(h = 0, lty = 2)
+lines(smooth.spline(exp(fitted(PQL)), residuals(PQL)))
+
+```
+Residuals are the difference between you actual data and the predicted data. The smaller the difference, the smaller the residuals and the better the fit of the model. 
+
+The plot creates a dashed line at zero i.e. zero deviation from the best fit line. Solid line represents residual deviation from the line. For a good fitting model, they should be on top of each other. 
+
+The residual plot for the log normal distribution suggests that this model is possibly not the best for the current data.
+
+However for the inverse gaussian, the fit is much better for RT and YawIncrease data.

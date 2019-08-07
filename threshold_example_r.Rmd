@@ -1,0 +1,57 @@
+---
+title: "threshold_example_r"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r threshold example}
+library(dplyr)
+library(REdaS) # converting to radians
+
+dur <- 100 # how long simulation occurs for 
+dt <- 0.01 # time step increments
+ts <- seq(from = 0, to = dur, by = dt) # overall timestamp
+
+v <- 10 # velocity
+
+predict_reaction_time <- function(heading, threshold ){
+  
+  # convert heading angle into radians
+  heading = deg2rad(heading)
+  
+  # caluclate distance 
+  dist = v * ts
+  
+  # get x position over time
+  x = sin(heading) * dist
+  
+  rt = ts[abs(x) > threshold][0]
+  return(rt)
+}
+
+# specify demo headings
+headings <- c(0.5, 1, 1.5, 2)
+
+# specify demo thresholds
+thresholds = c(0.5, 1, 1.5)
+
+# go over the thresholds
+for (threshold in thresholds){
+  rts = predict_reaction_time(h, threshold)
+          for (h in headings){
+  plot(1/(sin(deg2rad(headings))*v), rts)
+          }
+}
+
+
+
+
+
+
+
+
+
+```

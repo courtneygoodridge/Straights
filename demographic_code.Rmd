@@ -110,7 +110,7 @@ library(dplyr)
 
 workingdata <- workingdata %>%
   group_by(trialn) %>%
-  mutate(gender = 2, age = 22, licenseTime = 8, contacts_glasses = FALSE, pNum = 18, handedness = 1) %>% # female = 1, male = 2; license time in months; right = 1, left = 2
+  mutate(gender = 1, age = 38, licenseTime = 264, contacts_glasses = TRUE, pNum = 19, handedness = 1) %>% # female = 1, male = 2; license time in months; right = 1, left = 2
   ungroup()
 
 ```
@@ -118,7 +118,7 @@ workingdata <- workingdata %>%
 ```{r saving new combined data frame}
 
 setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") # set directory for data saving
-write.csv(workingdata, file = "BenLui17_18_full.csv")
+write.csv(workingdata, file = "BenLui17_19_full.csv")
 
 ```
 

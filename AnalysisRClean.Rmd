@@ -178,7 +178,7 @@ library(tidyr)
 
 # code below is identical to the RT data selection - both trying to find the same thing (start of the response)
 mag_response_start <- workingdata %>% 
-select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>% 
+dplyr::select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>% 
 group_by(ppid_trialn) %>%
   dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
@@ -200,7 +200,7 @@ library(dplyr)
 library(tidyr)
 
 mag_response_peak <- workingdata %>%
-select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>%
+dplyr::select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>%
 group_by(ppid_trialn) %>%
 mutate(peakYaw = max(YawRateChange)) %>%
 dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% 

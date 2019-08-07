@@ -15,7 +15,7 @@ library(RWiener)
 
 ```
 
-data should be loaded from AnalysisRClean script of the 3 test participants.
+data should be loaded from AnalysisRClean script 
 
 ```{r model formula}
 
@@ -53,6 +53,7 @@ prior <- c(
 
 ```
 
+
 ```{r inspect full model code}
 make_stancode(formula, 
               family = wiener(link_bs = "identity", 
@@ -62,6 +63,7 @@ make_stancode(formula,
               prior = prior)
 
 ```
+
 
 ```{r initial value generator}
 tmp_dat <- make_standata(formula, 

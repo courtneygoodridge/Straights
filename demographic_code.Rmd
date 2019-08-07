@@ -9,9 +9,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # load data
 
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set working directory
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-temp = list.files(pattern = c("BenLui17_15_3", "*.csv")) # list all CSV files in the directory
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set working directory
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+temp = list.files(pattern = c("BenLui17_19", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 

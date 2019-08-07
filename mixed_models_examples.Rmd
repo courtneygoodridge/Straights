@@ -1,0 +1,159 @@
+---
+title: "modelling individual participants"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load data}
+# rm(list = ls())
+
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
+
+```
+
+```{r load libraries}
+
+library(ggplot2)
+library(dplyr)
+library(car)
+library(MASS)
+library(dplyr)
+library(EnvStats)
+library(lme4)
+library(nlme)
+
+```
+
+```{r median RT per participant}
+
+
+magnitudedata <- magnitudedata %>%
+  dplyr::filter(heading > 0) # filter out zero headings 
+
+ggplot(magnitudedata %>%
+         group_by(pNum, heading) %>%
+         summarise(medianRT = median(FirstSteeringTime)), aes(x = heading, y = medianRT)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~ pNum)
+
+
+
+```
+
+Median RTs across heading seem to be fairly consistent across subjects
+
+```{r fitting of multilevel model using lmer function without gaussian link function}
+
+modellingdata <- magnitudedata %>%
+  dplyr::filter(heading > 0) %>%
+  mutate(inver_heading = 1/heading)
+
+# model 1 - varying intercept
+m1 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 | pNum), data = modellingdata)
+summary(m1)
+coef(m1)
+
+
+# model 2 -  varying intercept and slope
+m2 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 + heading | pNum), data = modellingdata)
+summary(m2)
+coef(m2)
+
+# identifying batches of coefficients 
+# coef(m1)$pNum[17, 1] + c(-2,2)*se.ranef(m1)$pNum[17] # 95% CIs for intercept of subject 17
+
+# as.matrix(ranef(m1)$pNum)[17] + c(-2,2)*se.ranef(m1)$pNum[17] # 95% CIs for error in intercept of subject 17 (deviation away from average)
+
+
+# mode with just fixed effects
+model.fixed = gls(FirstSteeringTime ~ heading,
+                  data = magnitudedata,
+                  method="REML")
+
+# model with subject as a random effect
+model = lme(FirstSteeringTime ~ heading, random = ~1 | pNum,
+            data = magnitudedata,
+            method="REML")
+
+anova(model, model.fixed)
+
+
+```
+
+m1 model formula specifies how FirstSteeringTime is explained by heading. The 1 specifies a varying intercept to vary by participant. coef(m1) shows the different intercepts for each participant. 
+
+m2 model forumula specifies how FirstSteeringTime is explained by heading, except (1 + heading | pNum) allows intercept and slope to vary between participants. coef(m2) shows the different intercepts for each participant.
+
+Identifying the 95% CIs for intercepts and intercept error of specific subjects.
+
+```{r saving average intercepts and slopes}
+# model 1
+AvgInterceptm1 <- summary(m1)$coef[1,1]
+AvgSlopem1 <- summary(m1)$coef[2,1]
+
+# model 2
+AvgInterceptm2 <- summary(m2)$coef[1,1]
+AvgSlopem2 <- summary(m1)$coef[2,1]
+
+```
+
+```{r visualising intercepts and slopes for each participant - RED LINE = AVERAGE (can't work out how to show legend)}
+
+interceptsm1 <- coef(m1)$pNum[,1] # Specifying the first column only
+slopesm1 <- coef(m1)$pNum[,2] # Specifying the second column only
+
+# fixed effects
+ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
+  geom_jitter(alpha = .3) +
+  geom_abline(slope = slopesm1, intercept = interceptsm1) +
+  geom_abline(slope = AvgSlopem1, intercept = AvgInterceptm1, color = "red", size = 1, show.legend = TRUE) +
+  theme(legend.position = "none") +
+  ggtitle("RTs against heading - varying intercept only")
+
+
+interceptsm2 <- coef(m2)$pNum[,1] # Specifying the first column only
+slopesm2 <- coef(m2)$pNum[,2] # Specifying the second column only
+
+# random effects 
+ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
+  geom_jitter(alpha = .3) +
+  geom_abline(slope = slopesm2, intercept = interceptsm2) +
+  geom_abline(slope = AvgSlopem2, intercept = AvgInterceptm2, color = "red", size = 1, show.legend = TRUE) +
+  theme(legend.position = "none") +
+  ggtitle("RTs against heading - varying slope and intercept (random effects)")
+
+
+# checking intercepts and slopes for individual subjects (unsure how facet_wrap subjectw with their individual intercepts and slopes...)
+
+ggplot(magnitudedata %>%
+         dplyr::filter(pNum == 7), aes(x = heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
+  geom_jitter(alpha = .3) +
+  geom_abline(slope = slopesm2[7], intercept = interceptsm2[7], alpha = .5) +
+  geom_abline(slope = AvgSlopem2, intercept = AvgInterceptm2, color = "red", size = 1, show.legend = TRUE) +
+  theme(legend.position = "none") +
+  ggtitle("RTs against heading - varying slope and intercept for an individual")
+
+```
+varying intercept relates to basdline reaction time i.e. latency. In this case, intercept relates to as fast as possible reactions 
+
+varying slope relates to sensitvity to heading - likely to differ amongst subjects. How does the heading affect each subject
+
+```{r }
+ggplot() + 
+geom_histogram(aes(x = interceptsm1), col = "blue") +
+geom_histogram(aes(x = interceptsm2), col = "red")
+
+
+ggplot() + 
+geom_density(aes(x = slopesm1), col = "blue") +
+geom_density(aes(x = slopesm2), col = "red")
+
+slopesm1
+```

@@ -223,6 +223,8 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 # colnames(magnitudedata)[colnames(magnitudedata) == 'block.x'] <- 'block'
 
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
+write.csv(magnitudedata, file = "magnitudedata.csv")
 
 ```
 

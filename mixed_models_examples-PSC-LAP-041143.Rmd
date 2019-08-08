@@ -27,6 +27,7 @@ library(dplyr)
 library(EnvStats)
 library(lme4)
 library(nlme)
+library(simsem)
 
 ```
 
@@ -53,7 +54,7 @@ Median RTs across heading seem to be fairly consistent across subjects
 
 modellingdata <- magnitudedata %>%
   dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
-  mutate(inver_heading = 1 / heading) # compute inverse of heading for ease of interpretting intercept
+  mutate(inver_heading = 1/heading) # compute inverse of heading for ease of interpretting intercept
 
 # model 1 - varying intercept
 m1 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 | pNum), data = modellingdata)
@@ -62,40 +63,15 @@ summary(m1)
 
 
 # model 2 -  varying intercept and slope
-m2 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 + inver_heading | pNum), data = modellingdata)
+m2 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 + heading | pNum), data = modellingdata)
 summary(m2)
 # coef(m2)
 
-
-# model 3 -  varying intercept and slope
-# m3 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 + heading | pNum), data = modellingdata)
-# summary(m2)
-# # coef(m2)
-
-
-
-
-par(mfrow=c(2,2))
-plot(fitted(m1),resid(m1,type="pearson"),col="blue") # a plot to check the constant standard deviation
-abline(h=0,lwd=2)
-
-qqnorm(resid(m1)) # normality of the residuals
-qqline(resid(m1))
-
-qqnorm(ranef(m1)$pNum[,1])
-qqline(ranef(m1)$pNum[,1])
-
-
 ```
+
 m1 model formula specifies how FirstSteeringTime is explained by heading. The 1 specifies a varying intercept to vary by participant. coef(m1) shows the different intercepts for each participant. 
 
 m2 model forumula specifies how FirstSteeringTime is explained by heading, except (1 + heading | pNum) allows intercept and slope to vary between participants. coef(m2) shows the different intercepts for each participant.
-
-**Residual Q-Q plot**
-This plot visualises the normality of the residuals. Ideally the points should fall on the line for "normality"
-
-**Conditional modes Q-Q plot**
-This plot computers the difference between the (population-level) average predicted response for a given set of fixed-effect values (i.e. heading offset angle) and the response predicted for a particular individual. These can be thought of as individual-level effects, i.e. how much does any individual differ from the population? 
 
 ```{r saving average intercepts and slopes}
 # model 1
@@ -107,7 +83,6 @@ AvgInterceptm2 <- summary(m2)$coef[1,1]
 AvgSlopem2 <- summary(m2)$coef[2,1]
 
 ```
-
 
 ```{r visualising intercepts and slopes for each participant}
 
@@ -121,7 +96,7 @@ ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.f
   # geom_abline(slope = AvgSlopem1, intercept = AvgInterceptm1, color = "red", size = 1, show.legend = TRUE) +
   theme(legend.position = "none") +
   theme(axis.text.x = element_blank()) +
-  ggtitle("RTs against heading - varying intercept only (model 1)")
+  ggtitle("RTs against heading - varying intercept only")
 
 
 interceptsm2 <- coef(m2)$pNum[,1] # Specifying the first column only
@@ -133,10 +108,10 @@ ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.f
   geom_abline(slope = slopesm2, intercept = interceptsm2) +
   # geom_abline(slope = AvgSlopem2, intercept = AvgInterceptm2, color = "red", size = 1, show.legend = TRUE) +
   theme(legend.position = "none") +
-  theme(axis.text.x = element_blank()) +
-  ggtitle("RTs against heading - varying slope and intercept (model 2)")
-  
-  
+  theme(axis.text.x = element_blank())
+  ggtitle("RTs against heading - varying slope and intercept")
+
+
 # checking intercepts and slopes for individual subjects (unsure how facet_wrap subjectw with their individual intercepts and slopes...)
 
 # ggplot(magnitudedata %>%
@@ -174,7 +149,7 @@ ggplot() +
   geom_density(aes(x = interceptsm1), col = "blue", show.legend = TRUE) +
   geom_density(aes(x = interceptsm2), col = "red", show.legend = TRUE) +
   xlab("intercept") +
-  ggtitle("Intercept density plots")
+  ggtitle("Slope density plots")
 
 ```
 **Slope density pplots**
@@ -185,106 +160,11 @@ Blue indicates model 1, red line indicates model 2. When we allow the model to v
 
 Blue indicates model 1, red line indicates model 2. Model 1 allowed for a varying intercept, thus the density is more spread over the positive values. In contrast, when we allow the slope to vary by heading for each subject, the intercepts clusters around zero as the variation in RTs is better explained by the differences in sensitivity in heading between participants rather than baseline latency.
 
-```{r simulating data for testing model fit (taken from Callum's code)}
 
-pp_n <- 20  #number of participants
-trials_n <- 160  #number of trials
-sigma_y <- 1 # within-participant variability / measurement error
-
-a       <-  0    # average control condition mean
-b       <- .5    # average effect size
-sigma_a <- 0.06479     # std dev in intercepts (control means, between participant variability)
-sigma_b <-  0.07140   # std dev in slopes (effect size)
-rho     <-  -0.39   # correlation between intercepts and slopes
-
-#combine means and standard deviations for multivariate gaussian sampling
-mu <- c(a, b)
-sigmas <- c(sigma_a, sigma_b)          # standard deviations
-rho    <- matrix(c(1, rho,             # correlation matrix
-                   rho, 1), nrow = 2)
-
-# now matrix multiply to get covariance matrix
-sigma <- diag(sigmas) %*% rho %*% diag(sigmas)
-
-#let's create our participant level parameters
-set.seed(1)  # used to replicate example
-vary_effects <- MASS::mvrnorm(pp_n, mu, sigma) #use multivariate gaussian
-
-#rename columns for varying intercepts and varying slopes
-vary_effects <- vary_effects %>% as_tibble() %>% rename(pp_a = V1,
-                                                        pp_b = V2)
-
-  
-# now simulate observations.
-
-# this piping operation is a little involved, but essential it makes a dataframe of with trial_n entries of all  combinations of participant intercepts and slopes. Then adds a binary column to signify whether the condition is the experimental (1) or control (0). It then uses this column to switch 'on' or 'off' the experimental effect to generate a column of participant condition means. Then it uses the specified (and  constant) within-individual variability (or measurement error) to generate observations
-
-set.seed(1)  # used to replicate example
-data <- vary_effects %>% 
-  mutate(pp = 1:pp_n) %>% 
-  tidyr::expand(nesting(pp, pp_a, pp_b), trial = 1:trials_n) %>% 
-  mutate(condition = rep(0:1, times = n() / 2)) %>% 
-  mutate(mu = pp_a + pp_b * condition) %>% 
-  mutate(measurement = rnorm(n = n(), mean = mu, sd = sigma_y))
-
-head(data)
-
-#quick plot.
-ggplot(data, aes(x=measurement, group=condition)) + geom_density()
-
-# 
-magnitudedata %>%
-  group_by(pNum) %>%
-  summarise(n = n()) %>%
-  summarise(mean = mean(n))
-
-```
-
-```{r fitting multi-level model for simulated data}
-
-m3 <- lmer(formula = measurement ~ condition + (1 + condition | pp), data = data)
-summary(m3)
-
-interceptsm3 <- coef(m3)$pp[,1] # Specifying the first column only
-slopesm3 <- coef(m3)$pp[,2] # Specifying the second column only
-
-ggplot(data, aes(x = condition, y = measurement, color = as.factor(pp))) +
-  geom_jitter(alpha = .3, show.legend = FALSE) +
-  geom_abline(slope = slopesm3, intercept = interceptsm3)
-
-mean(slopesm2)
-sd(slopesm2)
-sd(interceptsm2)
-
-mean(slopesm3)
-sd(slopesm3)
-sd(interceptsm3)
-
-```
-Model 3 is fitted from the simulated data based on model 2 that was fitted to actual data. 
-
-**50 trials per participant**
-In comparison to model 2, model 3 has similar individual variation (indicated by the different intercepts originating from the same location of on the y axis) and less individual variability in sensitivity towards the conditions. 
-
-**160 trials per participant (average number of trials per participant in real data)**
-In comparison to model 2, model 3 has much more individual variation, possibly due to the increases number of trials? Individual variability towards sensitivity of the conditions is similar to when there were less trials but is still less then model 2 This could be due to the parametisation of the two conditions of the simulated dataset not being too different, however differences between 0.5 heading and 2.0 heading are very large. 
-
-```{r more model simulations from Gelman & Hill book}
-library(arm)
+```{r simulations to represent uncertainty in regression coefficients}
 
 n.sims <- 1000
-fit.1 <- lm(FirstSteeringTime ~ heading, data = magnitudedata)
-sim.1 <- sim(fit.1, n.sims)
-
-```
-For classical linear and generalised linear models, sim function simulates different coefficients values and sigma values. Sigma value present estimation uncertainty in residual standard deviation.
-
-```{r are simulations similar to regression computations}
-
-heading.coef <- sim.1@coef[,2]
-mean(heading.coef)
-sd(heading.coef)
-quantile(heading.coef, c(.025, .975))
+sim.1 <- sim(m1, n.sims)
 
 
 ```

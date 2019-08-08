@@ -27,7 +27,7 @@ The simulation code is based on chapter 13 of Solomon Kurtz / McElreath: https:/
 ```{r simulate multilevel two condition experiment, message=FALSE, warning=FALSE}
 
 pp_n <- 20  #number of participants
-trials_n <- 270  #number of trials
+trials_n <- 20  #number of trials
 sigma_y <- 1 # within-participant variability / measurement error
 
 a       <-  0    # average control condition mean

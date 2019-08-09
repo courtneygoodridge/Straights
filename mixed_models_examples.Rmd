@@ -27,6 +27,7 @@ library(dplyr)
 library(EnvStats)
 library(lme4)
 library(nlme)
+library(tidyr)
 
 ```
 
@@ -76,26 +77,38 @@ summary(m2)
 
 
 par(mfrow=c(2,2))
-plot(fitted(m1),resid(m1,type="pearson"),col="blue") # a plot to check the constant standard deviation
+plot(fitted(m2),resid(m2,type="pearson"),col="blue") # a plot to check the constant standard deviation
 abline(h=0,lwd=2)
 
-qqnorm(resid(m1)) # normality of the residuals
-qqline(resid(m1))
+qqnorm(resid(m2)) # normality of the residuals
+qqline(resid(m2))
 
-qqnorm(ranef(m1)$pNum[,1])
-qqline(ranef(m1)$pNum[,1])
+qqnorm(ranef(m2)$pNum[,1])
+qqline(ranef(m2)$pNum[,1])
+
+plot(coef(m2)$pNum)
 
 
 ```
 m1 model formula specifies how FirstSteeringTime is explained by heading. The 1 specifies a varying intercept to vary by participant. coef(m1) shows the different intercepts for each participant. 
 
-m2 model forumula specifies how FirstSteeringTime is explained by heading, except (1 + heading | pNum) allows intercept and slope to vary between participants. coef(m2) shows the different intercepts for each participant.
+m2 model forumula specifies how FirstSteeringTime is explained by heading, except (1 + heading | pNum) allows intercept and slope to vary between participants. Essentially, both the intercept and the slope of heading will vary by pNum, thus accounting for subject variability in baseline fastest RTs and the subject variability in the sensitivity to heading conditions. 
+
+coef(m2) shows the different intercepts for each participant. This mixed model approach allows for estimating of the overall mean response for the explanatory variables whilst adding random deviation based upon the grouping structure i.e. the subjects.
+
+**Residual plot versus fitted values**
+This plot possibly shows dependency between fitted and and residual values. Could this indicate that a varying intercept, varying slope model might not be the best. This type of model assumes a normal distribution, however dependency in the plot suggests that this is not the case for the data. 
+
 
 **Residual Q-Q plot**
-This plot visualises the normality of the residuals. Ideally the points should fall on the line for "normality"
+This plot visualises the normality of the residuals. Ideally the points should fall on the line for "normality". Most of the points do, however the tails deviate away from the line indicating slight non-normality of the data...
 
 **Conditional modes Q-Q plot**
 This plot computers the difference between the (population-level) average predicted response for a given set of fixed-effect values (i.e. heading offset angle) and the response predicted for a particular individual. These can be thought of as individual-level effects, i.e. how much does any individual differ from the population? 
+
+**Coeffiecient plot**
+This plots plots coefficients against the intercept, thus visualising the random effects correlation between the intercept and the slope. This visualises the negative correlation (-.39), demonstrating that individuals intercept variation has an effect on the heading slope variation.
+
 
 ```{r saving average intercepts and slopes}
 # model 1
@@ -114,7 +127,7 @@ AvgSlopem2 <- summary(m2)$coef[2,1]
 interceptsm1 <- coef(m1)$pNum[,1] # Specifying the first column only
 slopesm1 <- coef(m1)$pNum[,2] # Specifying the second column only
 
-# fixed effects
+# varying intercept (slope is fixed)
 ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
   geom_jitter(alpha = .3) +
   geom_abline(slope = slopesm1, intercept = interceptsm1) +
@@ -127,7 +140,7 @@ ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.f
 interceptsm2 <- coef(m2)$pNum[,1] # Specifying the first column only
 slopesm2 <- coef(m2)$pNum[,2] # Specifying the second column only
 
-# random effects 
+# varying intercept and slope
 ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
   geom_jitter(alpha = .3) +
   geom_abline(slope = slopesm2, intercept = interceptsm2) +
@@ -152,7 +165,7 @@ For both plots, heading is inverted. This means 2 degrees of heading offset angl
 
 Varying intercept relates to baseline reaction time i.e. latency for how participants react as fast as they can (when error is instantly above threshold). As expected, this varies a lot between participants. In this case, intercept relates to as fast as possible reactions which will naturally vary amongst the population. 
 
-Allowing the intercept and the slope to vary allows you to see if subjects differ in their sensitivity to heading. First plot proposes that variation in RT is based upon the individuals latency. However when we allow the slope is vary, intercepts are very similar thus their latencies are likely to be similar. Differs in RTs between subjects is generated via their different sensitivies to the heading explanatory variable. For example, the lowest line proposes that the effect of heading is not that strong whereas the highest line proposes that for that subjectm heading had a large affect on RTs, despite them both having similar baseline reaction times.
+Allowing the intercept and the slope to vary allows you to see if subjects differ in their sensitivity to heading. First plot proposes that variation in RT is based upon the individuals latency. When we allow the slopes to vary, intercepts become more similar however there is still some variation. There is a slight correlation between intercept and the slope in the random effects output which could suggest that variation in the intercept is affecting variation in heading slope (i.e. variation in subjects baseline fastest RTs affects the sensitivity to the heading condition).
 
 ```{r model comparions}
 
@@ -179,11 +192,11 @@ ggplot() +
 ```
 **Slope density pplots**
 
-Blue indicates model 1, red line indicates model 2. When we allow the model to vary the slope per participant, the variance of the slope increases (participant sensitivity to heading differs for each participant). However when the slope does not differ between participants, it assumes they have been drawn from a normal distribution.
+Blue indicates model 1, red line indicates model 2. Variance in the slopes between the two models is actually very similar according to the density plots.
 
 **Intercept density plots**
 
-Blue indicates model 1, red line indicates model 2. Model 1 allowed for a varying intercept, thus the density is more spread over the positive values. In contrast, when we allow the slope to vary by heading for each subject, the intercepts clusters around zero as the variation in RTs is better explained by the differences in sensitivity in heading between participants rather than baseline latency.
+Blue indicates model 1, red line indicates model 2. The variance is more spread for model 2 than for model 1. Does this indicate that when you allow the slope to vary according to the heading, variation between the participants increases. Thus subject variability has an affect on the sensitivity towards the heading conditions.
 
 ```{r simulating data for testing model fit (taken from Callum's code)}
 
@@ -263,11 +276,8 @@ sd(interceptsm3)
 ```
 Model 3 is fitted from the simulated data based on model 2 that was fitted to actual data. 
 
-**50 trials per participant**
-In comparison to model 2, model 3 has similar individual variation (indicated by the different intercepts originating from the same location of on the y axis) and less individual variability in sensitivity towards the conditions. 
-
 **160 trials per participant (average number of trials per participant in real data)**
-In comparison to model 2, model 3 has much more individual variation, possibly due to the increases number of trials? Individual variability towards sensitivity of the conditions is similar to when there were less trials but is still less then model 2 This could be due to the parametisation of the two conditions of the simulated dataset not being too different, however differences between 0.5 heading and 2.0 heading are very large. 
+In comparison to model 2, model 3 has less individual variation. There is also less subject variation towards the sensitivity of the heading condition.
 
 ```{r more model simulations from Gelman & Hill book}
 library(arm)
@@ -288,3 +298,65 @@ quantile(heading.coef, c(.025, .975))
 
 
 ```
+
+
+```{r mixed model inference - simulations and 95% CIs}
+
+# plot heading effects 
+
+# Simulate new data based upon the fitted model
+new_data <- data.frame(inver_heading = as.numeric(1 / seq(0.5,2,length = 4)))
+pred_data <- predict(m2, newdata = new_temp, re.form = ~0)
+
+# compute bootstrapped confidence interval, see ?predict.merMod
+ci_line <- bootMer(m2, FUN = function(.) predict(.,newdata = new_temp, re.form = ~0), nsim = 200)
+ci_regT <- apply(ci_line$t, 2, function(x) x[order(x)][c(5,195)])
+
+# plot original data with CIs from simulated data
+plot(FirstSteeringTime ~ jitter(inver_heading, 2), modellingdata)
+lines(new_data$inver_heading, pred_data, lwd = 3)
+lines(new_data$inver_heading, ci_regT[1,], lty = 2)
+lines(new_data$inver_heading, ci_regT[2,], lty = 2)
+mtext(text = "Regression curves with 95% confidence intervals", side = 3, outer = FALSE, at = -3)
+
+```
+This method of inference simulates new reaction time data from the given explanatory variables (inverse heading) and the fitted model. It then re-fits the model to these simulated response values and extracts the fitted coefficient. From the distribution of bootstrapped coefficients, it will draw a 95% confidence intervals (dashed lines) around the fitted values (solid lines).
+
+The small range of the confidence intervals provides increased certainty that the fitted model for these data is valid and reliable. Calculating the confidence intervals from 200 simulations improves this further.
+
+```{r individual regression lines for individual participants}
+
+# create empty vectors for slope coefficients and intercepts
+heading_coefs = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+heading_intercept = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+
+for (i in c(1:19)){
+  # Create temporary data frame:
+heading_tmp <- modellingdata[modellingdata$pNum == i,]
+  # Perform regression:
+reg_result <- lm(heading_tmp$FirstSteeringTime ~ heading_tmp$inver_heading)
+  # Get coefficient:
+tmp_coef <- coef(reg_result)
+
+# Store coefficient and intercept for each subject:
+heading_coefs[i] <- tmp_coef[2] 
+heading_intercept[i] <- tmp_coef[1]
+
+plot(jitter(heading_tmp$inver_heading, 3), heading_tmp$FirstSteeringTime)
+abline(heading_intercept[i], heading_coefs[i])
+
+}
+
+# plotting individuals on the same plot
+ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
+  geom_jitter(alpha = .3) +
+  geom_abline(slope = heading_coefs, intercept = heading_intercept) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_blank()) +
+  ggtitle("RTs against heading - individual single level regression slopes")
+
+
+```
+The above code computes a single level regression line for each participant. It them plots the regression line for each subject on their individual RT data points for inverse heading.
+
+Ordinary regression assumes that different observations are independent, however this is often violated with a within-subjects design. However this assumption does not apply when extracting individual regression lines and thus this technique circumvents this. However, because the subject regressiona lines are not computed toegther, there is no measurment of the variance accounted within the model.

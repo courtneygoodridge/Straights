@@ -28,16 +28,15 @@ library(EnvStats)
 library(lme4)
 library(nlme)
 library(tidyr)
+library(rstanarm)
+library(bayesplot)
+library(loo)
 
 ```
 
 ```{r median RT per participant}
 
-
-magnitudedata <- magnitudedata %>%
-  dplyr::filter(heading > 0) # filter out zero headings 
-
-ggplot(magnitudedata %>%
+ggplot(filter(magnitudedata, heading > 0) %>%
          group_by(pNum, heading) %>%
          summarise(medianRT = median(FirstSteeringTime)), aes(x = heading, y = medianRT)) +
   geom_point() +
@@ -83,7 +82,7 @@ abline(h=0,lwd=2)
 qqnorm(resid(m2)) # normality of the residuals
 qqline(resid(m2))
 
-qqnorm(ranef(m2)$pNum[,1])
+qqnorm(ranef(m2)$pNum[,1]) # normality of the intercepts
 qqline(ranef(m2)$pNum[,1])
 
 plot(coef(m2)$pNum)
@@ -97,14 +96,25 @@ m2 model forumula specifies how FirstSteeringTime is explained by heading, excep
 coef(m2) shows the different intercepts for each participant. This mixed model approach allows for estimating of the overall mean response for the explanatory variables whilst adding random deviation based upon the grouping structure i.e. the subjects.
 
 **Residual plot versus fitted values**
-This plot possibly shows dependency between fitted and and residual values. Could this indicate that a varying intercept, varying slope model might not be the best. This type of model assumes a normal distribution, however dependency in the plot suggests that this is not the case for the data. 
+This plot possibly shows dependency between fitted and and residual values. A mixed model assumes a normal disstribution thus we should use this plot to investigate whether these assumptions have been violated. Things we should be checking for include:
 
+- Consistent variance above and below the zero line
+- No systematic curvature of points
+- No indication of a relationship between the axes of the graph
+
+What we see in this plot are more dispered points towards the top of the graph, and a few dispered points towards the bottom, as our fitted values increase. This indicates that the variance in residuals is increasing with fitted values and thus the assumptions of our model could be violated. This could mean that a mixed model is not the best model to use with this given dataset. 
 
 **Residual Q-Q plot**
-This plot visualises the normality of the residuals. Ideally the points should fall on the line for "normality". Most of the points do, however the tails deviate away from the line indicating slight non-normality of the data...
+What are quantiles? - they split data into equal sized groups i.e. the median is the 50% quantile as 50% of the data is above it and 50% is below it. The 75% quantile means that 75% of the data points are below it. 
 
-**Conditional modes Q-Q plot**
-This plot computers the difference between the (population-level) average predicted response for a given set of fixed-effect values (i.e. heading offset angle) and the response predicted for a particular individual. These can be thought of as individual-level effects, i.e. how much does any individual differ from the population? 
+This plot visualises the normality of the residuals. Sample quantiles relate to the residual points and theoretical quantiles relate to the same number of quantiles generated from the normal distribution. The first quantile for the residuals is plotted against the y axis, and then the first quantile from the normal distribution is plotted. Where these lines intersect is where the point is placed.
+
+If the residuals were to be normally distributed, they should all fall on a straight line. Most of the points do, however the tails deviate away from the line indicating slight non-normality of the data. This is line with what our residual versus fitted plot was suggesting.
+
+**Intercept Q-Q plot**
+This plot computes the difference between the population-level average predicted response for a given set of fixed-effect values (i.e. heading offset angle) (this relates to the normal distribution theoretical quantiles) and the response predicted for a particular individual (intercept quantiles from the model).
+
+This plot is the same as the residual plot, except we are not plotting intercepts rather than residuals. Essentially, how much does any individual differ from the population? Normal distribution would occur if points were directly on the ine.  
 
 **Coeffiecient plot**
 This plots plots coefficients against the intercept, thus visualising the random effects correlation between the intercept and the slope. This visualises the negative correlation (-.39), demonstrating that individuals intercept variation has an effect on the heading slope variation.
@@ -165,7 +175,33 @@ For both plots, heading is inverted. This means 2 degrees of heading offset angl
 
 Varying intercept relates to baseline reaction time i.e. latency for how participants react as fast as they can (when error is instantly above threshold). As expected, this varies a lot between participants. In this case, intercept relates to as fast as possible reactions which will naturally vary amongst the population. 
 
-Allowing the intercept and the slope to vary allows you to see if subjects differ in their sensitivity to heading. First plot proposes that variation in RT is based upon the individuals latency. When we allow the slopes to vary, intercepts become more similar however there is still some variation. There is a slight correlation between intercept and the slope in the random effects output which could suggest that variation in the intercept is affecting variation in heading slope (i.e. variation in subjects baseline fastest RTs affects the sensitivity to the heading condition).
+Allowing the intercept and the slope to vary allows you to see if subjects differ in their sensitivity to heading. First plot proposes that variation in RT is based upon the individuals latency. When we allow the slopes to vary, intercepts become more similar however there is still some variation. There is a slight correlation between intercept and the slope in the random effects output (-.39) which could suggest that variation in the intercept is affecting variation in heading slope (i.e. variation in subjects baseline fastest RTs affects the sensitivity to the heading condition).
+
+What this could mean is that participants who are slower when reacting as fast as possible to an error signal are less sensitive to the experimental manipulation. Alternatively, individuals with noisy RTs may have their intercept pushed up at the regression still tries to account for the mean even with the outliers. A way of teasing this apart would be to investigate whether subjects with higher SDs has flatter slopes and higher intercepts.
+
+```{r comparing SDs to intercept and slope}
+
+RTSD <- modellingdata %>%
+  group_by(heading, pNum) %>%
+  summarise(RTSD = sd(FirstSteeringTime)) %>%
+  ungroup() %>%
+  group_by(pNum) %>%
+  summarise(RTSD = mean(RTSD))
+
+a <- cbind(RTSD, slopesm2, interceptsm2)
+
+ggplot(a, aes(x = interceptsm2, y = RTSD)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE) +
+  ggtitle("RTSD plotted against intercept")
+
+ggplot(a, aes(x = slopesm2, y = RTSD)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE) +
+  ggtitle("RTSD plotted against coefficient")
+
+```
+There appears to be little or no correlation between RT standard deviation and intercept. Any correlation that might be there also appears to be negative, rather than positive. Thus it seems that higher intercepts are relating to the a reduced sensitivity to the experimental manipulation.
 
 ```{r model comparions}
 
@@ -210,7 +246,7 @@ sigma_a <- 0.06479     # std dev in intercepts (control means, between participa
 sigma_b <-  0.07140   # std dev in slopes (effect size)
 rho     <-  -0.39   # correlation between intercepts and slopes
 
-#combine means and standard deviations for multivariate gaussian sampling
+# combine means and standard deviations for multivariate gaussian sampling
 mu <- c(a, b)
 sigmas <- c(sigma_a, sigma_b)          # standard deviations
 rho    <- matrix(c(1, rho,             # correlation matrix
@@ -274,7 +310,7 @@ sd(slopesm3)
 sd(interceptsm3)
 
 ```
-Model 3 is fitted from the simulated data based on model 2 that was fitted to actual data. 
+Model 3 is fitted from the simulated data from Callum's code, based on model 2 that was fitted to actual data. 
 
 **160 trials per participant (average number of trials per participant in real data)**
 In comparison to model 2, model 3 has less individual variation. There is also less subject variation towards the sensitivity of the heading condition.
@@ -300,16 +336,142 @@ quantile(heading.coef, c(.025, .975))
 ```
 
 
+```{r comparing actual data replicated data}
+
+# simulated replications of model parameters (intercept, coefficient and sigma (residual standard deviation))
+m4 <- lm(FirstSteeringTime ~ heading, data = modellingdata)
+n.sims <- 1000
+sim.m4 <- sim(m4, n.sims)
+
+# create 1000 fake datasets with the same number of observations as the original data set 
+n <- length(modellingdata$FirstSteeringTime)
+y.rep <- array(NA, c(n.sims, n))
+
+for (s in 1:n.sims){
+  y.rep[s,] <- rnorm(n, sim.m4@coef[s], sim.m4@sigma[s])
+}
+
+# plot 9 example histograms of the fake datasets
+par(mfrow = c(3,3))
+for (s in 1:8){
+  hist(y.rep[s,])
+}
+
+# plot histogranm of actual data set
+hist(modellingdata$FirstSteeringTime)
+
+```
+This version of model inference involves visual comparison of actual datasets and replicated datasets.
+
+Fake datasets are replicated from the coefficient and sigma values from the first fitted model. Histograms are then constructed to look at the distributions and are then compared to the actual dataset. In this example
+
+- Replication data is normally distributed, real data is positively skewed
+- Real data has values over 1.2, replicated data does not.
+
+The visual differs between the simulated and real data therefore lead us to propose that the model is not a good one. This could be because the linear model assumes a normal distribution and our real data is not.
+
+```{r checking model fit using numerical data summary (with visual inspection)}
+
+# y vector of real values
+y <- modellingdata$FirstSteeringTime
+
+# Test function - what is the maximum value of y vector.
+Test <- function(y){
+  max(y)
+}
+
+# For each simulated dataset, apply the test function
+test.rep <- rep(NA, n.sims)
+for (s in 1:n.sims){
+  test.rep[s] <- Test(y.rep[s,])
+}
+
+# Plotting histogram of the maxima from the replicated datasets and vertical line indicating maximum of the real data sets
+hist(test.rep, xlim = range(test.rep, Test(y)))
+lines(rep(Test(y), 2), c(0,n))
+
+
+```
+Visual inspection can also be teamed up with numerical data summary. The above chunk first creates a test function - in my case, this is the maximum value of the my dependent variable. This is because the maximum values of my replicated datasets do not appear to go above 1.2, yet the real data has make values of 2.4.
+
+Then I create a for loop that runs through each replicated dataset, and applies the test statistic and saves it as a vector.
+
+I then plot a histogram from the replicated data of maxima of the replicated values, alongside line that represents the maximum value of the real dataset.
+
+The result is clear - the largest observations of the replications are much smaller than the largest observations of the real dataset. The normal model clearly does not capure the vertical line within the graph and thus does not capture the variation. This adds more validity to our model checking rather than just simple visual inspection. 
+
+```{r zeroes in count data - poisson distributions}
+data(roaches)
+
+# Poisson distribution model
+glm.1 <- glm(y ~ roach1 + treatment + senior, family = poisson, offset = log(exposure2), data = roaches)
+summary(glm.1)
+
+# Computing replicated dataset
+n <- length(roaches$y)
+X <- cbind(rep(1,n), roaches$roach1, roaches$treatment, roaches$senior)
+y.hat <- roaches$exposure2 * exp(X %*% coef(glm.1))
+y.rep <- rpois(n, y.hat)
+
+# comparing mean roaches caught in real versus replicated dataset
+print(mean(roaches$y == 0))
+print(mean(y.rep == 0))
+
+# computing 1000 replicated datasets
+n.sims <- 1000 # number of simulations
+sim.1 <- sim(glm.1, n.sims) # simulate 1000 models based upon model fitted to data
+y.rep <- array(NA, c(n.sims, n)) # empty array for simulations to go
+for (s in 1:n.sims){ # from 1 to the number of simulations
+  y.hat <- roaches$exposure * exp(X %*% sim.1@coef[s,]) # calculate predicted data
+  y.rep[s,] <- rpois(n, y.hat) # generates random variates from the distribution for predicted data 
+}
+
+# test function 
+test <- function(y){
+  mean(y == 0) # percentage of traps with zero roaches
+}
+
+# using for loop, apply test function on each simulated dataset
+test.rep <- rep(NA, n.sims)
+for (s in 1:n.sims){
+  test.rep[s] <- test(y.rep[s,])
+}
+
+range(test.rep)
+
+```
+**Dataset variables**
+y = outcome measurement (number of roaches caught in the set traps)
+roach1 = pre-treatment roach level
+treatment = treatment indicator (was there treatment or just control)
+senior = whether apartment was senior bulding or not
+exposure = number of days there were traps in the apartment
+
+**When to use a Poisson distribution**
+Given an average rate of occurance for a given period of time, assuming the processes involved are random, the Poisson distribution will tell you the likeliest occurance of event for given period of time.
+
+An exposure can be inputted into the regression equation. The log() of this exposure is then added to the coefficients of the predictor variables. This exposure is known as an offset variable. An offset variable is essentially like a predictor except it's coefficient is fixed at a value of 1. 
+
+Theoretically, this means you are only adjusting for the amount of opportunity for something to happen. In this example, whether a roach gets captured in a trap or not is the same, but if the trap is laid for 20 days rather than 10 days, there is twice the opportunity for a roach to be captured. This is the role of the offset variable. If however this exposure variable increases the likelihood of a roach being captured, this variable might be more suited to being inputted as a predictor.
+
+**Code output**
+Model demonstrates that treatment has large effect on the decrease in roaches in apartments.
+
+We then replicate a dataset using the coefficients of the model. We then calculate the percentage of observed data points where no roaches were captured in traps. For the real data, this is 36%. For the simulated data, this is 0. In reality we would expect to find apartments with no roaches in, thus if the model were true this replicated data is unlikely.
+
+We then compute 1000 replications of the data and create a function that tests the data. Again, we find that the range in percentages of zero roaches found in traps is 0 - 0.76%. Hence this model is not replicating the frequency of zeros within the data.
+
+
 ```{r mixed model inference - simulations and 95% CIs}
 
 # plot heading effects 
 
 # Simulate new data based upon the fitted model
 new_data <- data.frame(inver_heading = as.numeric(1 / seq(0.5,2,length = 4)))
-pred_data <- predict(m2, newdata = new_temp, re.form = ~0)
+pred_data <- predict(m2, newdata = new_data, re.form = ~0)
 
 # compute bootstrapped confidence interval, see ?predict.merMod
-ci_line <- bootMer(m2, FUN = function(.) predict(.,newdata = new_temp, re.form = ~0), nsim = 200)
+ci_line <- bootMer(m2, FUN = function(.) predict(.,newdata = new_data, re.form = ~0), nsim = 200)
 ci_regT <- apply(ci_line$t, 2, function(x) x[order(x)][c(5,195)])
 
 # plot original data with CIs from simulated data
@@ -359,4 +521,60 @@ ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.f
 ```
 The above code computes a single level regression line for each participant. It them plots the regression line for each subject on their individual RT data points for inverse heading.
 
-Ordinary regression assumes that different observations are independent, however this is often violated with a within-subjects design. However this assumption does not apply when extracting individual regression lines and thus this technique circumvents this. However, because the subject regressiona lines are not computed toegther, there is no measurment of the variance accounted within the model.
+The main difference between individual regression models and multi-level models is that  multi-level models assume that coefficients are sampled from a distribution. These assumptions can be useful if there is uncertainty in individual estimates as you can use information about how the individual coefficients vary across the group to make better estimates of indiviual coefficients and thus group averages altogether.
+
+However, if each individual has a lot of data points per condition, we can be more certain of the individual coefficients. Thus we don't have torely on the assumption of them being drawn from a normal distribution, and can extract individual regression lines rather than implement a mixed model.
+
+```{r plotting coefficients from individual regressions vs mixed models}
+
+m2regress <- as.data.frame(cbind(slopesm2, interceptsm2))
+
+m2regress <- m2regress %>%
+  mutate(pNum = row_number())
+
+ggplot(m2regress, aes(x = slopesm2)) +
+  geom_histogram(aes(y = ..density..)) +
+  stat_bin(binwidth = 0.05, bins = 10) +
+  stat_function(fun = dnorm, args = with(m2regress, c(mean = mean(slopesm2), sd = sd(slopesm2)))) +
+  ggtitle("mixed model coefficients") +
+  annotate("text", label = "Skewness = 1.111437, Kurtosis = 1.22957", x = 0.25, y = 10, size = 4)
+
+
+individualregess <- as.data.frame(cbind(heading_coefs, heading_intercept)) %>%
+  mutate(pNum = row_number())
+
+ggplot(individualregess, aes(x = heading_coefs)) +
+  geom_histogram(aes(y = ..density..)) +
+  stat_bin(binwidth = 0.05, bins = 10) +
+  stat_function(fun = dnorm, args = with(individualregess, c(mean = mean(heading_coefs), sd = sd(heading_coefs)))) +
+  ggtitle("individual regression line coefficients") +
+  annotate("text", label = "Skewness = 1.451552, Kurtosis = 2.601625", x = 0.3, y = 10, size = 4)
+
+
+skewness(m2regress$slopesm2)
+kurtosis(m2regress$slopesm2)
+
+skewness(individualregess$heading_coefs)
+kurtosis(individualregess$heading_coefs)
+
+```
+The above code looks at the distribution of coefficients of subjects calculated by mixed model and via individual regression lines. The mixed model coefficients are more normally distributed, as would be expected, because they are computed under the assumption that samples are drawn from a normal distribution. 
+Conversely, coefficients computed from individual regression lines are more positiviely skewed as they are not under the assumption of distribution normality. 
+
+```{r fitting model to approach rate metric}
+
+modellingdata <- modellingdata %>%
+  mutate(approach_rate = (1 / (sin(heading) * 10)))
+
+ggplot(modellingdata %>%
+         group_by(approach_rate) %>%
+         summarise(medianRT = median(FirstSteeringTime)), aes(x = approach_rate, y = medianRT)) +
+  geom_point() +
+  geom_line()
+
+
+```
+
+Above code first computes approach rate metric (1 / (sin(heading) * 10)), however when I do this I find thatthe 1.5 heading has a lower approach rate than 2.0. 
+
+If approach rate is supposed to be the metrix indicating how quickly error exceeds threshold, how can a heading of 1.5 have a lower approach rate than a heading of 2.0?  Hence when I plot median RTs against approach rate, there does appear to be a linear relationship however the lower approach rates provide a confusing start to the plot -> ask Callum about this.

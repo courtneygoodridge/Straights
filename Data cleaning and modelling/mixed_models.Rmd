@@ -468,20 +468,53 @@ kurtosis(individualregess$heading_coefs)
 The above code looks at the distribution of coefficients of subjects calculated by mixed model and via individual regression lines. The mixed model coefficients are more normally distributed, as would be expected, because they are computed under the assumption that samples are drawn from a normal distribution. 
 Conversely, coefficients computed from individual regression lines are more positiviely skewed as they are not under the assumption of distribution normality. 
 
-```{r fitting model to approach rate metric}
+```{r fitting model to error slowness/decay metric}
 
+# compute metrics
 modellingdata <- modellingdata %>%
-  mutate(approach_rate = (1 / (sin(heading) * 10)))
+  mutate(error_decay = 1 / (sin(heading /180 *pi) * 10)) %>%
+  mutate(error_growth = sin(heading / 180 * pi) * 10)
 
+# plotting median RTs against error growth
 ggplot(modellingdata %>%
-         group_by(approach_rate) %>%
-         summarise(medianRT = median(FirstSteeringTime)), aes(x = approach_rate, y = medianRT)) +
+         group_by(error_growth) %>%
+         summarise(medianRT = median(FirstSteeringTime)), aes(x = error_growth, y = medianRT)) +
   geom_point() +
-  geom_line()
+  geom_line() +
+  ggtitle("Median RTs against error growth")
+
+# plotting median RTs against error decay
+ggplot(modellingdata %>%
+         group_by(error_decay) %>%
+         summarise(medianRT = median(FirstSteeringTime)), aes(x = error_decay, y = medianRT)) +
+  geom_point() +
+  geom_line() +
+  ggtitle("Median RTs against error decay")
+
+# plotting heading against error decay
+
+ggplot(modellingdata, aes(x = error_decay, y = heading)) +
+  geom_point() +
+  geom_line() +
+  ggtitle("Heading against error decay")
 
 
 ```
 
-Above code first computes approach rate metric (1 / (sin(heading) * 10)), however when I do this I find thatthe 1.5 heading has a lower approach rate than 2.0. 
+Above code first computes error slowness and error growth.
 
-If approach rate is supposed to be the metrix indicating how quickly error exceeds threshold, how can a heading of 1.5 have a lower approach rate than a heading of 2.0?  Hence when I plot median RTs against approach rate, there does appear to be a linear relationship however the lower approach rates provide a confusing start to the plot -> ask Callum about this.
+We already know that that **RT = latency + threshold/sin(heading)**
+
+This means that *RT equals the baseline delay of participants reacting, added to when the error rate exceeds the threshold*. To formulate this into a linear model, the coefficient threshold needs to be multiplied by the error rate. Computing this a rearranging the equation gives us:
+
+*RT = latency + threshold x 1 / sin(heading) x V*
+
+Taking the inverse of sin(heading) generates the metric error decay. Error decay refers to how much the rate of error development has decayed. Conversely, ordinary sin(heading) generates error growth i.e. how much the error rate has developed. Plotting either of these metrics against the median of RT will show whether the relationship is linear or not.
+
+**Plots**
+Error growth against median RTs is possible easy of the two metrics to interpret. Essentially, as error growth increases, median RT decreases. This would be expected, as the faster error develops the faster participants will react to it.
+
+Error decay against median RTs is less intuitive to understand. High error decay value relate to the most decayed error development. At it's highest, there would be no error at all because the development of it would have all decayed away. This will inevitably lead to slow RTs. Conversely, when decay is low there will be larger error development which will lead to faster RTs.
+
+We can confirm this relationship between error decay and RTs by plotting error decay against our raw heading metric. The plot demonstrates that smaller heading have larger error decay. This makes sense, as smaller headings have reduced error development and thus higher "error decay".
+

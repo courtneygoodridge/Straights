@@ -143,6 +143,7 @@ plot(coef(m2)$pNum)
 
 
 ```
+
 m1 model formula specifies how FirstSteeringTime is explained by heading. The 1 specifies a varying intercept to vary by participant. coef(m1) shows the different intercepts for each participant. 
 
 m2 model forumula specifies how FirstSteeringTime is explained by heading, except (1 + heading | pNum) allows intercept and slope to vary between participants. Essentially, both the intercept and the slope of heading will vary by pNum, thus accounting for subject variability in baseline fastest RTs and the subject variability in the sensitivity to heading conditions. 
@@ -225,6 +226,7 @@ ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.f
 #   ggtitle("RTs against heading - varying slope and intercept for an individual")
 
 ```
+
 For both plots, heading is inverted. This means 2 degrees of heading offset angle is furtherest to the left. This improves interpretation of the intercept, which should be where subejcts are reacting as quickly as possible.
 
 Varying intercept relates to baseline reaction time i.e. latency for how participants react as fast as they can (when error is instantly above threshold). As expected, this varies a lot between participants. In this case, intercept relates to as fast as possible reactions which will naturally vary amongst the population. 
@@ -255,6 +257,7 @@ ggplot(a, aes(x = slopesm2, y = RTSD)) +
   ggtitle("RTSD plotted against coefficient")
 
 ```
+
 There appears to be little or no correlation between RT standard deviation and intercept. Any correlation that might be there also appears to be negative, rather than positive. Thus it seems that higher intercepts are relating to the a reduced sensitivity to the experimental manipulation.
 
 ```{r model comparions}
@@ -262,6 +265,7 @@ There appears to be little or no correlation between RT standard deviation and i
 anova(m1, m2)
 
 ```
+
 We can then compare the models by computing a chi squared test. They significantly differ from each other. Model 2 also has lower AIC value, suggesting that it is the best model in explaining the data (i.e. subject variation in sensitivity to the heading).
 
 ```{r histogram and density plots}
@@ -280,6 +284,7 @@ ggplot() +
   ggtitle("Intercept density plots")
 
 ```
+
 **Slope density pplots**
 
 Blue indicates model 1, red line indicates model 2. Variance in the slopes between the two models is actually very similar according to the density plots.
@@ -364,6 +369,7 @@ sd(slopesm3)
 sd(interceptsm3)
 
 ```
+
 Model 3 is fitted from the simulated data from Callum's code, based on model 2 that was fitted to actual data. 
 
 **160 trials per participant (average number of trials per participant in real data)**
@@ -389,6 +395,7 @@ lines(new_data$inver_heading, ci_regT[2,], lty = 2)
 mtext(text = "Regression curves with 95% confidence intervals", side = 3, outer = FALSE, at = -3)
 
 ```
+
 This method of inference simulates new reaction time data from the given explanatory variables (inverse heading) and the fitted model. It then re-fits the model to these simulated response values and extracts the fitted coefficient. From the distribution of bootstrapped coefficients, it will draw a 95% confidence intervals (dashed lines) around the fitted values (solid lines).
 
 The small range of the confidence intervals provides increased certainty that the fitted model for these data is valid and reliable. Calculating the confidence intervals from 200 simulations improves this further.
@@ -426,6 +433,7 @@ ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.f
 
 
 ```
+
 The above code computes a single level regression line for each participant. It them plots the regression line for each subject on their individual RT data points for inverse heading.
 
 The main difference between individual regression models and multi-level models is that  multi-level models assume that coefficients are sampled from a distribution. These assumptions can be useful if there is uncertainty in individual estimates as you can use information about how the individual coefficients vary across the group to make better estimates of indiviual coefficients and thus group averages altogether.
@@ -465,6 +473,7 @@ skewness(individualregess$heading_coefs)
 kurtosis(individualregess$heading_coefs)
 
 ```
+
 The above code looks at the distribution of coefficients of subjects calculated by mixed model and via individual regression lines. The mixed model coefficients are more normally distributed, as would be expected, because they are computed under the assumption that samples are drawn from a normal distribution. 
 Conversely, coefficients computed from individual regression lines are more positiviely skewed as they are not under the assumption of distribution normality. 
 
@@ -497,7 +506,6 @@ ggplot(modellingdata, aes(x = error_decay, y = heading)) +
   geom_point() +
   geom_line() +
   ggtitle("Heading against error decay")
-
 
 ```
 

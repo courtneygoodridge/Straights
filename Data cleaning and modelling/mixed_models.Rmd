@@ -34,6 +34,62 @@ library(loo)
 
 ```
 
+```{r which probability distribution best fits the data}
+
+library(actuar)
+library(fitdistrplus)
+# inverse <- fitdist(magnitudedata$FirstSteeringTime, "invgauss", start = list(mean = 5, shape = 1))
+# qqp(magnitudedata$FirstSteeringTime, "inverse")
+
+# normal distributions
+qqp(magnitudedata$FirstSteeringTime, "norm")
+
+# lnorm means lognormal
+qqp(magnitudedata$FirstSteeringTime, "lnorm")
+
+# gamma distribution
+gamma <- fitdistr(magnitudedata$FirstSteeringTime, "gamma")
+qqp(magnitudedata$FirstSteeringTime, "gamma", shape = gamma$estimate[[1]], rate = gamma$estimate[[2]])
+
+# logistic distribution
+qqp(magnitudedata$FirstSteeringTime, "logis")
+
+# exponential distribution
+qqp(magnitudedata$FirstSteeringTime, "exp")
+
+# extreme distribution
+qqp(magnitudedata$FirstSteeringTime, "evd")
+
+# generalised extreme distribution
+qqp(magnitudedata$FirstSteeringTime, "gevd")
+
+
+# nbinom <- fitdistr(recog$Aggression.t, "Negative Binomial")
+# qqp(recog$Aggression.t, "nbinom", size = nbinom$estimate[[1]], mu = nbinom$estimate[[2]])
+# 
+# 
+# poisson <- fitdistr(dat2$FirstSteeringTime, "Poisson")
+# qqp(dat2$FirstSteeringTime, "pois", poisson$estimate)
+
+```
+
+```{r plotting data to look for linerarity}
+library(ggplot2)
+
+ggplot(magnitudedata %>%
+         dplyr::filter(heading > 0), aes(x = heading, y = FirstSteeringTime)) +
+  geom_jitter(alpha = .1) +
+  geom_smooth(method='lm') +
+  ggtitle("Normal RT")
+
+ggplot(magnitudedata %>%
+         dplyr::filter(heading > 0), aes(x = heading, y = log(FirstSteeringTime))) +
+  geom_jitter(alpha = .1) +
+  geom_smooth(method='lm') +
+  ggtitle("Log transformed RT")
+
+```
+
 ```{r median RT per participant}
 
 ggplot(filter(magnitudedata, heading > 0) %>%
@@ -73,11 +129,9 @@ summary(m2)
 # # coef(m2)
 
 
-
-
-par(mfrow=c(2,2))
-plot(fitted(m2),resid(m2,type="pearson"),col="blue") # a plot to check the constant standard deviation
-abline(h=0,lwd=2)
+par(mfrow = c(2, 2))
+plot(fitted(m2),resid(m2, type = "pearson"), col = "blue") # a plot to check the constant standard deviation
+abline(h = 0, lwd = 2)
 
 qqnorm(resid(m2)) # normality of the residuals
 qqline(resid(m2))
@@ -314,153 +368,6 @@ Model 3 is fitted from the simulated data from Callum's code, based on model 2 t
 
 **160 trials per participant (average number of trials per participant in real data)**
 In comparison to model 2, model 3 has less individual variation. There is also less subject variation towards the sensitivity of the heading condition.
-
-```{r more model simulations from Gelman & Hill book}
-library(arm)
-
-n.sims <- 1000
-fit.1 <- lm(FirstSteeringTime ~ heading, data = magnitudedata)
-sim.1 <- sim(fit.1, n.sims)
-
-```
-For classical linear and generalised linear models, sim function simulates different coefficients values and sigma values. Sigma value present estimation uncertainty in residual standard deviation.
-
-```{r are simulations similar to regression computations}
-
-heading.coef <- sim.1@coef[,2]
-mean(heading.coef)
-sd(heading.coef)
-quantile(heading.coef, c(.025, .975))
-
-
-```
-
-
-```{r comparing actual data replicated data}
-
-# simulated replications of model parameters (intercept, coefficient and sigma (residual standard deviation))
-m4 <- lm(FirstSteeringTime ~ heading, data = modellingdata)
-n.sims <- 1000
-sim.m4 <- sim(m4, n.sims)
-
-# create 1000 fake datasets with the same number of observations as the original data set 
-n <- length(modellingdata$FirstSteeringTime)
-y.rep <- array(NA, c(n.sims, n))
-
-for (s in 1:n.sims){
-  y.rep[s,] <- rnorm(n, sim.m4@coef[s], sim.m4@sigma[s])
-}
-
-# plot 9 example histograms of the fake datasets
-par(mfrow = c(3,3))
-for (s in 1:8){
-  hist(y.rep[s,])
-}
-
-# plot histogranm of actual data set
-hist(modellingdata$FirstSteeringTime)
-
-```
-This version of model inference involves visual comparison of actual datasets and replicated datasets.
-
-Fake datasets are replicated from the coefficient and sigma values from the first fitted model. Histograms are then constructed to look at the distributions and are then compared to the actual dataset. In this example
-
-- Replication data is normally distributed, real data is positively skewed
-- Real data has values over 1.2, replicated data does not.
-
-The visual differs between the simulated and real data therefore lead us to propose that the model is not a good one. This could be because the linear model assumes a normal distribution and our real data is not.
-
-```{r checking model fit using numerical data summary (with visual inspection)}
-
-# y vector of real values
-y <- modellingdata$FirstSteeringTime
-
-# Test function - what is the maximum value of y vector.
-Test <- function(y){
-  max(y)
-}
-
-# For each simulated dataset, apply the test function
-test.rep <- rep(NA, n.sims)
-for (s in 1:n.sims){
-  test.rep[s] <- Test(y.rep[s,])
-}
-
-# Plotting histogram of the maxima from the replicated datasets and vertical line indicating maximum of the real data sets
-hist(test.rep, xlim = range(test.rep, Test(y)))
-lines(rep(Test(y), 2), c(0,n))
-
-
-```
-Visual inspection can also be teamed up with numerical data summary. The above chunk first creates a test function - in my case, this is the maximum value of the my dependent variable. This is because the maximum values of my replicated datasets do not appear to go above 1.2, yet the real data has make values of 2.4.
-
-Then I create a for loop that runs through each replicated dataset, and applies the test statistic and saves it as a vector.
-
-I then plot a histogram from the replicated data of maxima of the replicated values, alongside line that represents the maximum value of the real dataset.
-
-The result is clear - the largest observations of the replications are much smaller than the largest observations of the real dataset. The normal model clearly does not capure the vertical line within the graph and thus does not capture the variation. This adds more validity to our model checking rather than just simple visual inspection. 
-
-```{r zeroes in count data - poisson distributions}
-data(roaches)
-
-# Poisson distribution model
-glm.1 <- glm(y ~ roach1 + treatment + senior, family = poisson, offset = log(exposure2), data = roaches)
-summary(glm.1)
-
-# Computing replicated dataset
-n <- length(roaches$y)
-X <- cbind(rep(1,n), roaches$roach1, roaches$treatment, roaches$senior)
-y.hat <- roaches$exposure2 * exp(X %*% coef(glm.1))
-y.rep <- rpois(n, y.hat)
-
-# comparing mean roaches caught in real versus replicated dataset
-print(mean(roaches$y == 0))
-print(mean(y.rep == 0))
-
-# computing 1000 replicated datasets
-n.sims <- 1000 # number of simulations
-sim.1 <- sim(glm.1, n.sims) # simulate 1000 models based upon model fitted to data
-y.rep <- array(NA, c(n.sims, n)) # empty array for simulations to go
-for (s in 1:n.sims){ # from 1 to the number of simulations
-  y.hat <- roaches$exposure * exp(X %*% sim.1@coef[s,]) # calculate predicted data
-  y.rep[s,] <- rpois(n, y.hat) # generates random variates from the distribution for predicted data 
-}
-
-# test function 
-test <- function(y){
-  mean(y == 0) # percentage of traps with zero roaches
-}
-
-# using for loop, apply test function on each simulated dataset
-test.rep <- rep(NA, n.sims)
-for (s in 1:n.sims){
-  test.rep[s] <- test(y.rep[s,])
-}
-
-range(test.rep)
-
-```
-**Dataset variables**
-y = outcome measurement (number of roaches caught in the set traps)
-roach1 = pre-treatment roach level
-treatment = treatment indicator (was there treatment or just control)
-senior = whether apartment was senior bulding or not
-exposure = number of days there were traps in the apartment
-
-**When to use a Poisson distribution**
-Given an average rate of occurance for a given period of time, assuming the processes involved are random, the Poisson distribution will tell you the likeliest occurance of event for given period of time.
-
-An exposure can be inputted into the regression equation. The log() of this exposure is then added to the coefficients of the predictor variables. This exposure is known as an offset variable. An offset variable is essentially like a predictor except it's coefficient is fixed at a value of 1. 
-
-Theoretically, this means you are only adjusting for the amount of opportunity for something to happen. In this example, whether a roach gets captured in a trap or not is the same, but if the trap is laid for 20 days rather than 10 days, there is twice the opportunity for a roach to be captured. This is the role of the offset variable. If however this exposure variable increases the likelihood of a roach being captured, this variable might be more suited to being inputted as a predictor.
-
-**Code output**
-Model demonstrates that treatment has large effect on the decrease in roaches in apartments.
-
-We then replicate a dataset using the coefficients of the model. We then calculate the percentage of observed data points where no roaches were captured in traps. For the real data, this is 36%. For the simulated data, this is 0. In reality we would expect to find apartments with no roaches in, thus if the model were true this replicated data is unlikely.
-
-We then compute 1000 replications of the data and create a function that tests the data. Again, we find that the range in percentages of zero roaches found in traps is 0 - 0.76%. Hence this model is not replicating the frequency of zeros within the data.
-
 
 ```{r mixed model inference - simulations and 95% CIs}
 

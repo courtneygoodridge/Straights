@@ -31,8 +31,57 @@ library(tidyr)
 library(rstanarm)
 library(bayesplot)
 library(loo)
+library(fitdistrplus)
+library(logspline)
 
 ```
+
+```{r examples of figuring out which distribution best fits my data}
+library(fitdistrplus)
+
+# Poisson distribution example - can only be used on count data i.e. non-negative integer data
+fit_p <- fitdist(roaches$y,"pois")
+summary(fit_p)
+plot(fit_p) 
+
+# Example of what to o if you're not sure on distribution of data. Use summary summary() and plot() to look at individual fits of the data 
+
+# Looks at what distribution that best describes data (does not have every distribution)
+# gamma, log normal, Weibull and Beta look the most promising for me
+descdist(magnitudedata$FirstSteeringTime, discrete = FALSE)
+
+# plot the closest distributions and visually inspect
+
+# gamma distribution
+fit_g  <- fitdist(magnitudedata$FirstSteeringTime, "gamma")
+
+# log normal distribution - can only be used on positive values (any zeros and it will fail)
+fit_ln <- fitdist(magnitudedata$FirstSteeringTime, "lnorm")
+
+# weibull distribution
+fit_w <- fitdist(magnitudedata$FirstSteeringTime, "weibull")
+
+par(mfrow=c(2,2))
+plot.legend <- c("Weibull", "gamma", "lognormal")
+denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+qqcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+
+```
+
+Above is an example of how you might work out how your data is distributed. Firstly you need to know what kind of data you have. 
+
+**Poisson distribution** 
+Only works for non-negative whole integers
+
+**Log normal**
+Only for positive values, so no negaive for zero values
+
+**Beta distribution**
+Data must be within the [0,1] interval
+
+Run descdist() function to see roughly where you data falls. Then use fitdistr() function to se distribution fits for individual distribution fits.
 
 ```{r more model simulations from Gelman & Hill book}
 library(arm)

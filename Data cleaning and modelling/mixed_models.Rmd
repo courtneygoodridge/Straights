@@ -144,6 +144,8 @@ plot(coef(m2)$pNum)
 
 ```
 
+A mixed effects model using lmer function assumes a normal distribution, which is why you cannot select another distribution family for it. 
+
 m1 model formula specifies how FirstSteeringTime is explained by heading. The 1 specifies a varying intercept to vary by participant. coef(m1) shows the different intercepts for each participant. 
 
 m2 model forumula specifies how FirstSteeringTime is explained by heading, except (1 + heading | pNum) allows intercept and slope to vary between participants. Essentially, both the intercept and the slope of heading will vary by pNum, thus accounting for subject variability in baseline fastest RTs and the subject variability in the sensitivity to heading conditions. 
@@ -162,7 +164,7 @@ What we see in this plot are more dispered points towards the top of the graph, 
 **Residual Q-Q plot**
 What are quantiles? - they split data into equal sized groups i.e. the median is the 50% quantile as 50% of the data is above it and 50% is below it. The 75% quantile means that 75% of the data points are below it. 
 
-This plot visualises the normality of the residuals. Sample quantiles relate to the residual points and theoretical quantiles relate to the same number of quantiles generated from the normal distribution. The first quantile for the residuals is plotted against the y axis, and then the first quantile from the normal distribution is plotted. Where these lines intersect is where the point is placed.
+This plot visualises the normality of the residuals. Sample quantiles relate to the residual points and theoretical quantiles relate to the same number of quantiles generated from the normal distribution. The first quantile for the residuals is plotted against the y axis, and then the first quantile from the normal distribution is plotted on the x axis. Where these lines intersect is where the point is placed.
 
 If the residuals were to be normally distributed, they should all fall on a straight line. Most of the points do, however the tails deviate away from the line indicating slight non-normality of the data. This is line with what our residual versus fitted plot was suggesting.
 

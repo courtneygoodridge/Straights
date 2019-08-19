@@ -31,6 +31,8 @@ library(tidyr)
 library(rstanarm)
 library(bayesplot)
 library(loo)
+library(lmtest)
+library(caret)
 
 ```
 
@@ -99,8 +101,6 @@ ggplot(filter(magnitudedata, heading > 0) %>%
   geom_line() +
   facet_wrap(~ pNum)
 
-
-
 ```
 
 Median RTs across heading seem to be fairly consistent across subjects
@@ -127,7 +127,6 @@ summary(m2)
 # m3 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 + heading | pNum), data = modellingdata)
 # summary(m2)
 # # coef(m2)
-
 
 par(mfrow = c(2, 2))
 plot(fitted(m2),resid(m2, type = "pearson"), col = "blue") # a plot to check the constant standard deviation
@@ -159,7 +158,7 @@ This plot possibly shows dependency between fitted and and residual values. A mi
 - No systematic curvature of points
 - No indication of a relationship between the axes of the graph
 
-What we see in this plot are more dispered points towards the top of the graph, and a few dispered points towards the bottom, as our fitted values increase. This indicates that the variance in residuals is increasing with fitted values and thus the assumptions of our model could be violated. This could mean that a mixed model is not the best model to use with this given dataset. 
+What we see in this plot are more dispered points towards the top of the graph, and a few dispered points towards the bottom, as our fitted values increase. This indicates that the variance in residuals is increasing with fitted values and thus the assumptions of our model could be violated - this is known as hetreoscadastity: when the variance is not equal across different conditions, thus sub-sample variance appears within your data. This could mean that a mixed model is not the best model to use with this given dataset. 
 
 **Residual Q-Q plot**
 What are quantiles? - they split data into equal sized groups i.e. the median is the 50% quantile as 50% of the data is above it and 50% is below it. The 75% quantile means that 75% of the data points are below it. 
@@ -176,6 +175,24 @@ This plot is the same as the residual plot, except we are not plotting intercept
 **Coeffiecient plot**
 This plots plots coefficients against the intercept, thus visualising the random effects correlation between the intercept and the slope. This visualises the negative correlation (-.39), demonstrating that individuals intercept variation has an effect on the heading slope variation.
 
+```{r solving heteroscadastity using Box-Cox transformation}
+
+# original plot shows evidence of heteroscadasity
+plot(m2)
+
+# computing Box-Cox transformation on FirstSteeringTime metric
+RT_BCT <- BoxCoxTrans(modellingdata$FirstSteeringTime)
+
+# apply model to metric and then append to old dataframe
+modellingdata <- cbind(modellingdata, RT_new = predict(RT_BCT, modellingdata$FirstSteeringTime))
+
+# construct new model with the transformed variable and then create new residual plot
+m3 <- lmer(formula = RT_new ~ inver_heading + (1 + inver_heading | pNum), data = modellingdata)
+plot(m3)
+
+```
+
+Box-Cox transformation can be applied to your Y variable to make it approximate to a normal distribution.
 
 ```{r saving average intercepts and slopes}
 # model 1
@@ -513,7 +530,7 @@ ggplot(modellingdata, aes(x = error_decay, y = heading)) +
 
 Above code first computes error slowness and error growth.
 
-We already know that that **RT = latency + threshold/sin(heading)**
+We already know that that **RT = latency + threshold / sin(heading)**
 
 This means that *RT equals the baseline delay of participants reacting, added to when the error rate exceeds the threshold*. To formulate this into a linear model, the coefficient threshold needs to be multiplied by the error rate. Computing this a rearranging the equation gives us:
 
@@ -522,7 +539,7 @@ This means that *RT equals the baseline delay of participants reacting, added to
 Taking the inverse of sin(heading) generates the metric error decay. Error decay refers to how much the rate of error development has decayed. Conversely, ordinary sin(heading) generates error growth i.e. how much the error rate has developed. Plotting either of these metrics against the median of RT will show whether the relationship is linear or not.
 
 **Plots**
-Error growth against median RTs is possible easy of the two metrics to interpret. Essentially, as error growth increases, median RT decreases. This would be expected, as the faster error develops the faster participants will react to it.
+Error growth against median RTs is easier to interpret. Essentially, as error growth increases, median RT decreases. This would be expected, as the faster error develops the faster participants will react to it.
 
 Error decay against median RTs is less intuitive to understand. High error decay value relate to the most decayed error development. At it's highest, there would be no error at all because the development of it would have all decayed away. This will inevitably lead to slow RTs. Conversely, when decay is low there will be larger error development which will lead to faster RTs.
 

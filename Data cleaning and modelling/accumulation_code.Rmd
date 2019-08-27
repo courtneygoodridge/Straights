@@ -13,7 +13,7 @@ library(RWiener)
 # example data
 
 set.seed(0)
-dat <- rwiener(n = 100, alpha = 2, tau = .3, beta = .5, delta = .5)
+example <- rwiener(n = 100, alpha = 2, tau = .3, beta = .5, delta = .5)
 
 # delta  = drift rate, beta = inital bias, alpha = boundary seperation, tau = non-decision time
 
@@ -25,7 +25,7 @@ ylab="density", xlab="quantile")
 
 # dwiener density distribution
 
-wiener_plot(a) # visulise data
+wiener_plot(example) # visulise data
 
 x <- c(2, .3, .5, .5)
 wiener_likelihood(x=x, dat=dat)
@@ -75,9 +75,57 @@ AIC2 <- wiener_aic(x=nlm2$estimate, dat=datlist, loss=one_drift)
 
 ```
 
-```{r RWIener with real experimental data}
 
+```{r RWIener with real experimental data - computing condition dataframes}
+
+View(dat) # dataframe containing all trials (upper = correct trials, lower = incorrect trials)
+
+dat$heading <- as.character(dat$heading) # converting to character before converting to numeric for filtering
+dat$heading <- as.numeric(dat$heading)
+
+dat <- dat %>%
+  dplyr::filter(heading > 0) # filter out zero headings for modelling
+
+# 0.5 heading
+dat0_5 <- dat %>%
+  dplyr::filter(heading == 0.5)
+dat0_5 <- data.frame(q = dat0_5$FirstSteeringTime, resp = dat0_5$resp)
+wiener_plot(dat0_5)
+
+# 1.0 heading
+dat1_0 <- dat %>%
+  dplyr::filter(heading == 1.0)
+dat1_0 <- data.frame(q = dat1_0$FirstSteeringTime, resp = dat1_0$resp)
+wiener_plot(dat1_0)
+
+# 1.5 heading
+dat1_5 <- dat %>%
+  dplyr::filter(heading == 1.5)
+dat1_5 <- data.frame(q = dat1_5$FirstSteeringTime, resp = dat1_5$resp)
+wiener_plot(dat1_5)
+
+# 2.0 heading
+dat2_0 <- dat %>%
+  dplyr::filter(heading == 2.0)
+dat2_0 <- data.frame(q = dat2_0$FirstSteeringTime, resp = dat2_0$resp)
+wiener_plot(dat2_0)
 
 
 ```
+
+```{r estimating parameters for one condition}
+
+# using optim, first with Nelder-Mead algorithm, then with BFGS
+optim1 <- optim(c(1, .1, .1, 1), wiener_deviance, dat=dat2_0, method="Nelder-Mead")
+optim2 <- optim(optim1[["par"]], wiener_deviance, dat=dat2_0, method="BFGS", hessian=TRUE)
+
+
+# using nlm, which uses a Newton-type algorithm
+nlm1 <- nlm(p=c(1, .1, .1, 1), f=wiener_deviance, dat=dat2_0)
+
+# creates estimates for parameters for that condition. They can be used to produce further inferences or create predicitions for other values. Estimate values occur in this order:
+# [alpha (seperation between the boundaries), non-decision time, initial bias, drift rate]
+
+```
+
 

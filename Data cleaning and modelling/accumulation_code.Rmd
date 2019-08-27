@@ -38,7 +38,7 @@ optim2 <- optim(optim1[["par"]], wiener_deviance, dat=dat, method="BFGS", hessia
 
 nlm1 <- nlm(p=c(1, .1, .1, 1), f=wiener_deviance, dat=dat)
 
-# function that calculates multip[le drift rates 
+# function that calculates multiple drift rates 
 many_drifts <- function(x, datlist) {
 l = 0
 for (c in 1:length(datlist)) {
@@ -47,7 +47,8 @@ l = l + wiener_deviance(x[c(1, 2, 3, c+3)], datlist[[c]])
 return(l)
 }
 
-# create a second data set and a list containing both data sets
+# create a second data set condition (with differing drift rate) and a list containing both data sets
+
 dat2 <- rwiener(n=100, alpha=2, tau=.3, beta=.5, delta=1)
 datlist <- list(dat, dat2)
 # use nlm to estimate parameters
@@ -55,5 +56,28 @@ nlm1 <- nlm(p=c(1, .1, .1, 1, 1), f=many_drifts, dat=datlist)
 
 # nlm1 then contains point estimates of first three joint parameters, in addition to condition specifc drift rates
 
+# second data set condition but same drift rate
+
+one_drift <- function(x, datlist) {
+l = 0
+for (c in 1:length(datlist)) {
+l = l + wiener_deviance(x, datlist[[c]])
+}
+return(l)
+}
+
+nlm2 <- nlm(p=c(1, .1, .1, 1), f=one_drift, dat=datlist)
+
+AIC1 <- wiener_aic(x=nlm1$estimate, dat=datlist, loss=many_drifts)
+AIC2 <- wiener_aic(x=nlm2$estimate, dat=datlist, loss=one_drift)
+
+# Function calculates AIC values for the 2 models, AIC1 is lower indicating a better fit which is due to implementing different drift rates for the different conditions (makes sense as the simulated data was given different drift rates)
 
 ```
+
+```{r RWIener with real experimental data}
+
+
+
+```
+

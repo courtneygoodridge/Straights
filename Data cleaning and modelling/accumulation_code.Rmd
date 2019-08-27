@@ -1,0 +1,59 @@
+---
+title: "accumulation_code"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r RWiener example}
+library(RWiener)
+
+# example data
+
+set.seed(0)
+dat <- rwiener(n = 100, alpha = 2, tau = .3, beta = .5, delta = .5)
+
+# delta  = drift rate, beta = inital bias, alpha = boundary seperation, tau = non-decision time
+
+dwiener(dat$q[1], alpha=2, tau=.3, beta=.5, delta=.5, resp=dat$resp[1], give_log=FALSE)
+
+curve(dwiener(x, 2, .3, .5, .5, rep("upper", length(x))),
+xlim=c(0,3), main="Density of upper responses",
+ylab="density", xlab="quantile")
+
+# dwiener density distribution
+
+wiener_plot(a) # visulise data
+
+x <- c(2, .3, .5, .5)
+wiener_likelihood(x=x, dat=dat)
+wiener_deviance(x=x, dat=dat)
+wiener_aic(x=x, dat=dat)
+wiener_bic(x=x, dat=dat)
+
+optim1 <- optim(c(1, .1, .1, 1), wiener_deviance, dat=dat, method="Nelder-Mead")
+optim2 <- optim(optim1[["par"]], wiener_deviance, dat=dat, method="BFGS", hessian=TRUE)
+
+nlm1 <- nlm(p=c(1, .1, .1, 1), f=wiener_deviance, dat=dat)
+
+# function that calculates multip[le drift rates 
+many_drifts <- function(x, datlist) {
+l = 0
+for (c in 1:length(datlist)) {
+l = l + wiener_deviance(x[c(1, 2, 3, c+3)], datlist[[c]])
+}
+return(l)
+}
+
+# create a second data set and a list containing both data sets
+dat2 <- rwiener(n=100, alpha=2, tau=.3, beta=.5, delta=1)
+datlist <- list(dat, dat2)
+# use nlm to estimate parameters
+nlm1 <- nlm(p=c(1, .1, .1, 1, 1), f=many_drifts, dat=datlist)
+
+# nlm1 then contains point estimates of first three joint parameters, in addition to condition specifc drift rates
+
+
+```

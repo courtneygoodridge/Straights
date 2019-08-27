@@ -223,8 +223,9 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 # colnames(magnitudedata)[colnames(magnitudedata) == 'block.x'] <- 'block'
 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
-write.csv(magnitudedata, file = "magnitudedata.csv")
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
+write.csv(dat, file = "dat_example.csv")
 
 ```
 
@@ -364,8 +365,8 @@ dat$resp <- as.factor(dat$resp)
 
 sapply(dat, class)
 
-dat <- dat %>%
-  dplyr::filter(FirstSteeringTime > 0.15) # filter trials that are within physiological plausible boundary
+# dat <- dat %>%
+  # dplyr::filter(FirstSteeringTime > 0.15) # filter trials that are within physiological plausible boundary
 
 
 ```

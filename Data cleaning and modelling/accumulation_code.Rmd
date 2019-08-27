@@ -7,84 +7,28 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r RWiener example}
+```{r data and package loading}
 library(RWiener)
 
-# example data
-
-set.seed(0)
-example <- rwiener(n = 100, alpha = 2, tau = .3, beta = .5, delta = .5)
-
-# delta  = drift rate, beta = inital bias, alpha = boundary seperation, tau = non-decision time
-
-dwiener(dat$q[1], alpha=2, tau=.3, beta=.5, delta=.5, resp=dat$resp[1], give_log=FALSE)
-
-curve(dwiener(x, 2, .3, .5, .5, rep("upper", length(x))),
-xlim=c(0,3), main="Density of upper responses",
-ylab="density", xlab="quantile")
-
-# dwiener density distribution
-
-wiener_plot(example) # visulise data
-
-x <- c(2, .3, .5, .5)
-wiener_likelihood(x=x, dat=dat)
-wiener_deviance(x=x, dat=dat)
-wiener_aic(x=x, dat=dat)
-wiener_bic(x=x, dat=dat)
-
-optim1 <- optim(c(1, .1, .1, 1), wiener_deviance, dat=dat, method="Nelder-Mead")
-optim2 <- optim(optim1[["par"]], wiener_deviance, dat=dat, method="BFGS", hessian=TRUE)
-
-nlm1 <- nlm(p=c(1, .1, .1, 1), f=wiener_deviance, dat=dat)
-
-# function that calculates multiple drift rates 
-many_drifts <- function(x, datlist) {
-l = 0
-for (c in 1:length(datlist)) {
-l = l + wiener_deviance(x[c(1, 2, 3, c+3)], datlist[[c]])
-}
-return(l)
-}
-
-# create a second data set condition (with differing drift rate) and a list containing both data sets
-
-dat2 <- rwiener(n=100, alpha=2, tau=.3, beta=.5, delta=1)
-datlist <- list(dat, dat2)
-# use nlm to estimate parameters
-nlm1 <- nlm(p=c(1, .1, .1, 1, 1), f=many_drifts, dat=datlist)
-
-# nlm1 then contains point estimates of first three joint parameters, in addition to condition specifc drift rates
-
-# second data set condition but same drift rate
-
-one_drift <- function(x, datlist) {
-l = 0
-for (c in 1:length(datlist)) {
-l = l + wiener_deviance(x, datlist[[c]])
-}
-return(l)
-}
-
-nlm2 <- nlm(p=c(1, .1, .1, 1), f=one_drift, dat=datlist)
-
-AIC1 <- wiener_aic(x=nlm1$estimate, dat=datlist, loss=many_drifts)
-AIC2 <- wiener_aic(x=nlm2$estimate, dat=datlist, loss=one_drift)
-
-# Function calculates AIC values for the 2 models, AIC1 is lower indicating a better fit which is due to implementing different drift rates for the different conditions (makes sense as the simulated data was given different drift rates)
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+temp = list.files(pattern = c("dat_example")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+dat <- do.call(rbind.data.frame, myfiles) 
 
 ```
 
 
 ```{r RWIener with real experimental data - computing condition dataframes}
 
-View(dat) # dataframe containing all trials (upper = correct trials, lower = incorrect trials)
+# View(dat) # dataframe containing all trials (upper = correct trials, lower = incorrect trials)
 
 dat$heading <- as.character(dat$heading) # converting to character before converting to numeric for filtering
 dat$heading <- as.numeric(dat$heading)
 
 dat <- dat %>%
   dplyr::filter(heading > 0) # filter out zero headings for modelling
+
+# seperate conditions into different dataframes 
 
 # 0.5 heading
 dat0_5 <- dat %>%
@@ -116,15 +60,40 @@ wiener_plot(dat2_0)
 ```{r estimating parameters for one condition}
 
 # using optim, first with Nelder-Mead algorithm, then with BFGS
-optim1 <- optim(c(1, .1, .1, 1), wiener_deviance, dat=dat2_0, method="Nelder-Mead")
-optim2 <- optim(optim1[["par"]], wiener_deviance, dat=dat2_0, method="BFGS", hessian=TRUE)
+optim1 <- optim(c(1, .1, .1, 1), wiener_deviance, dat=dat1_0, method="Nelder-Mead")
+optim2 <- optim(optim1[["par"]], wiener_deviance, dat=dat1_0, method="BFGS", hessian=TRUE)
 
 
 # using nlm, which uses a Newton-type algorithm
-nlm1 <- nlm(p=c(1, .1, .1, 1), f=wiener_deviance, dat=dat2_0)
+nlm1 <- nlm(p=c(1, .1, .1, 1), f=wiener_deviance, dat=dat1_0)
 
 # creates estimates for parameters for that condition. They can be used to produce further inferences or create predicitions for other values. Estimate values occur in this order:
 # [alpha (seperation between the boundaries), non-decision time, initial bias, drift rate]
+
+
+# currently optim() and nlm() give negative drift rates for some conditions...
+
+```
+
+```{r estimating parameters with multiple conditions}
+# deviance function for multiple conditions
+
+many_drifts <- function(x, datlist) {
+l = 0
+for (c in 1:length(datlist)) {
+l = l + wiener_deviance(x[c(1, 2, 3, c+3)], datlist[[c]])
+}
+return(l)
+}
+
+# put multiple dataframe conditions into one dataframe list
+
+datlist <- list(dat0_5, dat1_0, dat1_5, dat2_0)
+
+# use nlm to estimate parameters
+
+nlm2 <- nlm(p=c(1, .1, .1, 1, 1), f=many_drifts, dat=datlist)
+
 
 ```
 

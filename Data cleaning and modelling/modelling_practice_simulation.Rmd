@@ -268,7 +268,7 @@ The coefficients for the predictors are similar, however the standard error valu
 When we run the test statistic on the new replications, we find that that proportions of zero roaches in traps ranges from 19% to 47%. The observed value of 36% fits in here, which tells us that this aspect of the model fits well and much better than the standard Poisson distribution.
 
 
-```{r predictiive simulation for times series model}
+```{r predictiive simulation for times series model - not working yet page 163 in Gelman & Hill}
 
 heading2 <- avgtimecourse %>%
   dplyr::filter(heading == 2)
@@ -295,3 +295,13 @@ for (s in 1:n.sims){
 
 
 ```
+
+```{r causal inference using regression on the treatment variable}
+
+
+
+```
+
+
+
+

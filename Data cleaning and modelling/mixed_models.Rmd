@@ -15,6 +15,8 @@ temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
+# dput(head(df,n)) provides example of data structure for stack overflow
+
 ```
 
 ```{r load packages}
@@ -33,101 +35,140 @@ library(bayesplot)
 library(loo)
 library(lmtest)
 library(caret)
+library(merTools)
+library(scales)
 
 ```
 
-```{r which probability distribution best fits the data}
+```{r computing error rate and error growth metrics}
 
-library(actuar)
-library(fitdistrplus)
-# inverse <- fitdist(magnitudedata$FirstSteeringTime, "invgauss", start = list(mean = 5, shape = 1))
-# qqp(magnitudedata$FirstSteeringTime, "inverse")
-
-# normal distributions
-qqp(magnitudedata$FirstSteeringTime, "norm")
-
-# lnorm means lognormal
-qqp(magnitudedata$FirstSteeringTime, "lnorm")
-
-# gamma distribution
-gamma <- fitdistr(magnitudedata$FirstSteeringTime, "gamma")
-qqp(magnitudedata$FirstSteeringTime, "gamma", shape = gamma$estimate[[1]], rate = gamma$estimate[[2]])
-
-# logistic distribution
-qqp(magnitudedata$FirstSteeringTime, "logis")
-
-# exponential distribution
-qqp(magnitudedata$FirstSteeringTime, "exp")
-
-# extreme distribution
-qqp(magnitudedata$FirstSteeringTime, "evd")
-
-# generalised extreme distribution
-qqp(magnitudedata$FirstSteeringTime, "gevd")
-
-
-# nbinom <- fitdistr(recog$Aggression.t, "Negative Binomial")
-# qqp(recog$Aggression.t, "nbinom", size = nbinom$estimate[[1]], mu = nbinom$estimate[[2]])
-# 
-# 
-# poisson <- fitdistr(dat2$FirstSteeringTime, "Poisson")
-# qqp(dat2$FirstSteeringTime, "pois", poisson$estimate)
+# compute metrics
+modellingdata <- magnitudedata %>%
+  dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
+  mutate(heading_radians = heading / 180 * pi) %>% # convert heading to radians 
+  mutate(error_rate = 1 / (sin(heading_radians) * 10)) %>%
+  mutate(error_growth = (sin(heading_radians) * 10)) %>%
+  mutate(FirstSteeringTime_log = log(FirstSteeringTime))
 
 ```
 
-```{r plotting data to look for linerarity}
-library(ggplot2)
+```{r comparing new metrics to RT - model explanation}
 
-ggplot(magnitudedata %>%
-         dplyr::filter(heading > 0), aes(x = heading, y = FirstSteeringTime)) +
-  geom_jitter(alpha = .1) +
-  geom_smooth(method='lm') +
-  ggtitle("Normal RT")
-
-ggplot(magnitudedata %>%
-         dplyr::filter(heading > 0), aes(x = heading, y = log(FirstSteeringTime))) +
-  geom_jitter(alpha = .1) +
-  geom_smooth(method='lm') +
-  ggtitle("Log transformed RT")
-
-```
-
-```{r median RT per participant}
-
-ggplot(filter(magnitudedata, heading > 0) %>%
-         group_by(pNum, heading) %>%
-         summarise(medianRT = median(FirstSteeringTime)), aes(x = heading, y = medianRT)) +
+# plotting median RTs against error growth
+ggplot(modellingdata %>%
+         group_by(error_growth) %>%
+         summarise(medianRT = median(FirstSteeringTime)), aes(x = error_growth, y = medianRT)) +
   geom_point() +
   geom_line() +
-  facet_wrap(~ pNum)
+  ggtitle("Median RTs against error growth")
+
+# plotting median RTs against error rate
+ggplot(modellingdata %>%
+         group_by(error_rate) %>%
+         summarise(medianRT = median(FirstSteeringTime)), aes(x = error_rate, y = medianRT)) +
+  geom_point() +
+  geom_line() +
+  ggtitle("Median RTs against error rate")
+
+# plotting heading against error rate
+
+ggplot(modellingdata, aes(x = error_rate, y = heading)) +
+  geom_point() +
+  geom_line() +
+  ggtitle("Heading against error rate")
 
 ```
 
-Median RTs across heading seem to be fairly consistent across subjects
+Above code first computes error slowness and error growth.
+
+We already know that that **RT = latency + threshold / sin(heading)**
+
+This means that *RT equals the baseline delay of participants reacting, added to when the error rate exceeds the threshold*. To formulate this into a linear model, the coefficient threshold needs to be multiplied by the error rate. Computing this a rearranging the equation gives us:
+
+*RT = latency + threshold x 1 / sin(heading) x V*
+
+Taking the inverse of sin(heading) generates the metric error rate. Error rate refers to how much time it takes to travel a metre and thus, how slowly or quickly error develops. Conversely, ordinary sin(heading) generates error growth i.e. how much the error rate has developed. Plotting either of these metrics against the median of RT will show whether the relationship is linear or not.
+
+**Plots**
+Error growth against median RTs is easier to interpret. Essentially, as error growth increases, median RT decreases. This would be expected, as the faster error develops the faster participants will react to it.
+
+Error rate against median RTs is less intuitive to understand. High error rate values relate slow error development, as more time has passed within the travelled metre. At it's highest, an infinite amount of time would pass before a metre was travelled, because the development would be so slow. This will inevitably lead to slow RTs. Conversely, when error rate is is low, error development will be faster which will lead to faster RTs.
+
+We can confirm this relationship between error rate and RTs by plotting error rate against our raw heading metric. The plot demonstrates that smaller headings have larger error rates. This makes sense, as smaller headings have reduced error development and thus a higher rate of error.
+
+**Units**
+
+RT = latency + threshold x error rate, where error rate = 1 / sin(heading_in_radians) x V_in_ms
+
+Error rate = seconds/metre
+RT = seconds
+Latency = seconds
+Threshold = metres
+Threshold * error rate = time to triggering response = seconds
+
+```{r examples of figuring out which distribution best fits my data}
+library(fitdistrplus)
+
+# Poisson distribution example - can only be used on count data i.e. non-negative integer data
+fit_p <- fitdist(roaches$y,"pois")
+summary(fit_p)
+plot(fit_p) 
+
+# Example of what to o if you're not sure on distribution of data. Use summary summary() and plot() to look at individual fits of the data 
+
+# Looks at what distribution that best describes data (does not have every distribution)
+# gamma, log normal, Weibull and Beta look the most promising for me
+descdist(modellingdata$FirstSteeringTime, discrete = FALSE)
+
+# plot the closest distributions and visually inspect
+
+# gamma distribution
+fit_g  <- fitdist(modellingdata$FirstSteeringTime, "gamma")
+
+# log normal distribution - can only be used on positive values (any zeros and it will fail)
+fit_ln <- fitdist(modellingdata$FirstSteeringTime, "lnorm")
+
+# weibull distribution
+fit_w <- fitdist(modellingdata$FirstSteeringTime, "weibull")
+
+par(mfrow=c(2,2))
+plot.legend <- c("Weibull", "gamma", "lognormal")
+denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+qqcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+
+```
+
+Above is an example of how you might work out how your data is distributed. Firstly you need to know what kind of data you have. 
+
+**Poisson distribution** 
+Only works for non-negative whole integers
+
+**Log normal**
+Only for positive values, so no negaive for zero values
+
+**Beta distribution**
+Data must be within the [0,1] interval
+
+Run descdist() function to see roughly where you data falls. Then use fitdistr() function to se distribution fits for individual distribution fits.
+
+For the current modelling data, it appears that gamma, lognormal for weibull distributions will work best.
+
 
 ```{r fitting of multilevel model using lmer function without gaussian link function}
 
-modellingdata <- magnitudedata %>%
-  dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
-  mutate(inver_heading = 1 / heading) # compute inverse of heading for ease of interpretting intercept
-
 # model 1 - varying intercept
-m1 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 | pNum), data = modellingdata)
+m1 <- lmer(formula = FirstSteeringTime ~ error_rate + (1 | pNum), data = modellingdata)
 summary(m1)
 # coef(m1)
 
 
+
 # model 2 -  varying intercept and slope
-m2 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 + inver_heading | pNum), data = modellingdata)
-summary(m2)
-# coef(m2)
+m2 <- lmer(formula = FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), data = modellingdata)
 
-
-# model 3 -  varying intercept and slope
-# m3 <- lmer(formula = FirstSteeringTime ~ inver_heading + (1 + heading | pNum), data = modellingdata)
-# summary(m2)
-# # coef(m2)
-
+# plots for model 2
 par(mfrow = c(2, 2))
 plot(fitted(m2),resid(m2, type = "pearson"), col = "blue") # a plot to check the constant standard deviation
 abline(h = 0, lwd = 2)
@@ -140,16 +181,50 @@ qqline(ranef(m2)$pNum[,1])
 
 plot(coef(m2)$pNum)
 
+# model 3 - applying gamma distribution
+m3 <- glmer(FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), family = Gamma, data = modellingdata)
+
+# plots for model 3
+par(mfrow = c(2, 2))
+plot(fitted(m3),resid(m3, type = "pearson"), col = "blue") # a plot to check the constant standard deviation
+abline(h = 0, lwd = 2)
+
+qqnorm(resid(m3)) # normality of the residuals
+qqline(resid(m3))
+
+qqnorm(ranef(m3)$pNum[,1]) # normality of the intercepts
+qqline(ranef(m3)$pNum[,1])
+
+plot(coef(m3)$pNum)
+
+# model 3 - applying log normal distribution
+m4 <- glmer(FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), family = gaussian(link = log), data = modellingdata)
+
+# plots for model 4
+par(mfrow = c(2, 2))
+plot(fitted(m4),resid(m4, type = "pearson"), col = "blue") # a plot to check the constant standard deviation
+abline(h = 0, lwd = 2)
+
+qqnorm(resid(m4)) # normality of the residuals
+qqline(resid(m4))
+
+qqnorm(ranef(m4)$pNum[,1]) # normality of the intercepts
+qqline(ranef(m4)$pNum[,1])
+
+plot(coef(m4)$pNum)
+
 
 ```
 
-A mixed effects model using lmer function assumes a normal distribution, which is why you cannot select another distribution family for it. 
+A mixed effects model using lmer function assumes a normal distribution, which is why you cannot select another distribution family for it. This mixed model approach allows for estimating of the overall mean response for the explanatory variables whilst adding random deviation based upon the specified grouping structure i.e. the subjects.
 
-m1 model formula specifies how FirstSteeringTime is explained by heading. The 1 specifies a varying intercept to vary by participant. coef(m1) shows the different intercepts for each participant. 
+**m1** model formula specifies how FirstSteeringTime is explained by heading. The 1 specifies a varying intercept to vary by participant.
 
-m2 model forumula specifies how FirstSteeringTime is explained by heading, except (1 + heading | pNum) allows intercept and slope to vary between participants. Essentially, both the intercept and the slope of heading will vary by pNum, thus accounting for subject variability in baseline fastest RTs and the subject variability in the sensitivity to heading conditions. 
+**m2** model forumula specifies how FirstSteeringTime is explained by heading, except (1 + heading | pNum) allows intercept and slope to vary between participants. Intercept and the slope of heading will vary by pNum. This accounts for subject variability in baseline fastest RTs (latency) and the subject variability in the sensitivity to heading conditions (threshold). 
 
-coef(m2) shows the different intercepts for each participant. This mixed model approach allows for estimating of the overall mean response for the explanatory variables whilst adding random deviation based upon the grouping structure i.e. the subjects.
+**m3** using the generalised linear model which allows for other distributions to be used to model data. Data my suffer from heteroscadasity and thus cannot assume a normal distribution. **m3** therefore uses a gamma distribution to model data. 
+
+**m4** using the generalise linear model which allows for other distributions to be applied to model data. Here I have attempted to apply a log-normal by applying the gaussian distribuiton  with the link function "log". The link function is applied to the data to make it log then the Gaussian is applied. Not much different from **m2** which is just a normal mixed effects model. 
 
 **Residual plot versus fitted values**
 This plot possibly shows dependency between fitted and and residual values. A mixed model assumes a normal disstribution thus we should use this plot to investigate whether these assumptions have been violated. Things we should be checking for include:
@@ -180,6 +255,12 @@ This plots plots coefficients against the intercept, thus visualising the random
 # original plot shows evidence of heteroscadasity
 plot(m2)
 
+# if using a linear model, you can test for heteroscadastity - null hypothesis assumes equal variance so a significant p value means there is heteroscadsity present.
+linearmodelexample <- lm(FirstSteeringTime ~ inver_heading, data = modellingdata)
+
+bptest(linearmodelexample)  # Breusch-Pagan test
+ncvTest(linearmodelexample) # Non-constant Variance Score Test 
+
 # computing Box-Cox transformation on FirstSteeringTime metric
 RT_BCT <- BoxCoxTrans(modellingdata$FirstSteeringTime)
 
@@ -187,66 +268,51 @@ RT_BCT <- BoxCoxTrans(modellingdata$FirstSteeringTime)
 modellingdata <- cbind(modellingdata, RT_new = predict(RT_BCT, modellingdata$FirstSteeringTime))
 
 # construct new model with the transformed variable and then create new residual plot
-m3 <- lmer(formula = RT_new ~ inver_heading + (1 + inver_heading | pNum), data = modellingdata)
+mBoxCox <- lmer(formula = RT_new ~ inver_heading + (1 + inver_heading | pNum), data = modellingdata)
 plot(m3)
 
 ```
 
-Box-Cox transformation can be applied to your Y variable to make it approximate to a normal distribution.
+Box-Cox transformation can be applied to your Y variable to make it approximate to a normal distribution. This will be necessary for future computations, such as prediction intervals.
 
-```{r saving average intercepts and slopes}
-# model 1
+```{r visualising intercepts and slopes for each participant alongside averages}
+
+# individual and average slopes and intercepts
 AvgInterceptm1 <- summary(m1)$coef[1,1]
 AvgSlopem1 <- summary(m1)$coef[2,1]
-
-# model 2
-AvgInterceptm2 <- summary(m2)$coef[1,1]
-AvgSlopem2 <- summary(m2)$coef[2,1]
-
-```
-
-
-```{r visualising intercepts and slopes for each participant}
 
 interceptsm1 <- coef(m1)$pNum[,1] # Specifying the first column only
 slopesm1 <- coef(m1)$pNum[,2] # Specifying the second column only
 
-# varying intercept (slope is fixed)
-ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
+# varying intercept (slope is fixed) - plotting for all subjects
+ggplot(modellingdata, aes(x = error_rate, y = FirstSteeringTime, color = as.factor(pNum))) + 
   geom_jitter(alpha = .3) +
   geom_abline(slope = slopesm1, intercept = interceptsm1) +
-  # geom_abline(slope = AvgSlopem1, intercept = AvgInterceptm1, color = "red", size = 1, show.legend = TRUE) +
+  geom_abline(slope = AvgSlopem1, intercept = AvgInterceptm1, color = "red", size = 1, show.legend = TRUE) +
   theme(legend.position = "none") +
   theme(axis.text.x = element_blank()) +
   ggtitle("RTs against heading - varying intercept only (model 1)")
 
 
+# individual and average slopes and intercepts
+AvgInterceptm2 <- summary(m2)$coef[1,1]
+AvgSlopem2 <- summary(m2)$coef[2,1]
+
 interceptsm2 <- coef(m2)$pNum[,1] # Specifying the first column only
 slopesm2 <- coef(m2)$pNum[,2] # Specifying the second column only
 
-# varying intercept and slope
-ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
+# varying intercept and slope  - plotting for all subjects
+ggplot(modellingdata, aes(x = error_rate, y = FirstSteeringTime, color = as.factor(pNum))) + 
   geom_jitter(alpha = .3) +
   geom_abline(slope = slopesm2, intercept = interceptsm2) +
-  # geom_abline(slope = AvgSlopem2, intercept = AvgInterceptm2, color = "red", size = 1, show.legend = TRUE) +
+  geom_abline(slope = AvgSlopem2, intercept = AvgInterceptm2, color = "red", size = 1, show.legend = TRUE) +
   theme(legend.position = "none") +
   theme(axis.text.x = element_blank()) +
   ggtitle("RTs against heading - varying slope and intercept (model 2)")
   
-  
-# checking intercepts and slopes for individual subjects (unsure how facet_wrap subjectw with their individual intercepts and slopes...)
-
-# ggplot(magnitudedata %>%
-#          dplyr::filter(pNum == 7), aes(x = heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
-#   geom_jitter(alpha = .3) +
-#   geom_abline(slope = slopesm2[7], intercept = interceptsm2[7], alpha = .5) +
-#   geom_abline(slope = AvgSlopem2, intercept = AvgInterceptm2, color = "red", size = 1, show.legend = TRUE) +
-#   theme(legend.position = "none") +
-#   ggtitle("RTs against heading - varying slope and intercept for an individual")
-
 ```
 
-For both plots, heading is inverted. This means 2 degrees of heading offset angle is furtherest to the left. This improves interpretation of the intercept, which should be where subejcts are reacting as quickly as possible.
+For both plots, error rate is plotted against FirstSteeringTime. This way, intercept and slope are directly interpretable as latency and threshold. 
 
 Varying intercept relates to baseline reaction time i.e. latency for how participants react as fast as they can (when error is instantly above threshold). As expected, this varies a lot between participants. In this case, intercept relates to as fast as possible reactions which will naturally vary amongst the population. 
 
@@ -277,11 +343,11 @@ ggplot(a, aes(x = slopesm2, y = RTSD)) +
 
 ```
 
-There appears to be little or no correlation between RT standard deviation and intercept. Any correlation that might be there also appears to be negative, rather than positive. Thus it seems that higher intercepts are relating to the a reduced sensitivity to the experimental manipulation.
+There appears to be little or no correlation between RT standard deviation and intercept. Any correlation that might be there also appears to be negative, rather than positive. Thus it seems that higher intercepts are relating to reduced sensitivity to the experimental manipulation.
 
 ```{r model comparions}
 
-anova(m1, m2)
+anova(m1, m2, m3, m4)
 
 ```
 
@@ -312,144 +378,54 @@ Blue indicates model 1, red line indicates model 2. Variance in the slopes betwe
 
 Blue indicates model 1, red line indicates model 2. The variance is more spread for model 2 than for model 1. Does this indicate that when you allow the slope to vary according to the heading, variation between the participants increases. Thus subject variability has an affect on the sensitivity towards the heading conditions.
 
-```{r simulating data for testing model fit (taken from Callum's code)}
 
-pp_n <- 20  #number of participants
-trials_n <- 160  #number of trials
-sigma_y <- 1 # within-participant variability / measurement error
-
-a       <-  0    # average control condition mean
-b       <- .5    # average effect size
-sigma_a <- 0.06479     # std dev in intercepts (control means, between participant variability)
-sigma_b <-  0.07140   # std dev in slopes (effect size)
-rho     <-  -0.39   # correlation between intercepts and slopes
-
-# combine means and standard deviations for multivariate gaussian sampling
-mu <- c(a, b)
-sigmas <- c(sigma_a, sigma_b)          # standard deviations
-rho    <- matrix(c(1, rho,             # correlation matrix
-                   rho, 1), nrow = 2)
-
-# now matrix multiply to get covariance matrix
-sigma <- diag(sigmas) %*% rho %*% diag(sigmas)
-
-#let's create our participant level parameters
-set.seed(1)  # used to replicate example
-vary_effects <- MASS::mvrnorm(pp_n, mu, sigma) #use multivariate gaussian
-
-#rename columns for varying intercepts and varying slopes
-vary_effects <- vary_effects %>% as_tibble() %>% rename(pp_a = V1,
-                                                        pp_b = V2)
-
-  
-# now simulate observations.
-
-# this piping operation is a little involved, but essential it makes a dataframe of with trial_n entries of all  combinations of participant intercepts and slopes. Then adds a binary column to signify whether the condition is the experimental (1) or control (0). It then uses this column to switch 'on' or 'off' the experimental effect to generate a column of participant condition means. Then it uses the specified (and  constant) within-individual variability (or measurement error) to generate observations
-
-set.seed(1)  # used to replicate example
-data <- vary_effects %>% 
-  mutate(pp = 1:pp_n) %>% 
-  tidyr::expand(nesting(pp, pp_a, pp_b), trial = 1:trials_n) %>% 
-  mutate(condition = rep(0:1, times = n() / 2)) %>% 
-  mutate(mu = pp_a + pp_b * condition) %>% 
-  mutate(measurement = rnorm(n = n(), mean = mu, sd = sigma_y))
-
-head(data)
-
-#quick plot.
-ggplot(data, aes(x=measurement, group=condition)) + geom_density()
-
-# 
-magnitudedata %>%
-  group_by(pNum) %>%
-  summarise(n = n()) %>%
-  summarise(mean = mean(n))
-
-```
-
-```{r fitting multi-level model for simulated data}
-
-m3 <- lmer(formula = measurement ~ condition + (1 + condition | pp), data = data)
-summary(m3)
-
-interceptsm3 <- coef(m3)$pp[,1] # Specifying the first column only
-slopesm3 <- coef(m3)$pp[,2] # Specifying the second column only
-
-ggplot(data, aes(x = condition, y = measurement, color = as.factor(pp))) +
-  geom_jitter(alpha = .3, show.legend = FALSE) +
-  geom_abline(slope = slopesm3, intercept = interceptsm3)
-
-mean(slopesm2)
-sd(slopesm2)
-sd(interceptsm2)
-
-mean(slopesm3)
-sd(slopesm3)
-sd(interceptsm3)
-
-```
-
-Model 3 is fitted from the simulated data from Callum's code, based on model 2 that was fitted to actual data. 
-
-**160 trials per participant (average number of trials per participant in real data)**
-In comparison to model 2, model 3 has less individual variation. There is also less subject variation towards the sensitivity of the heading condition.
-
-```{r mixed model inference - simulations and 95% CIs}
-
-# plot heading effects 
-
-# Simulate new data based upon the fitted model
-new_data <- data.frame(inver_heading = as.numeric(1 / seq(0.5,2,length = 4)))
-pred_data <- predict(m2, newdata = new_data, re.form = ~0)
-
-# compute bootstrapped confidence interval, see ?predict.merMod
-ci_line <- bootMer(m2, FUN = function(.) predict(.,newdata = new_data, re.form = ~0), nsim = 200)
-ci_regT <- apply(ci_line$t, 2, function(x) x[order(x)][c(5,195)])
-
-# plot original data with CIs from simulated data
-plot(FirstSteeringTime ~ jitter(inver_heading, 2), modellingdata)
-lines(new_data$inver_heading, pred_data, lwd = 3)
-lines(new_data$inver_heading, ci_regT[1,], lty = 2)
-lines(new_data$inver_heading, ci_regT[2,], lty = 2)
-mtext(text = "Regression curves with 95% confidence intervals", side = 3, outer = FALSE, at = -3)
-
-```
-
-This method of inference simulates new reaction time data from the given explanatory variables (inverse heading) and the fitted model. It then re-fits the model to these simulated response values and extracts the fitted coefficient. From the distribution of bootstrapped coefficients, it will draw a 95% confidence intervals (dashed lines) around the fitted values (solid lines).
-
-The small range of the confidence intervals provides increased certainty that the fitted model for these data is valid and reliable. Calculating the confidence intervals from 200 simulations improves this further.
-
-```{r individual regression lines for individual participants}
+```{r creating prediction and confidence intervals for individual regression lines}
 
 # create empty vectors for slope coefficients and intercepts
 heading_coefs = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 heading_intercept = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+predicted_values <- data.frame(fit = numeric(0), lwr = numeric(0), upr = numeric(0))
 
 for (i in c(1:19)){
   # Create temporary data frame:
 heading_tmp <- modellingdata[modellingdata$pNum == i,]
   # Perform regression:
-reg_result <- lm(heading_tmp$FirstSteeringTime ~ heading_tmp$inver_heading)
+reg_result <- lm(heading_tmp$FirstSteeringTime ~ heading_tmp$error_rate)
   # Get coefficient:
 tmp_coef <- coef(reg_result)
+  # Get model prediction
+tmp_pred <- predict(reg_result, interval = "prediction")
 
 # Store coefficient and intercept for each subject:
 heading_coefs[i] <- tmp_coef[2] 
 heading_intercept[i] <- tmp_coef[1]
 
-plot(jitter(heading_tmp$inver_heading, 3), heading_tmp$FirstSteeringTime)
-abline(heading_intercept[i], heading_coefs[i])
+# Store prediction intervals
+
+heading_tmp <- cbind(heading_tmp, tmp_pred)
+
+# plot(jitter(heading_tmp$error_rate, 3), heading_tmp$FirstSteeringTime)
+# abline(heading_intercept[i], heading_coefs[i])
+
+print(ggplot(heading_tmp, aes(x = error_rate, y = FirstSteeringTime)) +
+  geom_jitter() +
+  stat_smooth(method = lm) +
+  geom_line(aes(y = lwr), color = "red", linetype = "dashed") +
+  geom_line(aes(y = upr), color = "red", linetype = "dashed"))  
 
 }
 
-# plotting individuals on the same plot
-ggplot(modellingdata, aes(x = inver_heading, y = FirstSteeringTime, color = as.factor(pNum))) + 
-  geom_jitter(alpha = .3) +
-  geom_abline(slope = heading_coefs, intercept = heading_intercept) +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_blank()) +
-  ggtitle("RTs against heading - individual single level regression slopes")
+plot(heading_intercept, heading_coefs)
+abline(lm(heading_coefs ~ heading_intercept), col = "red")
 
+# plotting individuals on the same plot
+
+# ggplot(modellingdata, aes(x = error_rate, y = FirstSteeringTime, color = as.factor(pNum))) + 
+#   geom_jitter(alpha = .3) +
+#   geom_abline(slope = heading_coefs, intercept = heading_intercept) +
+#   theme(legend.position = "none") +
+#   theme(axis.text.x = element_blank()) +
+#   ggtitle("RTs against heading - individual single level regression slopes")
 
 ```
 
@@ -457,91 +433,130 @@ The above code computes a single level regression line for each participant. It 
 
 The main difference between individual regression models and multi-level models is that  multi-level models assume that coefficients are sampled from a distribution. These assumptions can be useful if there is uncertainty in individual estimates as you can use information about how the individual coefficients vary across the group to make better estimates of indiviual coefficients and thus group averages altogether.
 
-However, if each individual has a lot of data points per condition, we can be more certain of the individual coefficients. Thus we don't have torely on the assumption of them being drawn from a normal distribution, and can extract individual regression lines rather than implement a mixed model.
+However, if each individual has a lot of data points per condition, we can be more certain of the individual coefficients. Thus we don't have to rely on the assumption of them being drawn from a normal distribution, and can extract individual regression lines rather than implement a mixed model.
 
-```{r plotting coefficients from individual regressions vs mixed models}
+**Difference between CIs and prediction intervals**
 
-m2regress <- as.data.frame(cbind(slopesm2, interceptsm2))
+Confidence intervals tell you how well you have calculated the mean value. Imagine you sample from a Gaussian distribution a number of times and generate confidence intervals for each sample mean. You would expect 95% of those intervals to contain the population mean. Confidence intervals tell you about the likely location of the population parameter.
 
-m2regress <- m2regress %>%
+Prediction intervals tell you where you would expect to see the next data point that has been sampled for a new observation. Because they have to deal with a single point rather than the mean of values, predicition intervals are usually wider than confidence intervals.
+
+One thing to note is that predicction intervals rely strongly on the assumption of constant variance. Hence re-computing these after the Box-Cox transformation might be a good idea.
+
+**Confidence interval output**
+
+**Fit:** the predicted population level mean values for the three error rate values
+**lwr and upr:** the lower and the upper confidence limits for the expected values, respectively. By default the function produces the 95% confidence limits.
+
+**Predicition interval output**
+
+**Fit** refers to the centre of the distribution i.e. a predicition of each value based upon the model
+**Upper** and **lower** refer to the upper and lower bounds of the predicition intervals, whereby 95% of subjects would fall witHin these predicition interval bounds for a given error rate value
+
+
+```{r plotting coefficients from individual regressions vs mixed models - how do distributions differ?}
+
+m2mixedmodel <- as.data.frame(cbind(slopesm2, interceptsm2))
+
+m2mixedmodel <- m2mixedmodel %>%
   mutate(pNum = row_number())
 
-ggplot(m2regress, aes(x = slopesm2)) +
+ggplot(m2mixedmodel, aes(x = slopesm2)) +
   geom_histogram(aes(y = ..density..)) +
   stat_bin(binwidth = 0.05, bins = 10) +
-  stat_function(fun = dnorm, args = with(m2regress, c(mean = mean(slopesm2), sd = sd(slopesm2)))) +
+  stat_function(fun = dnorm, args = with(m2mixedmodel, c(mean = mean(slopesm2), sd = sd(slopesm2)))) +
   ggtitle("mixed model coefficients") +
   annotate("text", label = "Skewness = 1.111437, Kurtosis = 1.22957", x = 0.25, y = 10, size = 4)
 
 
-individualregess <- as.data.frame(cbind(heading_coefs, heading_intercept)) %>%
+individualmodel <- as.data.frame(cbind(heading_coefs, heading_intercept)) %>%
   mutate(pNum = row_number())
 
-ggplot(individualregess, aes(x = heading_coefs)) +
+ggplot(individualmodel, aes(x = heading_coefs)) +
   geom_histogram(aes(y = ..density..)) +
   stat_bin(binwidth = 0.05, bins = 10) +
-  stat_function(fun = dnorm, args = with(individualregess, c(mean = mean(heading_coefs), sd = sd(heading_coefs)))) +
+  stat_function(fun = dnorm, args = with(individualmodel, c(mean = mean(heading_coefs), sd = sd(heading_coefs)))) +
   ggtitle("individual regression line coefficients") +
   annotate("text", label = "Skewness = 1.451552, Kurtosis = 2.601625", x = 0.3, y = 10, size = 4)
 
 
-skewness(m2regress$slopesm2)
-kurtosis(m2regress$slopesm2)
+skewness(m2mixedmodel$slopesm2)
+kurtosis(m2mixedmodel$slopesm2)
 
-skewness(individualregess$heading_coefs)
-kurtosis(individualregess$heading_coefs)
+skewness(individualmodel$heading_coefs)
+kurtosis(individualmodel$heading_coefs)
 
 ```
 
-The above code looks at the distribution of coefficients of subjects calculated by mixed model and via individual regression lines. The mixed model coefficients are more normally distributed, as would be expected, because they are computed under the assumption that samples are drawn from a normal distribution. 
+The above code looks at the distribution of coefficients of subjects calculated by mixed model and via individual regression lines. The mixed model coefficients are more normally distributed, as would be expected, because they are computed under the assumption that samples are drawn from a normal distribution.
+
 Conversely, coefficients computed from individual regression lines are more positiviely skewed as they are not under the assumption of distribution normality. 
 
-```{r fitting model to error slowness/decay metric}
+```{r mixed model inference - simulations and 95% CIs on error rate metric}
 
-# compute metrics
-modellingdata <- modellingdata %>%
-  mutate(error_decay = 1 / (sin(heading /180 *pi) * 10)) %>%
-  mutate(error_growth = sin(heading / 180 * pi) * 10)
+m2 <- lmer(formula = FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), data = modellingdata)
 
-# plotting median RTs against error growth
-ggplot(modellingdata %>%
-         group_by(error_growth) %>%
-         summarise(medianRT = median(FirstSteeringTime)), aes(x = error_growth, y = medianRT)) +
-  geom_point() +
-  geom_line() +
-  ggtitle("Median RTs against error growth")
+# plot heading effects 
 
-# plotting median RTs against error decay
-ggplot(modellingdata %>%
-         group_by(error_decay) %>%
-         summarise(medianRT = median(FirstSteeringTime)), aes(x = error_decay, y = medianRT)) +
-  geom_point() +
-  geom_line() +
-  ggtitle("Median RTs against error decay")
+# Simulate new data based upon the fitted model
+new_data <- data.frame(heading = as.numeric(seq(0.5, 2, length = 4)))
+new_data <- new_data %>%
+  mutate(heading_radians = heading / 180 * pi) %>%
+  mutate(error_rate =  1 / (sin(heading_radians) * 10))
 
-# plotting heading against error decay
+pred_data <- predict(m2, newdata = new_data, re.form = ~0)
 
-ggplot(modellingdata, aes(x = error_decay, y = heading)) +
-  geom_point() +
-  geom_line() +
-  ggtitle("Heading against error decay")
+# compute bootstrapped confidence interval, see ?predict.merMod
+ci_line <- bootMer(m2, FUN = function(.) predict(.,newdata = new_data, re.form = ~0), nsim = 200)
+ci_regT <- apply(ci_line$t, 2, function(x) x[order(x)][c(5,195)])
+
+# plot original data with CIs from simulated data
+plot(FirstSteeringTime ~ jitter(error_rate, 2), modellingdata)
+lines(new_data$error_rate, pred_data, lwd = 3)
+lines(new_data$error_rate, ci_regT[1,], lty = 2)
+lines(new_data$error_rate, ci_regT[2,], lty = 2)
 
 ```
 
-Above code first computes error slowness and error growth.
+Simulates new reaction time data from the given explanatory variables (error rate) and the fitted model. It then re-fits the model to these simulated response values and extracts the fitted coefficient. From the distribution of bootstrapped coefficients, it will draw a 95% confidence intervals (dashed lines) around the fitted values (solid lines).
 
-We already know that that **RT = latency + threshold / sin(heading)**
+The small range of the confidence intervals provides increased certainty that the fitted model for these data is valid and reliable. Calculating the confidence intervals from 200 simulations improves this further.
 
-This means that *RT equals the baseline delay of participants reacting, added to when the error rate exceeds the threshold*. To formulate this into a linear model, the coefficient threshold needs to be multiplied by the error rate. Computing this a rearranging the equation gives us:
+```{r mixed model inference - predicition interval for error rate metric}
 
-*RT = latency + threshold x 1 / sin(heading) x V*
+fit <- lmer(formula = FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), data = modellingdata)
+pred <- cbind(modellingdata, predictInterval(fit, modellingdata))
 
-Taking the inverse of sin(heading) generates the metric error decay. Error decay refers to how much the rate of error development has decayed. Conversely, ordinary sin(heading) generates error growth i.e. how much the error rate has developed. Plotting either of these metrics against the median of RT will show whether the relationship is linear or not.
+ggplot(pred, aes(x = error_rate, y = fit)) + 
+  stat_summary(fun.y = mean, geom = "line", show.legend = FALSE) + 
+  # stat_summary(fun.ymin = mean, geom = "ribbon", show.legend = FALSE) +
+  # stat_summary(fun.ymax = mean, geom = "ribbon", show.legend = FALSE) +
+  geom_ribbon(aes(x = error_rate, ymin = lwr, ymax = upr), alpha = 0.2) +
+  geom_jitter(aes(x = error_rate, y = FirstSteeringTime), alpha = 0.1) +
+  ylab("RT")
 
-**Plots**
-Error growth against median RTs is easier to interpret. Essentially, as error growth increases, median RT decreases. This would be expected, as the faster error develops the faster participants will react to it.
+```
 
-Error decay against median RTs is less intuitive to understand. High error decay value relate to the most decayed error development. At it's highest, there would be no error at all because the development of it would have all decayed away. This will inevitably lead to slow RTs. Conversely, when decay is low there will be larger error development which will lead to faster RTs.
+predictInterval function computes new simulated distribution of parameters from the model. The distribution is then cut using median or mean stat functions and then is returned alongside the upper and lower bounds of the prediction.
 
-We can confirm this relationship between error decay and RTs by plotting error decay against our raw heading metric. The plot demonstrates that smaller heading have larger error decay. This makes sense, as smaller headings have reduced error development and thus higher "error decay".
+**Fit** refers to the centre of the distribution i.e. a predicition of each value based upon the model
+
+**Upper** and **lower** refer to the upper and lower bounds of the predicition intervals, whereby 95% of subjects would fall witHin these predicition interval bounds for a given error rate value
+
+Stat summary function needed to average fit and lower and upper bounds in order to avoid vertical lines for each real error rate value within the dataset.
+
+
+```{r predicting RTs for new heading values using a linear model}
+
+model2 <- lm(FirstSteeringTime ~ error_rate, data = modellingdata)
+
+new.data <- data.frame(error_rate = c(15.0, 20.0, 25.0)) # headings
+new.data <- new.data %>%
+  mutate(error_rate = error_rate / 180 * pi) %>% # convert to radians
+  mutate(error_rate = 1 / (sin(error_rate) * 10)) # convert to error rate
+
+# predict function predicts RTs for new data error rates
+predict(model2, newdata = new.data, interval = "prediction")
+
+```
 

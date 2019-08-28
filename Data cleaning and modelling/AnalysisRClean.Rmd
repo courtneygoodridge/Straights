@@ -36,11 +36,11 @@ install.packages(conflicted) # heloful package to show when packages have confli
 
 # full datasets
 # set working directory on pffice laptop
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
 # setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/test_example/Full_Data") 
 
 # set working directory on personal laptop
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example/Full_Data")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
@@ -178,7 +178,7 @@ library(tidyr)
 
 # code below is identical to the RT data selection - both trying to find the same thing (start of the response)
 mag_response_start <- workingdata %>% 
-select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>% 
+dplyr::select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>% 
 group_by(ppid_trialn) %>%
   dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
@@ -200,7 +200,7 @@ library(dplyr)
 library(tidyr)
 
 mag_response_peak <- workingdata %>%
-select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>%
+dplyr::select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>%
 group_by(ppid_trialn) %>%
 mutate(peakYaw = max(YawRateChange)) %>%
 dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% 
@@ -223,9 +223,8 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 # colnames(magnitudedata)[colnames(magnitudedata) == 'block.x'] <- 'block'
 
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 # setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
-write.csv(dat, file = "dat_example.csv")
+# write.csv(magnitudedata, file = "magnitudedata.csv")
 
 ```
 
@@ -322,35 +321,35 @@ nonresponses <- dplyr::filter(workingdata, ppid_trialn %!in% responseid) # filte
 
 nonresponses <- nonresponses %>%
   group_by(ppid_trialn) %>%
-  mutate(resp = "lower", response_num = 1, FirstSteeringTime = 2.5) %>%
+  mutate(response = "nosteer", response_num = 1, FirstSteeringTime = 2.5) %>%
     slice(1) %>% # selects one row of each trial
   ungroup() 
 
 a <- nonresponses %>%
-  select(ppid_trialn, heading, pNum, resp, response_num, FirstSteeringTime)
+  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime)
 
 workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
   group_by(ppid_trialn) %>%
-  mutate(resp = "upper", response_num = 2)
+  mutate(response = "steer", response_num = 2)
 
 b <- workingdatathresholdUnsmooth %>%
-  select(ppid_trialn, heading, pNum, resp, response_num, FirstSteeringTime)
+  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime)
 
 # dat <- rbind(a, b) # WHY DON'T YOU FUCKING WORK!!!!!!!
 
 ppid_trialn <- c(a$ppid_trialn, b$ppid_trialn)
 heading <- c(a$heading, b$heading)
 pNum <- c(a$pNum, b$pNum)
-resp <- c(a$resp, b$resp)
+response <- c(a$response, b$response)
 response_num <- c(a$response_num, b$response_num)
 FirstSteeringTime <- c(a$FirstSteeringTime, b$FirstSteeringTime)
 # block <- c(a$block, b$block)
 
-dat <- as.data.frame(cbind(ppid_trialn, heading, pNum, resp, response_num, FirstSteeringTime))
+dat <- as.data.frame(cbind(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime))
 
-rm(ppid_trialn, heading, pNum, resp, response_num, FirstSteeringTime, nonresponses, responseid, a, b)
+rm(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, nonresponses, responseid, a, b)
 
-# changing data types
+sapply(dat, class)
 
 dat$FirstSteeringTime <- as.character(dat$FirstSteeringTime)
 dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
@@ -358,15 +357,9 @@ dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
 dat$response_num <- as.character(dat$response_num)
 dat$response_num <- as.numeric(dat$response_num)
 
-dat$FirstSteeringTime <- as.character(dat$FirstSteeringTime)
-dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
 
-dat$resp <- as.factor(dat$resp)
-
-sapply(dat, class)
-
-# dat <- dat %>%
-  # dplyr::filter(FirstSteeringTime > 0.15) # filter trials that are within physiological plausible boundary
+dat <- dat %>%
+  dplyr::filter(FirstSteeringTime > 0.15) # filter trials that are within physiological plausible boundary
 
 
 ```

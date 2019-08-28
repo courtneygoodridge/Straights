@@ -19,6 +19,7 @@ magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CS
 
 ```
 
+
 ```{r load packages}
 
 library(ggplot2)
@@ -89,6 +90,8 @@ This means that *RT equals the baseline delay of participants reacting, added to
 
 Taking the inverse of sin(heading) generates the metric error rate. Error rate refers to how much time it takes to travel a metre and thus, how slowly or quickly error develops. Conversely, ordinary sin(heading) generates error growth i.e. how much the error rate has developed. Plotting either of these metrics against the median of RT will show whether the relationship is linear or not.
 
+Computing the inverse therefore makes the regression directtly interpretable - the intercept is the latency measured in seconds (i.e. perceptual processing time, motor and mechanical latency) whether the slope coefficient represents the threshold measured in metres. In this respect, is it the number of metres travelled away from the line before the threshold is surpassed as subjects react. 
+
 **Plots**
 Error growth against median RTs is easier to interpret. Essentially, as error growth increases, median RT decreases. This would be expected, as the faster error develops the faster participants will react to it.
 
@@ -138,6 +141,8 @@ cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
 qqcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
 ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
 
+
+
 ```
 
 Above is an example of how you might work out how your data is distributed. Firstly you need to know what kind of data you have. 
@@ -154,6 +159,38 @@ Data must be within the [0,1] interval
 Run descdist() function to see roughly where you data falls. Then use fitdistr() function to se distribution fits for individual distribution fits.
 
 For the current modelling data, it appears that gamma, lognormal for weibull distributions will work best.
+
+```{r describing the data}
+
+# histogram distribution for each heading condition
+ggplot(magnitudedata, aes(x = FirstSteeringTime)) + geom_histogram(bindwidth = .1) +
+  facet_wrap(~heading) + geom_vline(xintercept = .5)
+
+# histogram distribution for 0.5 heading condition for each subject - there is some variability in the distribution of RTs
+ggplot(filter(magnitudedata, heading == .5), aes(x = FirstSteeringTime)) + geom_histogram(bindwidth = .1) +
+  facet_wrap(~pNum) + geom_vline(xintercept = .5)
+
+# compute overall timestamp, differentiated yaw rate per second variable (YawRateChange) and absolute heading
+workingdata2 <- workingdata %>% 
+  group_by(ppid_trialn) %>% 
+  mutate(timestamp_zero = timestamp - timestamp[1],
+         SWA_mirrored = SWA * sign(heading + 1e-6),
+         abs_heading = abs(heading),
+         diff_YR = c(0, diff(YawRate_seconds)))
+
+# shows the moment that the steering wheel angle is reset before the visible line is presented. For some subjects, there is carry over as they are steering before during and after the reset.
+
+ggplot(filter(workingdata2, pNum == 11, heading == 0), aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_trialn, col = ppid_trialn)) +
+         geom_line() + guides(colour = FALSE)
+
+ggplot(filter(workingdata2, ppid_trialn == "9_2_69"), aes(x = timestamp_zero, y =diff_YR)) +
+         geom_line() + guides(colour = FALSE)
+
+# plots x and z coordinates for all trials for a specific subject
+
+ggplot(filter(workingdata2, pNum == 11), aes(x = World_x, y = World_z)) + geom_point()
+
+```
 
 
 ```{r fitting of multilevel model using lmer function without gaussian link function}
@@ -197,7 +234,7 @@ qqline(ranef(m3)$pNum[,1])
 
 plot(coef(m3)$pNum)
 
-# model 3 - applying log normal distribution
+# model 4 - applying log normal distribution
 m4 <- glmer(FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), family = gaussian(link = log), data = modellingdata)
 
 # plots for model 4
@@ -227,7 +264,7 @@ A mixed effects model using lmer function assumes a normal distribution, which i
 **m4** using the generalise linear model which allows for other distributions to be applied to model data. Here I have attempted to apply a log-normal by applying the gaussian distribuiton  with the link function "log". The link function is applied to the data to make it log then the Gaussian is applied. Not much different from **m2** which is just a normal mixed effects model. 
 
 **Residual plot versus fitted values**
-This plot possibly shows dependency between fitted and and residual values. A mixed model assumes a normal disstribution thus we should use this plot to investigate whether these assumptions have been violated. Things we should be checking for include:
+This plot shows dependency between fitted and and residual values. A mixed model assumes a normal disstribution thus we should use this plot to investigate whether these assumptions have been violated. Things we should be checking for include:
 
 - Consistent variance above and below the zero line
 - No systematic curvature of points
@@ -248,7 +285,7 @@ This plot computes the difference between the population-level average predicted
 This plot is the same as the residual plot, except we are not plotting intercepts rather than residuals. Essentially, how much does any individual differ from the population? Normal distribution would occur if points were directly on the ine.  
 
 **Coeffiecient plot**
-This plots plots coefficients against the intercept, thus visualising the random effects correlation between the intercept and the slope. This visualises the negative correlation (-.39), demonstrating that individuals intercept variation has an effect on the heading slope variation.
+This plots plots coefficients against the intercept, thus visualising the random effects correlation between the intercept and the slope. For **m2** this visualises the negative correlation (-.39), demonstrating that individuals intercept variation has an effect on the heading slope variation.
 
 ```{r solving heteroscadastity using Box-Cox transformation}
 

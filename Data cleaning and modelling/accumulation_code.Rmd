@@ -94,6 +94,11 @@ datlist <- list(dat0_5, dat1_0, dat1_5, dat2_0)
 
 nlm2 <- nlm(p=c(1, .1, .1, 1, 1), f=many_drifts, dat=datlist)
 
+# add 2 extra 1's empty vector and the code MIGHT work... ^
+
+
+
+
 
 ```
 

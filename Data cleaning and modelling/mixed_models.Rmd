@@ -456,13 +456,12 @@ Blue indicates model 1, red line indicates model 2. The variance is more spread 
 # create empty vectors for slope coefficients and intercepts
 heading_coefs = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 heading_intercept = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
-predicted_values <- data.frame(fit = numeric(0), lwr = numeric(0), upr = numeric(0))
 
 for (i in c(1:19)){
   # Create temporary data frame:
 heading_tmp <- modellingdata[modellingdata$pNum == i,]
   # Perform regression:
-reg_result <- lm(heading_tmp$FirstSteeringTime ~ heading_tmp$error_rate)
+reg_result <- lm(FirstSteeringTime ~ error_rate, data = heading_tmp)
   # Get coefficient:
 tmp_coef <- coef(reg_result)
   # Get model prediction
@@ -476,9 +475,13 @@ heading_intercept[i] <- tmp_coef[1]
 
 heading_tmp <- cbind(heading_tmp, tmp_pred)
 
+# base R plotting
 # plot(jitter(heading_tmp$error_rate, 3), heading_tmp$FirstSteeringTime)
 # abline(heading_intercept[i], heading_coefs[i])
+# lines(x = heading_tmp$error_rate, y = heading_tmp$upr, type = "l", lty = 1, col = "red")
+# lines(x = heading_tmp$error_rate, y = heading_tmp$lwr, type = "l", lty = 1, col = "red")
 
+# ggplot plotting
 print(ggplot(heading_tmp, aes(x = error_rate, y = FirstSteeringTime)) +
   geom_jitter() +
   stat_smooth(method = lm) +
@@ -488,8 +491,8 @@ print(ggplot(heading_tmp, aes(x = error_rate, y = FirstSteeringTime)) +
 
 }
 
-plot(heading_intercept, heading_coefs)
-abline(lm(heading_coefs ~ heading_intercept), col = "red")
+# plot(heading_intercept, heading_coefs)
+# abline(lm(heading_coefs ~ heading_intercept), col = "red")
 
 # plotting individuals on the same plot
 
@@ -504,9 +507,13 @@ abline(lm(heading_coefs ~ heading_intercept), col = "red")
 
 The above code computes a single level regression line for each participant. It them plots the regression line for each subject on their individual RT data points for inverse heading.
 
+Once each linear model has been computed, it uses this model to create prediction intervals for each subject. The prediction intervals give an estimate of where an RT might line for a subject for any given error rate i.e. an error rate that was not sampled in the experiment. 
+
 The main difference between individual regression models and multi-level models is that  multi-level models assume that coefficients are sampled from a distribution. These assumptions can be useful if there is uncertainty in individual estimates. This is because you can use information from the distribution (how the individual coefficients vary across a sample) to make better estimates of indiviual coefficients and thus group averages altogether.
 
 However, if each individual has a lot of data points per condition, we can be more certain of the individual coefficients. The current data set has a lot of data points per condition, thus we don't have to rely on the assumption of them being drawn from a normal distribution. We can therefore extract individual regression lines rather than implement a mixed model.
+
+**Sidenote** when using base R plot function, I need to calculate and save the individual slopes and intercepts. However when using ggplot, I can using the stat_smooth function and compute a linear model for each subject that way.
 
 **Difference between CIs and prediction intervals**
 
@@ -528,7 +535,7 @@ Prediction intervals tell you where you would expect to see the next data point 
 ```{r prediction intervals for mixed models - one participant to make sure it works}
 
 # fit glm for one participant
-pp_RT <- filter(modellingdata, pNum == 10)
+pp_RT <- filter(modellingdata, pNum == 11)
 
 pp_RT_m1 <- glm(data = pp_RT, FirstSteeringTime ~ error_rate, family = Gamma(link = log))
 
@@ -553,6 +560,75 @@ ggplot(pp_RT, aes(x = error_rate, y = FirstSteeringTime)) +
 
 
 ```
+
+
+```{r predictions for GLM for multiple participants}
+
+# create empty vectors for slope coefficients and intercepts
+heading_coefs = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+heading_intercept = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+
+for (i in c(1:19)){
+  # Create temporary data frame:
+heading_tmp <- modellingdata[modellingdata$pNum == i,]
+  # Perform regression:
+reg_result <- glm(FirstSteeringTime ~ error_rate, family = Gamma(link = log), data = heading_tmp)
+  # Get coefficient:
+tmp_coef <- coef(reg_result)
+
+  # generate 100 simulated error rates between minimum and maximum error rate that were sampled in the experiment
+tmp_pred <- with(modellingdata,
+           data.frame(error_rate = seq(min(error_rate), max(error_rate),
+                                       length = 100)))
+
+# computed predictions of fit and standard error for simulated error rates
+tmp_pred<- cbind(tmp_pred, predict(reg_result, tmp_pred, type = "response", se.fit = TRUE)[1:2])
+
+# calculate upper and lower bounds 
+tmp_pred <- tmp_pred %>% 
+  mutate(upper = fit + (1.96 * se.fit),
+         lower = fit - (1.96 * se.fit))
+
+# Store coefficient and intercept for each subject:
+heading_coefs[i] <- tmp_coef[2] 
+heading_intercept[i] <- tmp_coef[1]
+
+# base R plotting
+# plot(jitter(heading_tmp$error_rate, 3), heading_tmp$FirstSteeringTime)
+# abline(heading_intercept[i], heading_coefs[i])#
+# lines(x = tmp_pred$error_rate, y = tmp_pred$fit, type = "l", lty = 1, col = "black")
+# lines(x = tmp_pred$error_rate, y = tmp_pred$upper, type = "l", lty = 1, col = "red")
+# lines(x = tmp_pred$error_rate, y = tmp_pred$lower, type = "l", lty = 1, col = "red")
+
+
+# ggplot plotting
+print(ggplot(heading_tmp, aes(x = error_rate, y = FirstSteeringTime)) +
+  geom_jitter(alpha = .3) +
+  stat_smooth(method = "glm") +
+  geom_line(data = tmp_pred, aes(x = error_rate, y = lower), color = "red", linetype = "dashed") +
+  geom_line(data = tmp_pred, aes(x = error_rate, y = upper), color = "red", linetype = "dashed") +
+  geom_line(data = tmp_pred, aes(x = error_rate, y = fit), color = "black", linetype = "dashed"))
+
+}
+
+```
+
+Above code computes prediction intervals and fits for the glm model that uses a gamma distribution with a log link function.
+
+Firstly, the a model is computed for each subject using the glm function. A gamma distribution with log link function is specified. 
+
+Predicition intervals were then calculated. Firstly, 100 error rates were simulated between the minimum and maximum error rates that were sampled in the experiment. Average fits and standard errors for each simulated error rate were then computed. Following this, the upper and lower bounds of the predicition intervals were caluclated. This is done by adding (upper) or subtracting (lower) 1.96 * standard error of fit from the original fit value. Multipling 1.96 by the standard error of fit calculates the 95% distribution of values for error rate. This is because 1.96 standard deviations either side of the mean represents 95% of the population, and the standard error is a measure of the deviation of fit across the sampling distribution.
+
+Once these have been computed, they are plotted alongside the confidence intervals and the glm.**Sidenote** as with the individual lm's, when using base R plot function, I need to calculate and save the individual slopes and intercepts. However when using ggplot, I can using the stat_smooth function and compute a generalised linear model for each subject that way.
+
+**Comparison of prediction intervals to the linear models**
+
+Prediction intervals are much narrower and encompass less of the data. They are also not parallel with each other which may represent the fact that they take into account the varying variance? **CHECK THIS**
+
+Because they encompass less of the data, can this model be consider a "worse model"? Maybe try and compare with another link function for the gamma distribution??
+
+**Check what people say regarding prediction intervals for GLMs online**
+
 
 
 

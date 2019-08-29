@@ -38,6 +38,7 @@ library(lmtest)
 library(caret)
 library(merTools)
 library(scales)
+library(fitdistrplus)
 
 ```
 
@@ -48,8 +49,7 @@ modellingdata <- magnitudedata %>%
   dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
   mutate(heading_radians = heading / 180 * pi) %>% # convert heading to radians 
   mutate(error_rate = 1 / (sin(heading_radians) * 10)) %>%
-  mutate(error_growth = (sin(heading_radians) * 10)) %>%
-  mutate(FirstSteeringTime_log = log(FirstSteeringTime))
+  mutate(error_growth = (sin(heading_radians) * 10))
 
 ```
 
@@ -110,7 +110,6 @@ Threshold = metres
 Threshold * error rate = time to triggering response = seconds
 
 ```{r examples of figuring out which distribution best fits my data}
-library(fitdistrplus)
 
 # Poisson distribution example - can only be used on count data i.e. non-negative integer data
 fit_p <- fitdist(roaches$y,"pois")
@@ -156,7 +155,7 @@ Only for positive values, so no negaive for zero values
 **Beta distribution**
 Data must be within the [0,1] interval
 
-Run descdist() function to see roughly where you data falls. Then use fitdistr() function to se distribution fits for individual distribution fits.
+Run descdist() function to see roughly where you data falls. The lines closest to the obsered data (blue dot) indicate the distribution which is most like the observed data. Then use fitdistr() function to se distribution fits for individual distribution fits.
 
 For the current modelling data, it appears that gamma, lognormal for weibull distributions will work best.
 
@@ -193,16 +192,28 @@ ggplot(filter(workingdata2, pNum == 11), aes(x = World_x, y = World_z)) + geom_p
 ```
 
 
-```{r fitting of multilevel model using lmer function without gaussian link function}
+```{r fitting of multilevel model using lmer and glmer functions}
 
-# model 1 - varying intercept
+# model 1: linear mixed effect model (varying intercept)
 m1 <- lmer(formula = FirstSteeringTime ~ error_rate + (1 | pNum), data = modellingdata)
 summary(m1)
 # coef(m1)
 
+# plots for model 2
+par(mfrow = c(2, 2))
+plot(fitted(m1),resid(m1, type = "pearson"), col = "blue") # a plot to check the constant standard deviation
+abline(h = 0, lwd = 2)
+
+qqnorm(resid(m1)) # normality of the residuals
+qqline(resid(m1))
+
+qqnorm(ranef(m1)$pNum[,1]) # normality of the intercepts
+qqline(ranef(m1)$pNum[,1])
+
+plot(coef(m1)$pNum)
 
 
-# model 2 -  varying intercept and slope
+# model 2: linear mixed effect model (correlated varying intercept and slope)
 m2 <- lmer(formula = FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), data = modellingdata)
 
 # plots for model 2
@@ -218,7 +229,10 @@ qqline(ranef(m2)$pNum[,1])
 
 plot(coef(m2)$pNum)
 
-# model 3 - applying gamma distribution
+# following function shows canonical link function for gamma distribution. This happens to be inverse link function
+args(Gamma) 
+
+# model 3: generalised linear mixed effects model (applying gamma distribution with default inverse link function)
 m3 <- glmer(FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), family = Gamma, data = modellingdata)
 
 # plots for model 3
@@ -234,8 +248,8 @@ qqline(ranef(m3)$pNum[,1])
 
 plot(coef(m3)$pNum)
 
-# model 4 - applying log normal distribution
-m4 <- glmer(FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), family = gaussian(link = log), data = modellingdata)
+# model 4: generalised linear mixed effects model (applying gamma distribution with log link function)
+m4 <- glmer(FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), family = Gamma(link = "log"), data = modellingdata)
 
 # plots for model 4
 par(mfrow = c(2, 2))
@@ -251,17 +265,38 @@ qqline(ranef(m4)$pNum[,1])
 plot(coef(m4)$pNum)
 
 
+# model 5: generalised linear mixed effects model (applying gamma distribution with identity link function)
+m5 <- glmer(FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), family = Gamma(link = "identity"), data = modellingdata)
+
+# plots for model 5
+par(mfrow = c(2, 2))
+plot(fitted(m5),resid(m5, type = "pearson"), col = "blue") # a plot to check the constant standard deviation
+abline(h = 0, lwd = 2)
+
+qqnorm(resid(m5)) # normality of the residuals
+qqline(resid(m5))
+
+qqnorm(ranef(m5)$pNum[,1]) # normality of the intercepts
+qqline(ranef(m5)$pNum[,1])
+
+plot(coef(m5)$pNum)
+
+
 ```
 
 A mixed effects model using lmer function assumes a normal distribution, which is why you cannot select another distribution family for it. This mixed model approach allows for estimating of the overall mean response for the explanatory variables whilst adding random deviation based upon the specified grouping structure i.e. the subjects.
 
-**m1** model formula specifies how FirstSteeringTime is explained by heading. The 1 specifies a varying intercept to vary by participant.
+The glmer() function allows you to implement a mixed effects model with different distribution. For example, the currnt data might not be normally distributed and thus a better distribution might fit the data. By using thi function, we can apply different distributions and link functions.
 
-**m2** model forumula specifies how FirstSteeringTime is explained by heading, except (1 + heading | pNum) allows intercept and slope to vary between participants. Intercept and the slope of heading will vary by pNum. This accounts for subject variability in baseline fastest RTs (latency) and the subject variability in the sensitivity to heading conditions (threshold). 
+**m1** model formula specifies how FirstSteeringTime is explained by heading. The 1 specifies a varying intercept to vary by participant. This means the model is proposing individual latency values, however the the sensitivity to the manipulated stimulus (error rate) does not vary amongst participants.
 
-**m3** using the generalised linear model which allows for other distributions to be used to model data. Data my suffer from heteroscadasity and thus cannot assume a normal distribution. **m3** therefore uses a gamma distribution to model data. 
+**m2** model forumula specifies how FirstSteeringTime is explained by heading. However, (1 + heading | pNum) allows intercept and slope of heading to vary between participants. This accounts for subject variability in baseline RTs (latency) and the subject variability in the sensitivity to heading conditions (threshold). 
 
-**m4** using the generalise linear model which allows for other distributions to be applied to model data. Here I have attempted to apply a log-normal by applying the gaussian distribuiton  with the link function "log". The link function is applied to the data to make it log then the Gaussian is applied. Not much different from **m2** which is just a normal mixed effects model. 
+**m3** uses the generalised linear model which allows for other distributions to be used to model data. Current data suffers from heteroscadasity and thus cannot assume a normal distribution. **m3** therefore uses a gamma distribution to model data with the default inverse link function.
+
+**m4** again uses the generalised linear model applies a gamma distributions with log link function to the model data.
+
+**m5** again uses the generalised linear model applies a gamma distributions with identity link function to the model data. "Identity" function is essentially like not inputting a link function. 
 
 **Residual plot versus fitted values**
 This plot shows dependency between fitted and and residual values. A mixed model assumes a normal disstribution thus we should use this plot to investigate whether these assumptions have been violated. Things we should be checking for include:
@@ -270,19 +305,19 @@ This plot shows dependency between fitted and and residual values. A mixed model
 - No systematic curvature of points
 - No indication of a relationship between the axes of the graph
 
-What we see in this plot are more dispered points towards the top of the graph, and a few dispered points towards the bottom, as our fitted values increase. This indicates that the variance in residuals is increasing with fitted values and thus the assumptions of our model could be violated - this is known as hetreoscadastity: when the variance is not equal across different conditions, thus sub-sample variance appears within your data. This could mean that a mixed model is not the best model to use with this given dataset. 
+**m1** and **m2* (models that assume a normal distribution) demonstrate more dispered points towards the top of the graph, and a few dispered points towards the bottom, as our fitted values increase. This indicates that the variance in residuals is increasing with fitted values and thus the assumptions of our model could be violated - this is known as hetreoscadastity: when the variance is not equal across different conditions, thus sub-sample variance appears within your data. This could mean that a mixed model is not the best model to use with this dataset. 
 
 **Residual Q-Q plot**
 What are quantiles? - they split data into equal sized groups i.e. the median is the 50% quantile as 50% of the data is above it and 50% is below it. The 75% quantile means that 75% of the data points are below it. 
 
 This plot visualises the normality of the residuals. Sample quantiles relate to the residual points and theoretical quantiles relate to the same number of quantiles generated from the normal distribution. The first quantile for the residuals is plotted against the y axis, and then the first quantile from the normal distribution is plotted on the x axis. Where these lines intersect is where the point is placed.
 
-If the residuals were to be normally distributed, they should all fall on a straight line. Most of the points do, however the tails deviate away from the line indicating slight non-normality of the data. This is line with what our residual versus fitted plot was suggesting.
+If the residuals were to be normally distributed, they should all fall on a straight line. For **m1** and **m2**, most of the points do, however the tails deviate away from the line indicating slight non-normality of the data. When we apply gamma distributions to, the normality of the Q-Q plots looks much better.
 
 **Intercept Q-Q plot**
 This plot computes the difference between the population-level average predicted response for a given set of fixed-effect values (i.e. heading offset angle) (this relates to the normal distribution theoretical quantiles) and the response predicted for a particular individual (intercept quantiles from the model).
 
-This plot is the same as the residual plot, except we are not plotting intercepts rather than residuals. Essentially, how much does any individual differ from the population? Normal distribution would occur if points were directly on the ine.  
+This plot is the same as the residual plot, except we are plotting intercepts rather than residuals. Essentially, how much does any individual differ from the population? Normal distribution would occur if points were directly on the ine.  
 
 **Coeffiecient plot**
 This plots plots coefficients against the intercept, thus visualising the random effects correlation between the intercept and the slope. For **m2** this visualises the negative correlation (-.39), demonstrating that individuals intercept variation has an effect on the heading slope variation.
@@ -384,11 +419,11 @@ There appears to be little or no correlation between RT standard deviation and i
 
 ```{r model comparions}
 
-anova(m1, m2, m3, m4)
+anova(m1, m2, m3, m4, m5)
 
 ```
 
-We can then compare the models by computing a chi squared test. They significantly differ from each other. Model 2 also has lower AIC value, suggesting that it is the best model in explaining the data (i.e. subject variation in sensitivity to the heading).
+We can then compare the models by using an ANOVA to computer a chi squared statistic. All the model significantly explain the data. *m4* has the lowest AIC value, suggesting that it is the best model in explaining the data. This model had a varying intercept and slope with gamma distribution with log link function. 
 
 ```{r histogram and density plots}
 
@@ -448,7 +483,8 @@ print(ggplot(heading_tmp, aes(x = error_rate, y = FirstSteeringTime)) +
   geom_jitter() +
   stat_smooth(method = lm) +
   geom_line(aes(y = lwr), color = "red", linetype = "dashed") +
-  geom_line(aes(y = upr), color = "red", linetype = "dashed"))  
+  geom_line(aes(y = upr), color = "red", linetype = "dashed") +
+  geom_line(aes(y = fit), color = "black", linetype = "dashed"))
 
 }
 
@@ -468,17 +504,15 @@ abline(lm(heading_coefs ~ heading_intercept), col = "red")
 
 The above code computes a single level regression line for each participant. It them plots the regression line for each subject on their individual RT data points for inverse heading.
 
-The main difference between individual regression models and multi-level models is that  multi-level models assume that coefficients are sampled from a distribution. These assumptions can be useful if there is uncertainty in individual estimates as you can use information about how the individual coefficients vary across the group to make better estimates of indiviual coefficients and thus group averages altogether.
+The main difference between individual regression models and multi-level models is that  multi-level models assume that coefficients are sampled from a distribution. These assumptions can be useful if there is uncertainty in individual estimates. This is because you can use information from the distribution (how the individual coefficients vary across a sample) to make better estimates of indiviual coefficients and thus group averages altogether.
 
-However, if each individual has a lot of data points per condition, we can be more certain of the individual coefficients. Thus we don't have to rely on the assumption of them being drawn from a normal distribution, and can extract individual regression lines rather than implement a mixed model.
+However, if each individual has a lot of data points per condition, we can be more certain of the individual coefficients. The current data set has a lot of data points per condition, thus we don't have to rely on the assumption of them being drawn from a normal distribution. We can therefore extract individual regression lines rather than implement a mixed model.
 
 **Difference between CIs and prediction intervals**
 
-Confidence intervals tell you how well you have calculated the mean value. Imagine you sample from a Gaussian distribution a number of times and generate confidence intervals for each sample mean. You would expect 95% of those intervals to contain the population mean. Confidence intervals tell you about the likely location of the population parameter.
+Confidence intervals tell you how well you have calculated the population mean value. Imagine you sample from a Gaussian distribution a number of times and generate confidence intervals for each sample mean. You would expect 95% of those intervals to contain the population mean. Confidence intervals tell you about the likely location of the population parameter. Thus the linear regression line is likely to to fall within the boundary of the CIs 95% of the time.
 
-Prediction intervals tell you where you would expect to see the next data point that has been sampled for a new observation. Because they have to deal with a single point rather than the mean of values, predicition intervals are usually wider than confidence intervals.
-
-One thing to note is that predicction intervals rely strongly on the assumption of constant variance. Hence re-computing these after the Box-Cox transformation might be a good idea.
+Prediction intervals tell you where you would expect to see the next data point that has been sampled for a new observation for that specific subject. For example, if a subject were subjected to an error rate different to the ones used in the experiment, what would be their reaction time. Because they have to deal with a single point rather than the mean of values, predicition intervals are usually wider than confidence intervals. One thing to note is that predicction intervals rely strongly on the assumption of constant variance.
 
 **Confidence interval output**
 
@@ -489,6 +523,37 @@ One thing to note is that predicction intervals rely strongly on the assumption 
 
 **Fit** refers to the centre of the distribution i.e. a predicition of each value based upon the model
 **Upper** and **lower** refer to the upper and lower bounds of the predicition intervals, whereby 95% of subjects would fall witHin these predicition interval bounds for a given error rate value
+
+
+```{r prediction intervals for mixed models - one participant to make sure it works}
+
+# fit glm for one participant
+pp_RT <- filter(modellingdata, pNum == 10)
+
+pp_RT_m1 <- glm(data = pp_RT, FirstSteeringTime ~ error_rate, family = Gamma(link = log))
+
+# compute 100 new simulated error rates
+pd <- with(modellingdata,
+           data.frame(error_rate = seq(min(error_rate), max(error_rate),
+                                       length = 100)))
+
+# compute prediction intervals for new error rates based upon glm model
+pd <- cbind(pd, predict(pp_RT_m1, pd, type = "response", se.fit = TRUE)[1:2])
+
+# compute upper bound by adding the fit to 1.96 (95% interval) multiplied by the standard error of the fit (standard deviation estimate). Compute lower bound by subtracting from the same calculation.
+pd <- pd %>% 
+  mutate(upper = fit + (1.96 * se.fit),
+         lower = fit - (1.96 * se.fit))
+
+ggplot(pp_RT, aes(x = error_rate, y = FirstSteeringTime)) +
+  geom_line(data = pd, aes(y = lower, x = error_rate), color = "red", linetype = "dashed") + 
+  geom_line(data = pd, aes(y = upper, x = error_rate), color = "red", linetype = "dashed") +
+  geom_line(data = pd, aes(y = fit, error_rate), color = "black", linetype = "dashed") +
+  geom_jitter(alpha = .2)
+
+
+```
+
 
 
 ```{r plotting coefficients from individual regressions vs mixed models - how do distributions differ?}

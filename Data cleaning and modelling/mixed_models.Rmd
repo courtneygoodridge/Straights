@@ -182,15 +182,15 @@ workingdata2 <- workingdata %>%
 
 # shows the moment that the steering wheel angle is reset before the visible line is presented. For some subjects, there is carry over as they are steering before during and after the reset.
 
-ggplot(filter(workingdata2, pNum == 11, heading == 0), aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_trialn, col = ppid_trialn)) +
-         geom_line() + guides(colour = FALSE)
+ggplot(dplyr::filter(workingdata2, pNum == 1, heading == 2.0), aes(x = timestamp_zero, y = SWA_mirrored)) + #, group = ppid_trialn, col = ppid_trialn
+  geom_line() + guides(colour = FALSE)
 
-ggplot(filter(workingdata2, ppid_trialn == "9_2_69"), aes(x = timestamp_zero, y =diff_YR)) +
+ggplot(dplyr::filter(workingdata2, ppid_trialn == "1_1_76"), aes(x = timestamp_zero, y =diff_YR)) +
          geom_line() + guides(colour = FALSE)
 
 # plots x and z coordinates for all trials for a specific subject
 
-ggplot(filter(workingdata2, pNum == 11), aes(x = World_x, y = World_z)) + geom_point()
+ggplot(dplyr::filter(workingdata2, pNum == 11), aes(x = World_x, y = World_z)) + geom_point()
 
 ```
 

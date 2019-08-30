@@ -31,9 +31,6 @@ install.packages(conflicted) # heloful package to show when packages have confli
 
 
 
-# install.packages(matlabr)
-# install.packages(magrittr)
-
 # full datasets
 # set working directory on pffice laptop
 setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
@@ -146,17 +143,26 @@ library(signal)
 negativetimecourse <- workingdata %>%
   dplyr::filter(heading < 0) %>%
   mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = -(YawRateChange))
+  mutate(YawRateChange = -(YawRateChange)) %>%
+  mutate(World_x = -(World_x)) %>%
+  mutate(World_z = -(World_z)) %>%
+  mutate(WorldYaw = -(WorldYaw))
 
 positivetimecourse <- workingdata %>%
   dplyr::filter(heading > 0) %>%
   mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = YawRateChange)
+  mutate(YawRateChange = YawRateChange) %>%
+  mutate(World_x = World_x) %>%
+  mutate(World_z = World_z) %>%
+  mutate(WorldYaw = WorldYaw)
 
 zerotimecourse <- workingdata %>%
   dplyr::filter(heading == 0) %>%
   mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = YawRateChange)
+  mutate(YawRateChange = YawRateChange) %>%
+  mutate(World_x = World_x) %>%
+  mutate(World_z = World_z) %>%
+  mutate(WorldYaw = WorldYaw)
 
 workingdata <- rbind(negativetimecourse, positivetimecourse, zerotimecourse)
 
@@ -260,6 +266,10 @@ workingdatathresholdUnsmooth <- workingdata %>%
 ```{r merging data for start coords and RT coords}
 
 lanepositiondata <- merge(trialstartcoords, workingdatathresholdUnsmooth, by = "ppid_trialn")
+
+lanepositiondata <- lanepositiondata %>%
+  group_by(ppid_trialn) %>%
+  mutate(computed_heading = EndWorldYaw - StartWorldYaw)
 
 ```
 

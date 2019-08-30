@@ -1,0 +1,109 @@
+---
+title: "lane_position"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load libraries}
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+```
+
+```{r load in full datasets}
+# rm(list = ls()) 
+# full datasets
+# set working directory on office laptop
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/test_example/Full_Data") 
+
+# set working directory on personal laptop
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example/Full_Data")
+temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
+
+```
+
+```{r create unique ID tag and differentiate yaw rate}
+
+workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
+
+workingdata <- workingdata %>%
+  mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% # difference in yaw rate
+  group_by(ppid_trialn) %>%
+  mutate(frame = row_number()) %>%
+  ungroup()
+
+```
+
+```{r selecting start and end world yaw values}
+
+# obtains starting coordinates for every trial
+trialstartcoords <- workingdata %>%
+  group_by(ppid_trialn) %>% # group by trials
+  slice(1) %>% # slice the first value
+  ungroup() %>%
+  transmute(ppid_trialn, heading, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw) # save values
+
+trialendcoords <- workingdata %>%
+  group_by(ppid_trialn) %>% # group by trials
+  slice(n()) %>% # slice last values
+  ungroup() %>%
+  transmute(EndWorld_x = World_x, EndWorld_z = World_z, EndWorldYaw = WorldYaw) # save values
+
+dat <- cbind(trialstartcoords, trialendcoords)
+
+```
+
+Above code selects the world yaw value at the very beginning of the trial (i.e. when the line is not visible) and at the very end of the trial (again, once the line does not become visible).
+
+```{r computing theta angle}
+
+# this computes heading angle whilst account for carry over from the resetting of the steering wheel angle
+
+# the problem is, world yaw is measured in degrees. Thus when there is a high world yaw (near 360 degrees) minus a small one at the start, it creates a problems... converting to radians does not solve this problem.
+
+# however if take the value that are new 360 degrees, subtract them 360 degrees and then perform the calculation, this could solve the problem...
+dat <- dat %>%
+  group_by(ppid_trialn) %>%
+  mutate(computed_heading = EndWorldYaw - StartWorldYaw)
+
+# radians conversion = (variable / 180 *pi)
+
+```
+
+```{r computing hypotenuse}
+
+dat <- dat %>%
+  group_by(ppid_trialn) %>%
+  mutate(a = (EndWorld_x - StartWorld_x)^2 + (EndWorld_z - StartWorld_z)^2) %>%
+  mutate(hypo = sqrt(a))
+
+```
+
+```{r computing lane position}
+
+dat <- dat %>%
+  mutate(lane_position = sin(computed_heading) * hypo)
+
+```
+
+Unsure if these values make sense... work do to
+
+**To do**
+
+- Try calculating lane position with collapsed groups. I think WorldYaw is measured in degrees so do not invert - take the absolute value.
+
+- Try calculating computed_heading (and thus lane position) using the starting WorldYaw (when line is not visible like I have been doing) and then with the WorldYaw value at the RT (rather than the very end of the trial).
+
+- Subtract 360 from the big values of WorldYaw to see if after doing that, all the computed_heading value make sense.
+
+- Once lane position is calculated, try and work out how it relates to the threshold of my model (which is measured in metres). This could be something to do wih physics distance, time and speed equation to acquire a threshold metre value to compare to my computed lane position for each heading/error rate...
+

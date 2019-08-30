@@ -575,7 +575,7 @@ for (i in c(1:19)){
   # Create temporary data frame:
 heading_tmp <- modellingdata[modellingdata$pNum == i,]
   # Perform regression:
-reg_result <- glm(FirstSteeringTime ~ error_rate, family = Gamma(link = identity), data = heading_tmp)
+reg_result <- glm(FirstSteeringTime ~ error_rate, family = Gamma(link = log), data = heading_tmp)
   # Get coefficient:
 tmp_coef <- coef(reg_result)
 
@@ -626,11 +626,9 @@ Once these have been computed, they are plotted alongside the confidence interva
 
 **Comparison of prediction intervals to the linear models**
 
-Prediction intervals are much narrower and encompass less of the data. They are also not parallel with each other which may represent the fact that they take into account the varying variance? **CHECK THIS**
+Prediction intervals are much narrower and encompass less of the data. Because they encompass less of the data, can this model be consider a "worse model"? 
 
-Because they encompass less of the data, can this model be consider a "worse model"? Maybe try and compare with another link function for the gamma distribution??
-
-**Check what people say regarding prediction intervals for GLMs online**
+They are also not parallel with each other which may represent the fact that they take into account the varying variance? 
 
 
 

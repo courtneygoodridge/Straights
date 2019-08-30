@@ -118,10 +118,6 @@ A high **initial bias** also makes relative sense. Wabersich & Vandekerckhove (2
 As heading offset angle increases, the **drift rate** increases. This is what we would expect from an evidence accumulation model interpretation of RT distributions. Something that doesn't make too much sense is a negative drift rate. Wabersich & Vandekerckhove (2014) suggest that drift rates close to zero or under zero represent ambigous stimuli. This makes sense in the context of my experiment, as these conditions contained the most " no steer" trials and thus could be considered the most ambiguous. 
 
 
-
-
-
-
 ```{r estimating parameters with multiple conditions}
 # deviance function for multiple conditions
 
@@ -139,14 +135,15 @@ datlist <- list(dat0_5, dat1_0, dat1_5, dat2_0)
 
 # use nlm to estimate parameters
 
-nlm2 <- nlm(p=c(1, .1, .1, 1, 1, 1, 1), f=many_drifts, dat=datlist)
-
-# add 2 extra 1's empty vector and the code MIGHT work... ^
-
-
-
-
+nlm2 <- nlm(p = c(1, .1, .1, 1, 1, 1, 1), f = many_drifts, dat = datlist)
 
 ```
 
+When comparing drift rates across conditions, I get results that make sense but still look strange.
 
+**0.5 heading** = -0.80927829 
+**1.0 heading** = -0.46197905 
+**1.5 heading** = -0.09083249  
+**2.0 heading** = 0.02520875
+
+Drift rates increase as heading offset angle increases, however I am still getting negative drift rates...

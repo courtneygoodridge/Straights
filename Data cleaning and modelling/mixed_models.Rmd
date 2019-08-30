@@ -147,13 +147,16 @@ ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
 Above is an example of how you might work out how your data is distributed. Firstly you need to know what kind of data you have. 
 
 **Poisson distribution** 
-Only works for non-negative whole integers
+Only works for non-negative whole integers has why it is good for data where the you are predicting the number of occurences of a particular event.
 
 **Log normal**
 Only for positive values, so no negaive for zero values
 
 **Beta distribution**
 Data must be within the [0,1] interval
+
+**Gamma distribution**
+Suitable for continous data that is positive and skewed where the variance is near constant throughout.
 
 Run descdist() function to see roughly where you data falls. The lines closest to the obsered data (blue dot) indicate the distribution which is most like the observed data. Then use fitdistr() function to se distribution fits for individual distribution fits.
 
@@ -572,7 +575,7 @@ for (i in c(1:19)){
   # Create temporary data frame:
 heading_tmp <- modellingdata[modellingdata$pNum == i,]
   # Perform regression:
-reg_result <- glm(FirstSteeringTime ~ error_rate, family = Gamma(link = log), data = heading_tmp)
+reg_result <- glm(FirstSteeringTime ~ error_rate, family = Gamma(link = identity), data = heading_tmp)
   # Get coefficient:
 tmp_coef <- coef(reg_result)
 

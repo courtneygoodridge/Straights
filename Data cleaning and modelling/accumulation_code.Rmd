@@ -59,12 +59,12 @@ wiener_plot(dat2_0)
 ```{r estimating parameters for one condition}
 
 # using optim, first with Nelder-Mead algorithm, then with BFGS
-optim1 <- optim(c(1, .1, .1, 1), wiener_deviance, dat = dat2_0, method = "Nelder-Mead")
-optim2 <- optim(optim1[["par"]], wiener_deviance, dat = dat2_0, method = "BFGS", hessian = TRUE)
+optim1 <- optim(c(1, .1, .1, 1), wiener_deviance, dat = dat1_0, method = "Nelder-Mead")
+optim2 <- optim(optim1[["par"]], wiener_deviance, dat = dat1_0, method = "BFGS", hessian = TRUE)
 
 
 # using nlm, which uses a Newton-type algorithm
-nlm1 <- nlm(p = c(1, .1, .1, 1), f = wiener_deviance, dat = dat2_0)
+nlm1 <- nlm(p = c(1, .1, .1, 1), f = wiener_deviance, dat = dat1_0)
 
 # creates estimates for parameters for that condition. They can be used to produce further inferences or create predicitions for other values. Estimate values occur in this order:
 # [alpha (seperation between the boundaries), non-decision time, initial bias, drift rate]
@@ -107,7 +107,19 @@ non-decision time = 0.13
 initial bias = 0.76
 drift rate = 0.21
 
-Despite forcing the code to work, the results from analysing the individual conditions makes intuitive sense. As heading offset angle increases, the drift rate increases. This is what we would expect from an evidence accumulation model interpretation of RT distributions. 
+Despite forcing the code to work, the results from analysing the individual conditions makes intuitive sense for some of the parameters:
+
+**Boundary seperation** doesn't make too much sense. Wabersich & Vandekerckhove (2014) refers to this parameter as a speed-accuracy tradeoff, with higher values relating to higher accuracy.
+
+**Non-decision time** makes sense in this context, as it is similar to the latency value within my theshold model. With regard to both models, the latency should not differ too much as the baseline speeds that humans process information is constant.
+
+A high **initial bias** also makes relative sense. Wabersich & Vandekerckhove (2014) state that an initial bias > 0.5 means bias toward for repsonse "A", which in my case would be the steering respone. 
+
+As heading offset angle increases, the **drift rate** increases. This is what we would expect from an evidence accumulation model interpretation of RT distributions. Something that doesn't make too much sense is a negative drift rate. Wabersich & Vandekerckhove (2014) suggest that drift rates close to zero or under zero represent ambigous stimuli. This makes sense in the context of my experiment, as these conditions contained the most " no steer" trials and thus could be considered the most ambiguous. 
+
+
+
+
 
 
 ```{r estimating parameters with multiple conditions}

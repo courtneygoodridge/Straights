@@ -116,7 +116,7 @@ upperthreshold = 0.13 # 0.105 #  # upper threshold for consistent steering respo
 lowerthreshold = 0.05 # 0.001, 0.05 lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
 
 workingdata <- workingdata %>%
-  mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% #difference in yaw rate
+  mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% # difference in yaw rate
   group_by(ppid_trialn) %>%
   mutate(frame = row_number()) %>%
   ungroup()
@@ -228,6 +228,17 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 
 ```
 
+```{r selecting very start of the trial world_x, world_z and worldyaw}
+
+# obtains starting coordinates for every trial
+trialstartcoords <- workingdata %>%
+  group_by(ppid_trialn) %>%
+  slice(1) %>%
+  ungroup() %>%
+  transmute(ppid_trialn, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw)
+
+```
+
 
 ```{r calculating genuine responses, formulating threshold RT data}
 # library(zoo)
@@ -245,6 +256,13 @@ workingdatathresholdUnsmooth <- workingdata %>%
   mutate(EarlyResponses = FirstSteeringTime <= 0.15)
   
 ```
+
+```{r merging data for start coords and RT coords}
+
+lanepositiondata <- merge(trialstartcoords, workingdatathresholdUnsmooth, by = "ppid_trialn")
+
+```
+
 
 ```{r number of trials per condition - overall and genuine resposnes}
 library(dplyr)

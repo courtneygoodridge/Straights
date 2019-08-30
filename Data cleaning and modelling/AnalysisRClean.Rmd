@@ -321,35 +321,33 @@ nonresponses <- dplyr::filter(workingdata, ppid_trialn %!in% responseid) # filte
 
 nonresponses <- nonresponses %>%
   group_by(ppid_trialn) %>%
-  mutate(response = "nosteer", response_num = 1, FirstSteeringTime = 2.5) %>%
+  mutate(resp = "lower", response_num = 1, FirstSteeringTime = 2.5) %>%
     slice(1) %>% # selects one row of each trial
   ungroup() 
 
 a <- nonresponses %>%
-  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime)
+  dplyr::select(ppid_trialn, heading, pNum, resp, response_num, FirstSteeringTime)
 
 workingdatathresholdUnsmooth <- workingdatathresholdUnsmooth %>%
   group_by(ppid_trialn) %>%
-  mutate(response = "steer", response_num = 2)
+  mutate(resp = "upper", response_num = 2)
 
 b <- workingdatathresholdUnsmooth %>%
-  select(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime)
+  dplyr::select(ppid_trialn, heading, pNum, resp, response_num, FirstSteeringTime)
 
 # dat <- rbind(a, b) # WHY DON'T YOU FUCKING WORK!!!!!!!
 
 ppid_trialn <- c(a$ppid_trialn, b$ppid_trialn)
 heading <- c(a$heading, b$heading)
 pNum <- c(a$pNum, b$pNum)
-response <- c(a$response, b$response)
+resp <- c(a$resp, b$resp)
 response_num <- c(a$response_num, b$response_num)
 FirstSteeringTime <- c(a$FirstSteeringTime, b$FirstSteeringTime)
 # block <- c(a$block, b$block)
 
-dat <- as.data.frame(cbind(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime))
+dat <- as.data.frame(cbind(ppid_trialn, heading, pNum, resp, response_num, FirstSteeringTime))
 
-rm(ppid_trialn, heading, pNum, response, response_num, FirstSteeringTime, nonresponses, responseid, a, b)
-
-sapply(dat, class)
+rm(ppid_trialn, heading, pNum, resp, response_num, FirstSteeringTime, nonresponses, responseid, a, b)
 
 dat$FirstSteeringTime <- as.character(dat$FirstSteeringTime)
 dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
@@ -361,6 +359,7 @@ dat$response_num <- as.numeric(dat$response_num)
 dat <- dat %>%
   dplyr::filter(FirstSteeringTime > 0.15) # filter trials that are within physiological plausible boundary
 
+sapply(dat, class)
 
 ```
 

@@ -8,7 +8,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r data and package loading}
-library(RWiener)
 
 setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 temp = list.files(pattern = c("dat_example")) # list all CSV files in the directory
@@ -19,7 +18,7 @@ dat <- do.call(rbind.data.frame, myfiles)
 
 
 ```{r RWIener with real experimental data - computing condition dataframes}
-
+library(RWiener)
 # View(dat) # dataframe containing all trials (upper = correct trials, lower = incorrect trials)
 
 dat$heading <- as.character(dat$heading) # converting to character before converting to numeric for filtering
@@ -60,12 +59,12 @@ wiener_plot(dat2_0)
 ```{r estimating parameters for one condition}
 
 # using optim, first with Nelder-Mead algorithm, then with BFGS
-optim1 <- optim(c(1, .1, .1, 1), wiener_deviance, dat=dat1_0, method="Nelder-Mead")
-optim2 <- optim(optim1[["par"]], wiener_deviance, dat=dat1_0, method="BFGS", hessian=TRUE)
+optim1 <- optim(c(1, .1, .1, 1), wiener_deviance, dat = dat2_0, method = "Nelder-Mead")
+optim2 <- optim(optim1[["par"]], wiener_deviance, dat = dat2_0, method = "BFGS", hessian = TRUE)
 
 
 # using nlm, which uses a Newton-type algorithm
-nlm1 <- nlm(p=c(1, .1, .1, 1), f=wiener_deviance, dat=dat1_0)
+nlm1 <- nlm(p = c(1, .1, .1, 1), f = wiener_deviance, dat = dat2_0)
 
 # creates estimates for parameters for that condition. They can be used to produce further inferences or create predicitions for other values. Estimate values occur in this order:
 # [alpha (seperation between the boundaries), non-decision time, initial bias, drift rate]
@@ -74,6 +73,42 @@ nlm1 <- nlm(p=c(1, .1, .1, 1), f=wiener_deviance, dat=dat1_0)
 # currently optim() and nlm() give negative drift rates for some conditions...
 
 ```
+
+Above code attempts to compute parameter values (seperation boundaries, non-decision time, initial bias and drift rate).
+
+Algorithm inputs parameter values to see which explain the distribution of the data the best, and the best fitting value parameters get selected. It does this for each condition dataframe that is inputted. The following results are generated:
+
+
+**0.5 heading**
+
+alpha (boundary seperation) = 4.46
+non-decision time = 0.19
+initial bias = 0.88
+drift rate = -1.35
+
+**1.0 heading**
+
+alpha (boundary seperation) = 3.17
+non-decision time = 0.14
+initial bias = 0.81
+drift rate = -0.44
+
+**1.5 heading**
+
+alpha (boundary seperation) = 2.66
+non-decision time = 0.13
+initial bias = 0.76
+drift rate = 0.09
+
+**2.0 heading**
+
+alpha (boundary seperation) = 2.57
+non-decision time = 0.13
+initial bias = 0.76
+drift rate = 0.21
+
+Despite forcing the code to work, the results from analysing the individual conditions makes intuitive sense. As heading offset angle increases, the drift rate increases. This is what we would expect from an evidence accumulation model interpretation of RT distributions. 
+
 
 ```{r estimating parameters with multiple conditions}
 # deviance function for multiple conditions
@@ -92,7 +127,7 @@ datlist <- list(dat0_5, dat1_0, dat1_5, dat2_0)
 
 # use nlm to estimate parameters
 
-nlm2 <- nlm(p=c(1, .1, .1, 1, 1), f=many_drifts, dat=datlist)
+nlm2 <- nlm(p=c(1, .1, .1, 1, 1, 1, 1), f=many_drifts, dat=datlist)
 
 # add 2 extra 1's empty vector and the code MIGHT work... ^
 

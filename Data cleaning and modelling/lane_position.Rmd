@@ -111,7 +111,9 @@ Above code selects the world yaw value at the very beginning of the trial (i.e. 
 dat <- dat %>%
   group_by(ppid_trialn) %>%
   mutate(ComputedHeading = ThreshWorldYaw - StartWorldYaw) %>%
-  mutate(ComputedHeading = abs(ComputedHeading))
+  mutate(ComputedHeading = abs(ComputedHeading)) %>%
+  mutate(ComputedHeading_radians = ComputedHeading / 180 * pi) %>%
+  mutate(ComputedErrorRate = 1 / (sin(ComputedHeading_radians) * 10))
   
 # radians conversion = (variable / 180 *pi)
 

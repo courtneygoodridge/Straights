@@ -10,7 +10,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r load data}
 # rm(list = ls())
 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+# office working directory
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+
+# working directory for personal laptop
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+
 temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -160,7 +165,7 @@ Only for positive values, so no negaive for zero values
 Data must be within the [0,1] interval
 
 **Gamma distribution**
-Suitable for continous data that is positive and skewed where the variance is near constant throughout.
+Suitable for continuous data that is positive and skewed where the variance is near constant throughout.
 
 Run descdist() function to see roughly where you data falls. The lines closest to the obsered data (blue dot) indicate the distribution which is most like the observed data. Then use fitdistr() function to se distribution fits for individual distribution fits.
 

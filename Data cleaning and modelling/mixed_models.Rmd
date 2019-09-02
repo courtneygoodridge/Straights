@@ -617,7 +617,7 @@ heading_intercept[i] <- tmp_coef[1]
 
 # ggplot plotting
 print(ggplot(heading_tmp, aes(x = error_rate, y = FirstSteeringTime)) +
-  geom_jitter(alpha = .3) +
+  geom_jitter() +
   stat_smooth(method = "glm") +
   geom_line(data = tmp_pred, aes(x = error_rate, y = lower), color = "red", linetype = "dashed") +
   geom_line(data = tmp_pred, aes(x = error_rate, y = upper), color = "red", linetype = "dashed") +

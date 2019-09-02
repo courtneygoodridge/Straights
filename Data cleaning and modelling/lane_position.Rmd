@@ -68,14 +68,15 @@ rm(negativetimecourse, positivetimecourse, zerotimecourse)
 
 ```
 
-```{r selecting start and end world yaw values}
+
+```{r selecting start thresh world yaw values}
 
 # obtains starting coordinates for every trial
 trialstartcoords <- workingdata %>%
   group_by(ppid_trialn) %>% # group by trials
   slice(1) %>% # slice the first value
   ungroup() %>%
-  transmute(ppid_trialn, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw) # save values
+  transmute(ppid_trialn, heading, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw) # save values
 
 # obtain coordinates at first steering response for every trial 
 threshcoords <- workingdata %>%
@@ -86,30 +87,45 @@ threshcoords <- workingdata %>%
   ungroup() %>%
   transmute(ppid_trialn, heading, ThreshWorld_x = World_x, ThreshWorld_z = World_z, ThreshWorldYaw = WorldYaw, ThreshYawRateChange = YawRateChange)
 
-dat <- merge(trialstartcoords, threshcoords, by = "ppid_trialn")
 
-rm(trialstartcoords, threshcoords)
-
-
-# obtains ending coordinates for every trial
-# trialendcoords <- workingdata %>%
-#   group_by(ppid_trialn) %>% # group by trials
-#   slice(n()) %>% # slice last values
-#   ungroup() %>%
-#   transmute(EndWorld_x = World_x, EndWorld_z = World_z, EndWorldYaw = WorldYaw) # save values
-# 
-# start_end <- cbind(trialstartcoords, trialendcoords)
+dat_start_thresh <- merge(trialstartcoords, threshcoords, by = "ppid_trialn")
 
 ```
 
 Above code selects the world yaw value at the very beginning of the trial (i.e. when the line is not visible) and at the moment of the first steering response.
+
+```{r selecting start and end world yaw values with only values that make threshold}
+
+trueresponses <- threshcoords$ppid_trialn # selects ID tags of true responses
+trueresponses <- as.vector(trueresponses) # creates ID vector for filtering 
+
+trialstartcoords <- dplyr::filter(trialstartcoords, ppid_trialn %in% trueresponses)
+
+# obtains ending coordinates for every trial
+trialendcoords <- workingdata %>%
+  group_by(ppid_trialn) %>% # group by trials
+  slice(n()) %>% # slice last values
+  ungroup() %>%
+  transmute(ppid_trialn, EndWorld_x = World_x, EndWorld_z = World_z, EndWorldYaw = WorldYaw) # save values
+
+trialendcoords <- dplyr::filter(trialendcoords, ppid_trialn %in% trueresponses)
+
+trialendcoords$ppid_trialn <- NULL
+
+
+dat_start_end <- cbind(trialstartcoords, trialendcoords)
+
+rm(trialstartcoords, threshcoords, trialendcoords)
+
+```
+
 
 ```{r computing theta angle}
 
 
 dat <- dat %>%
   group_by(ppid_trialn) %>%
-  mutate(ComputedHeading = ThreshWorldYaw - StartWorldYaw) %>%
+  mutate(ComputedHeading = EndWorldYaw - StartWorldYaw) %>%
   mutate(ComputedHeading = abs(ComputedHeading)) %>%
   mutate(ComputedHeading_radians = ComputedHeading / 180 * pi) %>%
   mutate(ComputedErrorRate = 1 / (sin(ComputedHeading_radians) * 10))
@@ -145,7 +161,7 @@ However if take the values that are near 360 degrees, subtract 360 degrees from 
 
 dat <- dat %>%
   group_by(ppid_trialn) %>%
-  mutate(a = (ThreshWorld_x - StartWorld_x)^2 + (ThreshWorld_z - StartWorld_z)^2) %>%
+  mutate(a = (EndWorld_x - StartWorld_x)^2 + (EndWorld_z - StartWorld_z)^2) %>%
   mutate(hypo = sqrt(a))
 
 ```
@@ -156,7 +172,7 @@ Above code computes the hypotenuse i.e. the longest side of a triangle (trajecto
 ```{r computing lane position}
 
 dat <- dat %>%
-  mutate(lane_position = sin(ComputedHeading) * hypo)
+  mutate(lane_position = sin(ComputedHeading) * hypo) 
 
 ```
 

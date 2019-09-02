@@ -33,6 +33,9 @@ workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV 
 
 ```{r create unique ID tag and differentiate yaw rate}
 
+upperthreshold = 0.13
+lowerthreshold = 0.05
+
 workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
 
 workingdata <- workingdata %>%
@@ -43,6 +46,29 @@ workingdata <- workingdata %>%
 
 ```
 
+```{r collapsing across heading values}
+
+negativetimecourse <- workingdata %>%
+  dplyr::filter(heading < 0) %>%
+  mutate(heading = abs(heading)) %>%
+  mutate(YawRateChange = abs(YawRateChange))
+
+positivetimecourse <- workingdata %>%
+  dplyr::filter(heading > 0) %>%
+  mutate(heading = abs(heading)) %>%
+  mutate(YawRateChange = YawRateChange)
+  
+zerotimecourse <- workingdata %>%
+  dplyr::filter(heading == 0) %>%
+  mutate(heading = abs(heading)) 
+
+workingdata <- rbind(negativetimecourse, positivetimecourse, zerotimecourse)
+
+rm(negativetimecourse, positivetimecourse, zerotimecourse)
+
+
+```
+
 ```{r selecting start and end world yaw values}
 
 # obtains starting coordinates for every trial
@@ -50,60 +76,110 @@ trialstartcoords <- workingdata %>%
   group_by(ppid_trialn) %>% # group by trials
   slice(1) %>% # slice the first value
   ungroup() %>%
-  transmute(ppid_trialn, heading, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw) # save values
+  transmute(ppid_trialn, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw) # save values
 
-trialendcoords <- workingdata %>%
-  group_by(ppid_trialn) %>% # group by trials
-  slice(n()) %>% # slice last values
+# obtain coordinates at first steering response for every trial 
+threshcoords <- workingdata %>%
+  group_by(ppid_trialn) %>%
+  dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
+  slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
+  slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
-  transmute(EndWorld_x = World_x, EndWorld_z = World_z, EndWorldYaw = WorldYaw) # save values
+  transmute(ppid_trialn, heading, ThreshWorld_x = World_x, ThreshWorld_z = World_z, ThreshWorldYaw = WorldYaw, ThreshYawRateChange = YawRateChange)
 
-dat <- cbind(trialstartcoords, trialendcoords)
+dat <- merge(trialstartcoords, threshcoords, by = "ppid_trialn")
+
+rm(trialstartcoords, threshcoords)
+
+
+# obtains ending coordinates for every trial
+# trialendcoords <- workingdata %>%
+#   group_by(ppid_trialn) %>% # group by trials
+#   slice(n()) %>% # slice last values
+#   ungroup() %>%
+#   transmute(EndWorld_x = World_x, EndWorld_z = World_z, EndWorldYaw = WorldYaw) # save values
+# 
+# start_end <- cbind(trialstartcoords, trialendcoords)
 
 ```
 
-Above code selects the world yaw value at the very beginning of the trial (i.e. when the line is not visible) and at the very end of the trial (again, once the line does not become visible).
+Above code selects the world yaw value at the very beginning of the trial (i.e. when the line is not visible) and at the moment of the first steering response.
 
 ```{r computing theta angle}
 
-# this computes heading angle whilst account for carry over from the resetting of the steering wheel angle
 
-# the problem is, world yaw is measured in degrees. Thus when there is a high world yaw (near 360 degrees) minus a small one at the start, it creates a problems... converting to radians does not solve this problem.
-
-# however if take the value that are new 360 degrees, subtract them 360 degrees and then perform the calculation, this could solve the problem...
 dat <- dat %>%
   group_by(ppid_trialn) %>%
-  mutate(computed_heading = EndWorldYaw - StartWorldYaw)
-
+  mutate(ComputedHeading = ThreshWorldYaw - StartWorldYaw) %>%
+  mutate(ComputedHeading = abs(ComputedHeading))
+  
 # radians conversion = (variable / 180 *pi)
 
 ```
+
+Above code computes heading angle whilst accounting for carry over from the resetting of the steering wheel angle
+
+To do this, I take the yaw when the response was triggered, and subtract from it the yaw at the beginning of trial. I then take the abosolute of this to get the computed heading angle in degrees.
+
+```{r computing angle for WorldYaw that is near 360 degrees}
+
+notproblem <- dat %>%
+  filter(ComputedHeading < 350)
+
+problem <- dat %>%
+  filter(ComputedHeading >= 350) %>%
+  mutate(ComputedHeading = 360 - ComputedHeading)
+
+dat <- rbind(notproblem, problem)
+
+rm(notproblem, problem)
+
+```
+
+Problem is, world yaw is measured in degrees. Thus when there is a high world yaw (near 360 degrees) minus a small one at the start, it creates a problems... converting to radians does not solve this problem.
+
+However if take the values that are near 360 degrees, subtract 360 degrees from them and then perform the calculation, this solves the problem.
 
 ```{r computing hypotenuse}
 
 dat <- dat %>%
   group_by(ppid_trialn) %>%
-  mutate(a = (EndWorld_x - StartWorld_x)^2 + (EndWorld_z - StartWorld_z)^2) %>%
+  mutate(a = (ThreshWorld_x - StartWorld_x)^2 + (ThreshWorld_z - StartWorld_z)^2) %>%
   mutate(hypo = sqrt(a))
 
 ```
 
+Above code computes the hypotenuse i.e. the longest side of a triangle (trajectory of the offset heading). This is computed by subtracting the starting position X and Z coordinates from the end position X and Z coordinates, squaring the result and adding them to values together. The square root is then taken.
+
+
 ```{r computing lane position}
 
 dat <- dat %>%
-  mutate(lane_position = sin(computed_heading) * hypo)
+  mutate(lane_position = sin(ComputedHeading) * hypo)
 
 ```
 
-Unsure if these values make sense... work do to
+Finally, you take the sine of the computed heading and multiple by the hypotenuse to calculate the lane position in metres.
 
-**To do**
+Currently, this is calculating the lane position from the very start of the trial (when the line is not visible) to when the response was triggerd i.e when the RT value is obtained.
 
-- Try calculating lane position with collapsed groups. I think WorldYaw is measured in degrees so do not invert - take the absolute value.
+```{r comparing threshold model lane position values to data}
 
-- Try calculating computed_heading (and thus lane position) using the starting WorldYaw (when line is not visible like I have been doing) and then with the WorldYaw value at the RT (rather than the very end of the trial).
+# computing threshold value in metres for each error rate value
+modellingdata <- modellingdata %>%
+  group_by(error_rate) %>%
+  mutate(thresh = error_rate * FirstSteeringTime)
 
-- Subtract 360 from the big values of WorldYaw to see if after doing that, all the computed_heading value make sense.
+# average threshold value for each error rate value according to constructed threshold model
+modellingdata %>%
+  group_by(heading) %>%
+  summarise(meanLanePosition = mean(thresh))
 
-- Once lane position is calculated, try and work out how it relates to the threshold of my model (which is measured in metres). This could be something to do wih physics distance, time and speed equation to acquire a threshold metre value to compare to my computed lane position for each heading/error rate...
+# average threshold value for each error rate value according to data
+dat %>%
+  group_by(heading) %>%
+  summarise(meanLanePosition = mean(lane_position))
+
+```
+
 

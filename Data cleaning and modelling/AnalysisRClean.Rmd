@@ -143,26 +143,17 @@ library(signal)
 negativetimecourse <- workingdata %>%
   dplyr::filter(heading < 0) %>%
   mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = -(YawRateChange)) %>%
-  mutate(World_x = -(World_x)) %>%
-  mutate(World_z = -(World_z)) %>%
-  mutate(WorldYaw = -(WorldYaw))
+  mutate(YawRateChange = abs(YawRateChange))
 
 positivetimecourse <- workingdata %>%
   dplyr::filter(heading > 0) %>%
   mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = YawRateChange) %>%
-  mutate(World_x = World_x) %>%
-  mutate(World_z = World_z) %>%
-  mutate(WorldYaw = WorldYaw)
+  mutate(YawRateChange = YawRateChange)
 
 zerotimecourse <- workingdata %>%
   dplyr::filter(heading == 0) %>%
   mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = YawRateChange) %>%
-  mutate(World_x = World_x) %>%
-  mutate(World_z = World_z) %>%
-  mutate(WorldYaw = WorldYaw)
+  mutate(YawRateChange = YawRateChange)
 
 workingdata <- rbind(negativetimecourse, positivetimecourse, zerotimecourse)
 
@@ -177,6 +168,11 @@ workingdata <- workingdata %>%
 
 ```
 
+**Notes on taking the inverted value over the absolute**
+
+The invertsed value of YawRateChange make them the exact opposite, making negative heading trials identical to positive heading trials.
+
+Taking the absolute of YawRateChange makes all values positive. Thus this is not identical to positive trials, however when I run RT threshold code, I retain more trials than when I invert...
 
 ```{r formulating response start magnitude data}
 library(dplyr)
@@ -234,16 +230,6 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 
 ```
 
-```{r selecting very start of the trial world_x, world_z and worldyaw}
-
-# obtains starting coordinates for every trial
-trialstartcoords <- workingdata %>%
-  group_by(ppid_trialn) %>%
-  slice(1) %>%
-  ungroup() %>%
-  transmute(ppid_trialn, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw)
-
-```
 
 
 ```{r calculating genuine responses, formulating threshold RT data}
@@ -261,16 +247,6 @@ workingdatathresholdUnsmooth <- workingdata %>%
   transmute(ppid_trialn, heading, cameraoffset, SWAThres = SWA, FirstSteeringTime = anchored_timestamp, ThresWorld_x = World_x, ThresWorld_z = World_z, ThresWorldYaw = WorldYaw, ThresYawRate_seconds = YawRate_seconds,ThresYawRateChange = YawRateChange, pNum = pNum, gender = gender, age = age, licenseTime = licenseTime, contacts_glasses = contacts_glasses) %>% 
   mutate(EarlyResponses = FirstSteeringTime <= 0.15)
   
-```
-
-```{r merging data for start coords and RT coords}
-
-lanepositiondata <- merge(trialstartcoords, workingdatathresholdUnsmooth, by = "ppid_trialn")
-
-lanepositiondata <- lanepositiondata %>%
-  group_by(ppid_trialn) %>%
-  mutate(computed_heading = EndWorldYaw - StartWorldYaw)
-
 ```
 
 
@@ -388,27 +364,6 @@ dat <- dat %>%
   dplyr::filter(FirstSteeringTime > 0.15) # filter trials that are within physiological plausible boundary
 
 sapply(dat, class)
-
-```
-
-```{r data saving for Rachel}
-
-# converting data types
-dat$FirstSteeringTime <- as.character(dat$FirstSteeringTime)
-dat$FirstSteeringTime <- as.numeric(dat$FirstSteeringTime)
-# dat$trial_number <- as.numeric(dat$trial_number)
-
-dat$response_num <- as.numeric(dat$response)-1 # makes no steer 0 and steer 1
-
-# arranging data
-
-subject8_block3 <- dat %>%
-  dplyr::filter(FirstSteeringTime > 0.15) %>%
-  arrange(trial_number) %>%
-  select(trial_number, heading, response, response_num, FirstSteeringTime)
-
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
-write.csv(subject8_block3, file = "subject8_block3.csv")
 
 ```
 

@@ -84,13 +84,26 @@ Above code first computes error slowness and error growth.
 
 We already know that that **RT = latency + threshold / sin(heading)**
 
-This means that *RT equals the baseline delay of participants reacting, added to when the error rate exceeds the threshold*. To formulate this into a linear model, the coefficient threshold needs to be multiplied by the error rate. Computing this a rearranging the equation gives us:
+This means that *RT equals the baseline delay of participants reacting, added to when the error growth exceeds the threshold*. To formulate this into a linear model, the coefficient threshold needs to be multiplied by the error. Computing this means rearranging the equation to give us:
 
 *RT = latency + threshold x 1 / sin(heading) x V*
 
-Taking the inverse of sin(heading) generates the metric error rate. Error rate refers to how much time it takes to travel a metre and thus, how slowly or quickly error develops. Conversely, ordinary sin(heading) generates error growth i.e. how much the error rate has developed. Plotting either of these metrics against the median of RT will show whether the relationship is linear or not.
+Taking the inverse of sin(heading) generates the metric error rate. Error rate refers to how much time it takes to travel a metre and thus, how slowly or quickly positional error develops. Conversely, ordinary sin(heading) generates error growth i.e. how much the error has developed (how many metres you have travelled in a second). Plotting either of these metrics against the median of RT will show whether the relationship is linear or not.
 
-Computing the inverse therefore makes the regression directtly interpretable - the intercept is the latency measured in seconds (i.e. perceptual processing time, motor and mechanical latency) whether the slope coefficient represents the threshold measured in metres. In this respect, is it the number of metres travelled away from the line before the threshold is surpassed as subjects react. 
+Computing the inverse therefore makes the regression directly interpretable - the intercept is the latency measured in seconds (i.e. perceptual processing time and motor and mechanical latency) and the slope coefficient represents the threshold measured in metres. In this respect, is it the number of metres travelled away from the line before the threshold is surpassed as subjects react.
+
+We can directly calculate the threhsold for each error rate by by multipling the error rate (speed) by the corresponding Rt (time). This caluclation generates the threshold in metres i.e. how many metres of positional error before subjects are turning the wheel.
+
+**Units**
+
+RT = latency + threshold x error rate, where error rate = 1 / sin(heading_in_radians) x V_in_ms
+
+Error rate = seconds/metre
+Error growth = metres/second
+RT = seconds
+Latency = seconds
+Threshold = metres
+Threshold * error rate = time to triggering response = seconds
 
 **Plots**
 Error growth against median RTs is easier to interpret. Essentially, as error growth increases, median RT decreases. This would be expected, as the faster error develops the faster participants will react to it.
@@ -99,15 +112,6 @@ Error rate against median RTs is less intuitive to understand. High error rate v
 
 We can confirm this relationship between error rate and RTs by plotting error rate against our raw heading metric. The plot demonstrates that smaller headings have larger error rates. This makes sense, as smaller headings have reduced error development and thus a higher rate of error.
 
-**Units**
-
-RT = latency + threshold x error rate, where error rate = 1 / sin(heading_in_radians) x V_in_ms
-
-Error rate = seconds/metre
-RT = seconds
-Latency = seconds
-Threshold = metres
-Threshold * error rate = time to triggering response = seconds
 
 ```{r examples of figuring out which distribution best fits my data}
 
@@ -185,12 +189,14 @@ workingdata2 <- workingdata %>%
 ggplot(dplyr::filter(workingdata2, pNum == 1, heading == 2.0), aes(x = timestamp_zero, y = SWA_mirrored)) + #, group = ppid_trialn, col = ppid_trialn
   geom_line() + guides(colour = FALSE)
 
-ggplot(dplyr::filter(workingdata2, ppid_trialn == "1_1_76"), aes(x = timestamp_zero, y =diff_YR)) +
+ggplot(dplyr::filter(workingdata, ppid_trialn == "1_1_76"), aes(x = timestamp_zero, y = diff_YR)) +
          geom_line() + guides(colour = FALSE)
 
 # plots x and z coordinates for all trials for a specific subject
 
-ggplot(dplyr::filter(workingdata2, pNum == 11), aes(x = World_x, y = World_z)) + geom_point()
+ggplot(dplyr::filter(workingdata, pNum == 11), aes(x = World_x, y = World_z)) + geom_point()
+
+ggplot(dplyr::filter(workingdata, pNum == 11), aes(x = sign(World_x), y = sign(World_z))) + geom_point()
 
 ```
 

@@ -30,6 +30,22 @@ workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV 
 
 ```
 
+
+```{r computing triggered time and threshold (in metres)}
+
+modellingdata <- modellingdata %>%
+  group_by(pNum) %>%
+  mutate(triggered_time = FirstSteeringTime - individual_intercept) %>%
+  mutate(model_threshold = triggered_time / error_rate)
+
+```
+
+Subtracting the intercept value (latency) from the RT generates the triggered response time i.e. how long before subjects realised they needed to make a response. Firstly some of these values are negative, suggested that the model is predicting latency values that are longer than what people are actually responding... on a qualitative level, this could indicate the model does not describe the data well...
+
+Callum proposes that to generate threshold from the model, I can divide triggered time by error rate. However this does not make sense to me. If error rate is considered speed, triggered time is considered time, and threshold considered distance, then speed / time does not equal a distance according to the distance/speed/time triangle. When do this I also get very strange numbers...
+
+It makes more sense to me that triggered_time (time) * error_rate (speed) = threshold (distance).
+
 ```{r create unique ID tag and differentiate yaw rate}
 
 upperthreshold = 0.13
@@ -76,7 +92,7 @@ trialstartcoords <- workingdata %>%
   group_by(ppid_trialn) %>% # group by trials
   slice(1) %>% # slice the first value
   ungroup() %>%
-  transmute(ppid_trialn, heading, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw) # save values
+  transmute(ppid_trialn, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw) # save values
 
 # obtain coordinates at first steering response for every trial 
 threshcoords <- workingdata %>%
@@ -89,6 +105,8 @@ threshcoords <- workingdata %>%
 
 
 dat_start_thresh <- merge(trialstartcoords, threshcoords, by = "ppid_trialn")
+
+modellingdata <- merge(modellingdata, trialstartcoords, by = "ppid_trialn")
 
 ```
 
@@ -139,6 +157,12 @@ dat_start_thresh <- dat_start_thresh %>%
   mutate(ComputedHeading_radians = ComputedHeading / 180 * pi) %>%
   mutate(ComputedErrorRate = 1 / (sin(ComputedHeading_radians) * 10))
 
+modellingdata <- modellingdata %>%
+  group_by(ppid_trialn) %>%
+  mutate(ComputedHeading = PeakWorldYaw - StartWorldYaw) %>%
+  mutate(ComputedHeading = abs(ComputedHeading)) %>%
+  mutate(ComputedHeading_radians = ComputedHeading / 180 * pi) %>%
+  mutate(ComputedErrorRate = 1 / (sin(ComputedHeading_radians) * 10))
 
 ```
 
@@ -170,11 +194,47 @@ dat_start_thresh <- rbind(notproblem, problem)
 
 rm(notproblem, problem)
 
+notproblem <- modellingdata %>%
+  dplyr::filter(ComputedHeading < 350)
+
+problem <- modellingdata %>%
+  dplyr::filter(ComputedHeading >= 350) %>%
+  mutate(ComputedHeading = 360 - ComputedHeading)
+
+modellingdata <- rbind(notproblem, problem)
+
+rm(notproblem, problem)
+
+
 ```
 
-Problem is, world yaw is measured in degrees. Thus when there is a high world yaw (near 360 degrees) minus a small one at the start, it creates a problems... converting to radians does not solve this problem.
+WorldYaw is measured in degrees. Thus when there is a high world yaw (near 360 degrees) minus a small one at the start, it creates a problems... converting to radians does not solve this problem.
 
 However if take the values that are near 360 degrees, subtract 360 degrees from them and then perform the calculation, this solves the problem.
+
+```{r investigating conmputed heading}
+
+dat_start_thresh %>%
+  group_by(heading.x) %>%
+  summarise(meancomputedheading = mean(ComputedHeading))
+
+dat_start_end %>%
+  group_by(heading) %>%
+  summarise(meancomputedheading = mean(ComputedHeading))
+
+modellingdata %>%
+  group_by(heading) %>%
+  summarise(meancomuptedheading = mean(ComputedHeading))
+
+```
+
+When computing the heading values that people react to using the start WorldYaw and the WolrdYaw at response triggered, I get computed heading values that do not make sense. Even if this were true, how come people are observing near identical heading angles bu still have differences in RT?
+
+If I compute heading values using start WorldYaw and WorldYaw at the end of the trial, I get much more sensible heading values...
+
+I think this is because of how the experiment is set up. The road is offset relative to the driver, rather than the driver being offset relative the road. Thus if you take the WorldYaw at the trial beginning, and WorldYaw when subjects first respond, there is likely to be very little difference because they technicially haven't moved much at all in the yaw direction.
+
+Conversely, if I take the WorldYaw at the start of the trial and the WorldYaw at the peak of steering response, I will be able to generate a more accurate value for the computed heading. When I compute this, I find that computed heading angles are not perfect, but make a bit more sense than the previous method **check with Callum**
 
 ```{r computing hypotenuse}
 
@@ -188,18 +248,26 @@ dat_start_thresh <- dat_start_thresh %>%
   mutate(a = (ThreshWorld_x - StartWorld_x)^2 + (ThreshWorld_z - StartWorld_z)^2) %>%
   mutate(hypo = sqrt(a))
 
+modellingdata <- modellingdata %>%
+  group_by(ppid_trialn) %>%
+  mutate(a = (PeakWorld_x - StartWorld_x)^2 + (PeakWorld_z - StartWorld_z)^2) %>%
+  mutate(hypo = sqrt(a))
+
 ```
 
 Above code computes the hypotenuse i.e. the longest side of a triangle (trajectory of the offset heading). This is computed by subtracting the starting position X and Z coordinates from the end position X and Z coordinates, squaring the result and adding them to values together. The square root is then taken.
 
 
-```{r computing lane position}
+```{r computing lane position/threshold}
 
 dat_start_end <- dat_start_end %>%
   mutate(lane_position = sin(ComputedHeading) * hypo) 
 
 dat_start_thresh <- dat_start_thresh %>%
   mutate(lane_position = sin(ComputedHeading) * hypo) 
+
+modellingdata <- modellingdata %>%
+  mutate(data_lane_position = sin(ComputedHeading) *hypo)
 
 ```
 
@@ -209,15 +277,10 @@ Currently, this is calculating the lane position from the very start of the tria
 
 ```{r comparing threshold model lane position values to data}
 
-# computing threshold value in metres for each error rate value
-modellingdata <- modellingdata %>%
-  group_by(error_rate) %>%
-  mutate(thresh = error_rate * FirstSteeringTime)
-
 # average threshold value for each error rate value according to constructed threshold model
 modellingdata %>%
   group_by(heading) %>%
-  summarise(meanLanePosition = mean(thresh))
+  summarise(meanLanePosition = mean(data_lane_position))
 
 # average threshold value for each error rate value according to data
 dat %>%

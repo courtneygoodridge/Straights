@@ -179,13 +179,13 @@ library(tidyr)
 
 # code below is identical to the RT data selection - both trying to find the same thing (start of the response)
 mag_response_start <- workingdata %>% 
-dplyr::select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>% 
+dplyr::select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum, WorldYaw) %>% 
 group_by(ppid_trialn) %>%
   dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
   slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
-  transmute(ppid_trialn, heading, StartFrame = frame, StartYaw = YawRateChange, FirstSteeringTime = anchored_timestamp, pNum = pNum) %>%
+  transmute(ppid_trialn, heading, StartFrame = frame, StartYawRateChange = YawRateChange, FirstSteeringTime = anchored_timestamp, pNum = pNum, ResponseStartWorldYaw = WorldYaw) %>%
   # mutate(steering_zscore = scale(FirstSteeringTime)) %>%
   mutate(EarlyResponses = FirstSteeringTime <= 0.15)
 
@@ -201,14 +201,14 @@ library(dplyr)
 library(tidyr)
 
 mag_response_peak <- workingdata %>%
-dplyr::select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum) %>%
+dplyr::select(ppid_trialn, heading, frame, YawRateChange, anchored_timestamp, pNum, WorldYaw, World_x, World_z) %>%
 group_by(ppid_trialn) %>%
 mutate(peakYaw = max(YawRateChange)) %>%
 dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% 
 slice(1:max(which(YawRateChange > upperthreshold, 1))) %>%
 slice(max(which(YawRateChange == peakYaw))) %>%
 ungroup() %>%
-transmute(ppid_trialn, heading, PeakFrame = frame, PeakYaw = YawRateChange, PeakSteeringTime = anchored_timestamp, pNum = pNum)
+transmute(ppid_trialn, heading, PeakFrame = frame, PeakYawRateChange = YawRateChange, PeakSteeringTime = anchored_timestamp, pNum = pNum, PeakWorldYaw = WorldYaw, PeakWorld_x = World_x, PeakWorld_z = World_z)
 
 # merge response start and response peak dataframes
 magnitudedata <- merge(mag_response_start, mag_response_peak, by = "ppid_trialn")
@@ -224,8 +224,8 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 # colnames(magnitudedata)[colnames(magnitudedata) == 'block.x'] <- 'block'
 
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
-# write.csv(magnitudedata, file = "magnitudedata.csv")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
+write.csv(magnitudedata, file = "magnitudedata.csv")
 
 ```
 

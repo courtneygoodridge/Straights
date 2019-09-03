@@ -19,10 +19,10 @@ library(ggplot2)
 # rm(list = ls()) 
 # full datasets
 # set working directory on office laptop
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
 
 # working directory for personal laptop
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
@@ -123,7 +123,7 @@ rm(trialstartcoords, threshcoords, trialendcoords)
 ```{r computing theta angle}
 
 
-dat <- dat %>%
+dat_start_end <- dat_start_end %>%
   group_by(ppid_trialn) %>%
   mutate(ComputedHeading = EndWorldYaw - StartWorldYaw) %>%
   mutate(ComputedHeading = abs(ComputedHeading)) %>%
@@ -131,6 +131,14 @@ dat <- dat %>%
   mutate(ComputedErrorRate = 1 / (sin(ComputedHeading_radians) * 10))
   
 # radians conversion = (variable / 180 *pi)
+
+dat_start_thresh <- dat_start_thresh %>%
+  group_by(ppid_trialn) %>%
+  mutate(ComputedHeading = ThreshWorldYaw - StartWorldYaw) %>%
+  mutate(ComputedHeading = abs(ComputedHeading)) %>%
+  mutate(ComputedHeading_radians = ComputedHeading / 180 * pi) %>%
+  mutate(ComputedErrorRate = 1 / (sin(ComputedHeading_radians) * 10))
+
 
 ```
 
@@ -140,14 +148,25 @@ To do this, I take the yaw when the response was triggered, and subtract from it
 
 ```{r computing angle for WorldYaw that is near 360 degrees}
 
-notproblem <- dat %>%
+notproblem <- dat_start_end %>%
   filter(ComputedHeading < 350)
 
-problem <- dat %>%
+problem <- dat_start_end %>%
   filter(ComputedHeading >= 350) %>%
   mutate(ComputedHeading = 360 - ComputedHeading)
 
-dat <- rbind(notproblem, problem)
+dat_start_end <- rbind(notproblem, problem)
+
+rm(notproblem, problem)
+
+notproblem <- dat_start_thresh %>%
+  filter(ComputedHeading < 350)
+
+problem <- dat_start_thresh %>%
+  filter(ComputedHeading >= 350) %>%
+  mutate(ComputedHeading = 360 - ComputedHeading)
+
+dat_start_thresh <- rbind(notproblem, problem)
 
 rm(notproblem, problem)
 
@@ -159,9 +178,14 @@ However if take the values that are near 360 degrees, subtract 360 degrees from 
 
 ```{r computing hypotenuse}
 
-dat <- dat %>%
+dat_start_end <- dat_start_end %>%
   group_by(ppid_trialn) %>%
   mutate(a = (EndWorld_x - StartWorld_x)^2 + (EndWorld_z - StartWorld_z)^2) %>%
+  mutate(hypo = sqrt(a))
+
+dat_start_thresh <- dat_start_thresh %>%
+  group_by(ppid_trialn) %>%
+  mutate(a = (ThreshWorld_x - StartWorld_x)^2 + (ThreshWorld_z - StartWorld_z)^2) %>%
   mutate(hypo = sqrt(a))
 
 ```
@@ -171,7 +195,10 @@ Above code computes the hypotenuse i.e. the longest side of a triangle (trajecto
 
 ```{r computing lane position}
 
-dat <- dat %>%
+dat_start_end <- dat_start_end %>%
+  mutate(lane_position = sin(ComputedHeading) * hypo) 
+
+dat_start_thresh <- dat_start_thresh %>%
   mutate(lane_position = sin(ComputedHeading) * hypo) 
 
 ```

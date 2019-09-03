@@ -11,10 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 # rm(list = ls())
 
 # office working directory
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
 
 # working directory for personal laptop
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 
 temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
@@ -545,13 +545,30 @@ Prediction intervals tell you where you would expect to see the next data point 
 **Fit** refers to the centre of the distribution i.e. a predicition of each value based upon the model
 **Upper** and **lower** refer to the upper and lower bounds of the predicition intervals, whereby 95% of subjects would fall witHin these predicition interval bounds for a given error rate value
 
+```{r inputting individual regression/multi level model intercepts into modelling dataframe}
+
+# obtain coefficients and then intercepts from multi level model 
+m5_coefficients <- coef(m5)[["pNum"]]
+heading_intercept_m5 <- m5_coefficients[,1]
+
+# for loop and if statement to input them into modellingdata dataframe
+for (i in c(1:19)){
+  if (modellingdata$pNum == i){
+    modellingdata$individual_intercept <- heading_intercept[modellingdata$pNum]
+    modellingdata$multilevel_intercept <- heading_intercept_m5[modellingdata$pNum]
+  }
+}
+
+
+```
+
 
 ```{r prediction intervals for mixed models - one participant to make sure it works}
 
 # fit glm for one participant
 pp_RT <- filter(modellingdata, pNum == 11)
 
-pp_RT_m1 <- glm(data = pp_RT, FirstSteeringTime ~ error_rate, family = Gamma(link = log))
+pp_RT_m1 <- glm(data = pp_RT, FirstSteeringTime ~ error_rate, family = Gamma(link = identity))
 
 # compute 100 new simulated error rates
 pd <- with(modellingdata,
@@ -586,7 +603,7 @@ for (i in c(1:19)){
   # Create temporary data frame:
 heading_tmp <- modellingdata[modellingdata$pNum == i,]
   # Perform regression:
-reg_result <- glm(FirstSteeringTime ~ error_rate, family = Gamma(link = log), data = heading_tmp)
+reg_result <- glm(FirstSteeringTime ~ error_rate, family = Gamma(link = identity), data = heading_tmp)
   # Get coefficient:
 tmp_coef <- coef(reg_result)
 

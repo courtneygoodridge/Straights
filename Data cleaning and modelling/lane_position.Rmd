@@ -44,7 +44,9 @@ Subtracting the intercept value (latency) from the RT generates the triggered re
 
 Callum proposes that to generate threshold from the model, I can divide triggered time by error rate. However this does not make sense to me. If error rate is considered speed, triggered time is considered time, and threshold considered distance, then speed / time does not equal a distance according to the distance/speed/time triangle. When do this I also get very strange numbers...
 
-It makes more sense to me that triggered_time (time) * error_rate (speed) = threshold (distance).
+It makes more sense to me that triggered_time (time) * error_rate (speed) = threshold (distance)
+
+**check with Callum**
 
 ```{r create unique ID tag and differentiate yaw rate}
 
@@ -106,8 +108,6 @@ threshcoords <- workingdata %>%
 
 dat_start_thresh <- merge(trialstartcoords, threshcoords, by = "ppid_trialn")
 
-modellingdata <- merge(modellingdata, trialstartcoords, by = "ppid_trialn")
-
 ```
 
 Above code selects the world yaw value at the very beginning of the trial (i.e. when the line is not visible) and at the moment of the first steering response.
@@ -124,7 +124,7 @@ trialendcoords <- workingdata %>%
   group_by(ppid_trialn) %>% # group by trials
   slice(n()) %>% # slice last values
   ungroup() %>%
-  transmute(ppid_trialn, EndWorld_x = World_x, EndWorld_z = World_z, EndWorldYaw = WorldYaw) # save values
+  transmute(ppid_trialn, heading, EndWorld_x = World_x, EndWorld_z = World_z, EndWorldYaw = WorldYaw) # save values
 
 trialendcoords <- dplyr::filter(trialendcoords, ppid_trialn %in% trueresponses)
 
@@ -132,6 +132,15 @@ trialendcoords$ppid_trialn <- NULL
 
 
 dat_start_end <- cbind(trialstartcoords, trialendcoords)
+
+```
+
+```{r selecting start and peakworlf yaw values}
+
+dat_start_peak <- modellingdata %>%
+  dplyr::select(ppid_trialn, heading, PeakWorldYaw, PeakWorld_x, PeakWorld_z)
+
+dat_start_peak <- merge(dat_start_peak, trialstartcoords, by = "ppid_trialn")
 
 rm(trialstartcoords, threshcoords, trialendcoords)
 
@@ -157,7 +166,7 @@ dat_start_thresh <- dat_start_thresh %>%
   mutate(ComputedHeading_radians = ComputedHeading / 180 * pi) %>%
   mutate(ComputedErrorRate = 1 / (sin(ComputedHeading_radians) * 10))
 
-modellingdata <- modellingdata %>%
+dat_start_peak <- dat_start_peak %>%
   group_by(ppid_trialn) %>%
   mutate(ComputedHeading = PeakWorldYaw - StartWorldYaw) %>%
   mutate(ComputedHeading = abs(ComputedHeading)) %>%
@@ -194,14 +203,14 @@ dat_start_thresh <- rbind(notproblem, problem)
 
 rm(notproblem, problem)
 
-notproblem <- modellingdata %>%
+notproblem <- dat_start_peak %>%
   dplyr::filter(ComputedHeading < 350)
 
-problem <- modellingdata %>%
+problem <- dat_start_peak %>%
   dplyr::filter(ComputedHeading >= 350) %>%
   mutate(ComputedHeading = 360 - ComputedHeading)
 
-modellingdata <- rbind(notproblem, problem)
+dat_start_peak <- rbind(notproblem, problem)
 
 rm(notproblem, problem)
 
@@ -215,14 +224,14 @@ However if take the values that are near 360 degrees, subtract 360 degrees from 
 ```{r investigating conmputed heading}
 
 dat_start_thresh %>%
-  group_by(heading.x) %>%
+  group_by(heading) %>%
   summarise(meancomputedheading = mean(ComputedHeading))
 
 dat_start_end %>%
   group_by(heading) %>%
   summarise(meancomputedheading = mean(ComputedHeading))
 
-modellingdata %>%
+dat_start_peak %>%
   group_by(heading) %>%
   summarise(meancomuptedheading = mean(ComputedHeading))
 
@@ -234,7 +243,7 @@ If I compute heading values using start WorldYaw and WorldYaw at the end of the 
 
 I think this is because of how the experiment is set up. The road is offset relative to the driver, rather than the driver being offset relative the road. Thus if you take the WorldYaw at the trial beginning, and WorldYaw when subjects first respond, there is likely to be very little difference because they technicially haven't moved much at all in the yaw direction.
 
-Conversely, if I take the WorldYaw at the start of the trial and the WorldYaw at the peak of steering response, I will be able to generate a more accurate value for the computed heading. When I compute this, I find that computed heading angles are not perfect, but make a bit more sense than the previous method **check with Callum**
+Conversely, if I take the WorldYaw at the start of the trial and the WorldYaw at the peak of steering response, I will be able to generate a more accurate value for the computed heading. When I compute this, I find that computed heading angles are not perfect, but make a bit more sense than using WorldYaw start and WorldYaw at first response **check with Callum**
 
 ```{r computing hypotenuse}
 
@@ -248,7 +257,7 @@ dat_start_thresh <- dat_start_thresh %>%
   mutate(a = (ThreshWorld_x - StartWorld_x)^2 + (ThreshWorld_z - StartWorld_z)^2) %>%
   mutate(hypo = sqrt(a))
 
-modellingdata <- modellingdata %>%
+dat_start_peak <- dat_start_peak %>%
   group_by(ppid_trialn) %>%
   mutate(a = (PeakWorld_x - StartWorld_x)^2 + (PeakWorld_z - StartWorld_z)^2) %>%
   mutate(hypo = sqrt(a))
@@ -266,8 +275,8 @@ dat_start_end <- dat_start_end %>%
 dat_start_thresh <- dat_start_thresh %>%
   mutate(lane_position = sin(ComputedHeading) * hypo) 
 
-modellingdata <- modellingdata %>%
-  mutate(data_lane_position = sin(ComputedHeading) *hypo)
+dat_start_peak <- dat_start_peak %>%
+  mutate(lane_position = sin(ComputedHeading) *hypo)
 
 ```
 
@@ -279,11 +288,21 @@ Currently, this is calculating the lane position from the very start of the tria
 
 # average threshold value for each error rate value according to constructed threshold model
 modellingdata %>%
+  filter(model_threshold > 0) %>%
+  filter(data_lane_position > 0) %>%
   group_by(heading) %>%
-  summarise(meanLanePosition = mean(data_lane_position))
+  summarise(meanLanePosition = mean(data_lane_position), meanlaneprediction = mean(model_threshold))
 
 # average threshold value for each error rate value according to data
-dat %>%
+dat_start_peak %>%
+  group_by(heading) %>%
+  summarise(meanLanePosition = mean(lane_position))
+
+dat_start_thresh %>%
+  group_by(heading) %>%
+  summarise(meanLanePosition = mean(lane_position))
+
+dat_start_end %>%
   group_by(heading) %>%
   summarise(meanLanePosition = mean(lane_position))
 

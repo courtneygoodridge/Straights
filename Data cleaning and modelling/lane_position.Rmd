@@ -176,7 +176,7 @@ Some of the computed headings are negative (i.e. the percieved heading angle was
 
 Some are vastly higher than the experimental manipulation (up to 20 degrees of heading offset).
 
-All in all, they make no sense whatsoever.
+All in all, nothing makes any sense whatsoever.
 
 ```{r the effect of steering wheel reset on the timecourse data}
 
@@ -212,7 +212,7 @@ The first plot shows the moment that the steering wheel angle is reset before th
 
 There should be a straight line inbetween the first part of the trial before the reset and the second part of the trial after the reset. For a lot of subjects this is the case however a few seem to have heavy carry over from the reset (subject 1, 2, 16 for example).
 
-
+Potentially, carry over for some subjects leads to higher over computed heading angles then what was experimentally manipulated. However this still doesn't explain why my computed angles of are not the same magnitude as the experimentally manipulated ones i.e. 2 degrees of heading angle is repeatedly the smallest computed angle. 
 
 ```{r computing hypotenuse}
 

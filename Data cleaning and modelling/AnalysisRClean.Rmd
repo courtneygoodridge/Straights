@@ -7,27 +7,27 @@ output: html_document
 # chooseCRANmirror(graphics=FALSE, ind=1) # uncomment for knitting
 # rm(list = ls()) # clear workspace
 knitr::opts_chunk$set(echo = TRUE)
-install.packages(ggplot2) # for plots
-install.packages(dplyr) # for manipulating data frames
-install.packages(tidyr) # for tidying data (uniting columns)
-install.packages(TTR) # for smoothing data with mean of observations
-install.packages(zoo) # package for rolling mean (rollmean function)
-install.packages(skimr) # generates summary of data
-install.packages(car) # to perform levenes and anova
-install.packages(apaTables) # to create apa table
-install.packages(WRS2) # for non-parametric anova
-install.packages(compute.es) # for ancova type 3 method
-install.packages(multcomp) # post hoc for type 3 method ancova
-install.packages(lmPerm) # non-parametric ancova
-install.packages(e1071) # for calculating skewness
-install.packages(ggpubr) # for interactions plots and boxplots
-install.packages(effsize) # for calculating effect sizes
-install.packages(gganimate) # animate plots
-install.packages(gifski) # animate plots
-install.packages(png)
-install.packages(transformr)
-install.packages(signal) # package needed for sgolayfilt function for steering magnitude 
-install.packages(conflicted) # heloful package to show when packages have conflicted functions # conflict_prefer("filter", "dplyr") means filter function from dplyr is prioritised
+library(ggplot2) # for plots
+library(dplyr) # for manipulating data frames
+library(tidyr) # for tidying data (uniting columns)
+library(TTR) # for smoothing data with mean of observations
+library(zoo) # package for rolling mean (rollmean function)
+library(skimr) # generates summary of data
+library(car) # to perform levenes and anova
+library(apaTables) # to create apa table
+library(WRS2) # for non-parametric anova
+library(compute.es) # for ancova type 3 method
+library(multcomp) # post hoc for type 3 method ancova
+library(lmPerm) # non-parametric ancova
+library(e1071) # for calculating skewness
+library(ggpubr) # for interactions plots and boxplots
+library(effsize) # for calculating effect sizes
+# library(gganimate) # animate plots
+# library(gifski) # animate plots
+# library(png)
+# library(transformr)
+library(signal) # package needed for sgolayfilt function for steering magnitude 
+library(conflicted) # heloful package to show when packages have conflicted functions # conflict_prefer("filter", "dplyr") means filter function from dplyr is prioritised
 
 
 

@@ -16,20 +16,26 @@ library(ggplot2)
 ```
 
 ```{r load in full datasets}
-# rm(list = ls()) 
-# full datasets
+# rm(list = ls())
+
 # set working directory on office laptop
+
+# unprocessed datasets 
 setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
-
-# working directory for personal laptop
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
+# pre-processed datasets
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
+
+
 ```
 
+I need the raw datasets to obtain starting and ending WorldYaw values, and I need the pre-processed data to make a "true responses" tag so that I'm only calculating lane positions for valid trials. 
 
 ```{r computing triggered time and threshold (in metres)}
 
@@ -65,17 +71,25 @@ workingdata <- unite(workingdata, ppid_trialn, ppid, trialn, sep = "_") # create
 
 workingdata$StraightVisible <- as.numeric(workingdata$StraightVisible) # changes factor to numeric, 1 = false, 2 = true
 
+# filter data for only period of the trial where line is visible
 workingdata <- workingdata %>%
   group_by(ppid_trialn) %>%
   dplyr::filter(StraightVisible == 2) %>% # filter for only data where central line is visible
   mutate(frame = row_number()) # create frame number column
 
-
+# differentiate yaw rate metric
 workingdata <- workingdata %>%
   mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% # difference in yaw rate
   group_by(ppid_trialn) %>%
   mutate(frame = row_number()) %>%
   ungroup()
+
+# compute 2.5 second anchored timestamp
+workingdata <- workingdata %>%
+  group_by(ppid_trialn) %>%
+  mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
+  dplyr::filter(anchored_timestamp <= min(anchored_timestamp) + 2.5) %>% # add for seconds fro the original data 
+  ungroup() 
 
 ```
 
@@ -112,23 +126,44 @@ trialstartcoords <- workingdata %>%
   group_by(ppid_trialn) %>% # group by trials
   slice(1) %>% # slice the first value
   ungroup() %>%
-  transmute(ppid_trialn, pNum, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw) # save values
+  transmute(ppid_trialn, pNum, heading, StartWorld_x = World_x, StartWorld_z = World_z, StartWorldYaw = WorldYaw) # save values
 
-# obtain coordinates at first steering response for every trial 
-threshcoords <- workingdata %>%
+# obtains ending coordinates for every trial
+trialendcoords <- workingdata %>%
+  group_by(ppid_trialn) %>%
+  slice(n()) %>%
+  ungroup %>%
+  transmute(EndWorld_x = World_x, EndWorld_z = World_z, EndWorldYaw = WorldYaw) # save values
+
+dat <- cbind(trialstartcoords, trialendcoords)
+
+trueresponses <- magnitudedata$ppid_trialn # selects ID tags of true responses
+trueresponses <- as.vector(trueresponses) # creates ID vector for filtering 
+
+# filters starting and ending coordinates so only valid trials are selected
+dat <- dplyr::filter(dat, ppid_trialn %in% trueresponses) # filter the IDs in the ID vector
+
+# obtains coordinates at the moment the first steering response wa triggered
+threshcoords <- workingdata %>% 
   group_by(ppid_trialn) %>%
   dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
   slice(1:min(which(YawRateChange > upperthreshold, 1))) %>% # slice from the first yaw value, to the first yaw value above the upper thrshold
   slice(min(which(YawRateChange > lowerthreshold, 1))) %>% # slice the row at the minimum yaw rate above the lower threshold to get start of the response
   ungroup() %>%
-  transmute(ppid_trialn, heading, ThreshWorld_x = World_x, ThreshWorld_z = World_z, ThreshWorldYaw = WorldYaw, ThreshYawRateChange = YawRateChange)
+  transmute(ppid_trialn, heading, ThreshWorldYaw = WorldYaw, ThreshWorld_x = World_x, ThreshWorld_z = World_z)
 
+# filters threshold coordinates so only valid trials are selected
+threshcoords <- dplyr::filter(threshcoords, ppid_trialn %in% trueresponses)
+threshcoords$ppid_trialn <- NULL
+threshcoords$heading <- NULL
 
-dat <- merge(trialstartcoords, threshcoords, by = "ppid_trialn")
+dat <- cbind(dat, threshcoords)
 
 ```
 
-Above code selects the world yaw value at the very beginning of the trial (i.e. the first frame that the line is visible). This is because at that this point the WorldYaw is already rotated for the offset.
+Above code selects the world yaw value at the very beginning of the trial (i.e. the first frame that the line is visible) and the WorldYaw value at the end of the trial (line is still visible but the subject has completed their turn of the angle they have observed). 
+
+The above code also selects world_x and world_z coordinates at the start of the trial and at the moment of the firsts steering response. This is done in order to calculate hypotenuse for formulating lane position.
 
 ```{r computing theta angle}
 
@@ -136,19 +171,18 @@ Above code selects the world yaw value at the very beginning of the trial (i.e. 
 
 dat <- dat %>%
   group_by(ppid_trialn) %>%
-  mutate(ComputedHeading = StartWorldYaw) 
+  mutate(ComputedHeading = abs(EndWorldYaw - StartWorldYaw)) 
 
 notproblem <- dat %>%
-  filter(ComputedHeading < 315)
+  dplyr::filter(ComputedHeading < 315)
 
 problem <- dat %>%
-  filter(ComputedHeading >= 315) %>%
+  dplyr::filter(ComputedHeading >= 315) %>%
   mutate(ComputedHeading = 360 - ComputedHeading)
 
 dat <- rbind(notproblem, problem)
 
 dat <- dat %>%
-  mutate(ComputedHeading = ComputedHeading - heading) %>%
   mutate(ComputedHeading_radians = ComputedHeading / 180 * pi) %>%
   mutate(ComputedErrorRate = 1 / (sin(ComputedHeading_radians) * 10))
 
@@ -156,27 +190,22 @@ dat <- dat %>%
 
 Above code computes heading angle whilst accounting for carry over from the resetting of the steering wheel angle
 
-To do this, I take the yaw at the start of the trial. I then take the absolute of this to get the computed heading angle in degrees and then subtract from this value the experiment heading manipulation. Hence the difference between these values should generate the heading angle that was observed by the subject.
+To do this, I take the yaw at the start of the trial and subtract it from the yaw at the end of the trial and take the absolute of this value. This calculates the heading angle that subjects have accounted for during the trial, and thus takes into account any carryover from the steering wheel reset.
 
-WorldYaw is measured in degrees. Sometimes there are very high WordYaw values (near 360 degrees). I assume this is because the yaw has almost reached a full circle. For example, 358 degrees of WorldYaw might indicate a 2 degree heading angle to the right whereas a 2 degree WorldYaw might indicate a 2 degree heading angle to the left. This is fine, however it appears that I might have a heading angle of 358 when it is actually 2 degrees. Hence to account for this, I subtract the value from 360 in order account for this and collaspse across conditions.
+WorldYaw is measured in degrees. Sometimes there are very high WordYaw values (near 360 degrees). I assume this is because the yaw has almost reached a full circle (360 degrees). For example, 358 degrees of WorldYaw might indicate a 2 degree heading angle to the left whereas a 2 degree WorldYaw might indicate a 2 degree heading angle to the right. This is fine, however it appears that I might have a heading angle of 358 when it is actually 2 degrees. Hence to account for this, I subtract the value from 360 in order account for this and collaspse across conditions.
 
 ```{r investigating computed heading}
 
 View(dat %>% 
-  group_by(pNum, heading) %>%
-  summarise(meancomputedheading = mean(ComputedHeading)))
+  group_by(heading) %>%
+  summarise(meancomputedheading = mean(ComputedHeading)) %>%
+    mutate(heading_diff = meancomputedheading - heading))
 
 ```
 
-The computed heading angles still make little sense. 
+The computed heading angles now makes a lot more sense. None of them are perfect, with some suffering from steering wheel reset carry over. However, they make a lot more sense than before. 
 
-Some of the computed headings do make sense, and match the experimental manipulation.
-
-Some of the computed headings are negative (i.e. the percieved heading angle was in the oppsite direction to the experimental manipulation?
-
-Some are vastly higher than the experimental manipulation (up to 20 degrees of heading offset).
-
-All in all, nothing makes any sense whatsoever.
+This also demonstrates why some subjects were reacting in the apparent "0 heading" condition. The computed heading angles demonstrate that possibly due to carry over in some trials, there might always be a slight heading angle even for the 0 heading conditions, thus people are steering to correct for this formulated angle. 
 
 ```{r the effect of steering wheel reset on the timecourse data}
 
@@ -194,11 +223,11 @@ timecoursedata <- timecoursedata %>%
          abs_heading = abs(heading),
          diff_YR = c(0, diff(YawRate_seconds)))
 
-ggplot(dplyr::filter(timecoursedata, abs_heading == 0.5), aes(x = timestamp_zero, y = SWA, group = ppid_trialn, col = ppid_trialn)) +
+ggplot(dplyr::filter(timecoursedata, abs_heading == 2.0), aes(x = timestamp_zero, y = SWA, group = ppid_trialn, col = ppid_trialn)) +
   geom_line() + 
   guides(colour = FALSE) +
   facet_wrap(~ pNum) +
-  ggtitle("plotting SWA across multiple timecourses for each participant")
+  ggtitle("plotting SWA across multiple timecourses for each participant for 2.0 degrees of heading offset")
 
 ggplot(dplyr::filter(timecoursedata, ppid_trialn == "1_3_88"), aes(x = timestamp_zero, y = WorldYaw)) +
   geom_line() + 
@@ -210,9 +239,7 @@ ggplot(dplyr::filter(timecoursedata, ppid_trialn == "1_3_88"), aes(x = timestamp
 
 The first plot shows the moment that the steering wheel angle is reset before the visible line is presented (at around 2 seconds). If subjects are moving the wheel just before or during the reset and then move it back just after, their trajectory will change and thus subjects will respond by correcting for this. This is what is meant by the "reset" carry over. 
 
-There should be a straight line inbetween the first part of the trial before the reset and the second part of the trial after the reset. For a lot of subjects this is the case however a few seem to have heavy carry over from the reset (subject 1, 2, 16 for example).
-
-Potentially, carry over for some subjects leads to higher over computed heading angles then what was experimentally manipulated. However this still doesn't explain why my computed angles of are not the same magnitude as the experimentally manipulated ones i.e. 2 degrees of heading angle is repeatedly the smallest computed angle. 
+There should be a straight line inbetween the first part of the trial before the reset and the second part of the trial after the reset. For a lot of subjects this is the case however a few seem to have heavy carry over from the reset (subject 1, 2, 16).
 
 ```{r computing hypotenuse}
 
@@ -225,16 +252,16 @@ dat <- dat %>%
 
 Above code computes the hypotenuse i.e. the longest side of a triangle (trajectory of the offset heading). This is computed by subtracting the starting position X and Z coordinates from the position X and Z coordinates when the first steering response is made, squaring the result and adding them to values together. The square root is then taken.
 
+Using these coordinates means measuring the distance travelled from the moment the line appears, to the moement that the trajectory starts to change (i.e. when the first steering response is triggered).
 
 ```{r computing lane position/threshold}
 
 dat <- dat %>%
-  mutate(lane_position = sin(ComputedHeading) * hypo) 
+  mutate(lane_position = sin(ComputedHeading_radians) * hypo) 
 
 ```
 
-Finally, you take the sine of the computed heading and multiple by the hypotenuse to calculate the lane position in metres.
-
+Finally, you take the sine of the computed heading and multiple by the hypotenuse to calculate the lane position in metres. Make sure that you're taking the sine of the computed heading in radians.
 
 ```{r comparing threshold model lane position values to data}
 
@@ -249,5 +276,9 @@ dat %>%
   summarise(meanLanePosition = mean(lane_position))
 
 ```
+Threshold model predicts very similar lane position thresholds across conditions. This would possibly be expected under the threshold model as it proposes a fixed threhsold across conditions. Once the threshold has been surpassed, a response is initiated. The RTs may differ (i.e. it may take longer to reach the threshold value if error growth is very slow) however the ultimate fixed threshold is still likely to be the same.
 
+One thing to take into account for the threshold model is that intercepts (latencies) for some subjects was slower than some of the trial  RTs for that participant... suggests that the model might not be good at predicting that. Thus when I then going to calculate the overall threshold model, the triggered response time is negative i.e. subjects know when to respond before they have even processed the visual information...
+
+In contrast, the collected data proposes that there are different threshold values for increased heading. More specifically, for increased heading values the mean lane position also increases. Intuitively, this might make sense for the accumulator as this model predicts that subjects will respond to to lower absolute errors when there is more time over which to intergrate the evidence. 
 

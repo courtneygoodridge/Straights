@@ -11,10 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 # rm(list = ls())
 
 # office working directory
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
 
 # working directory for personal laptop
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 
 temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
@@ -52,7 +52,7 @@ library(fitdistrplus)
 # compute metrics
 modellingdata <- magnitudedata %>%
   dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
-  mutate(heading_radians = heading / 180 * pi) # convert heading to radians 
+  mutate(heading_radians = heading / 180 * pi) %>% # convert heading to radians 
   mutate(error_rate = 1 / (sin(heading_radians) * 10)) %>%
   mutate(error_growth = (sin(heading_radians) * 10))
 
@@ -502,7 +502,8 @@ print(ggplot(heading_tmp, aes(x = error_rate, y = FirstSteeringTime)) +
   stat_smooth(method = lm) +
   geom_line(aes(y = lwr), color = "red", linetype = "dashed") +
   geom_line(aes(y = upr), color = "red", linetype = "dashed") +
-  geom_line(aes(y = fit), color = "black", linetype = "dashed"))
+  geom_line(aes(y = fit), color = "black", linetype = "dashed") +
+  ylim(0, 2.5))
 
 }
 
@@ -528,7 +529,37 @@ The main difference between individual regression models and multi-level models 
 
 However, if each individual has a lot of data points per condition, we can be more certain of the individual coefficients. The current data set has a lot of data points per condition, thus we don't have to rely on the assumption of them being drawn from a normal distribution. We can therefore extract individual regression lines rather than implement a mixed model.
 
-**Sidenote** when using base R plot function, I need to calculate and save the individual slopes and intercepts. However when using ggplot, I can using the stat_smooth function and compute a linear model for each subject that way.
+**Notes on scatterplot and regression line and potential for orthogonal regression**
+
+Regression line is directly interpretable as the threshold for each subject, which is the same across each heading condition for subjects. This can be computed via:
+
+Threshold = (RT - latency = triggered time) / error rate. 
+
+However, some subjects does not have a large slope and thus have extremely small threshold values
+
+One reason for this could be to do with performing a normal regression. A normal regression line aims to reduce residuals by reducing the vertical distance between the y value (RT) and the fitted y values (regression line). This is usally fine, however in my experiment and analysis there is a difference in my x axis variable. 
+
+For my analysis, I am considering heading as a factorial variable whereas in reality (subject observation) is was a continous variable (experimental manipulation + carry over). Hence becuase I am treating my regressors as factorial, this carry over error gets pushed onto the y intercept and thus can be reduce the slope. Alternatively, an orthogonal regression generates a regression line that minimises distance across x and y axes for the fitted line. This means the error can be accounted for a more valid slope (threshold) for each subject can be generated.  
+
+Orthogonal/total regression package - passing-bablok
+
+**Computing parameters within the threshold model**
+
+We know that: 
+
+RT = latency + threshold * error rate, so therefore
+
+RT - latency = threshold * error rate
+
+Threshold = (RT - latency) / error rate
+
+Error rate = (RT - latency) / threshold
+
+Latency = RT - threshold * error rate.
+
+Subtracting the intercept value (latency) from the RT generates the triggered response time i.e. how long before subjects realised they needed to make a response. Some of these values are negative, suggested that the model is predicting latency values that are longer than what people are actually responding... on a qualitative level, this could indicate the model does not describe the data well.
+
+**Sidenote about plotting** when using base R plot function, I need to calculate and save the individual slopes and intercepts. However when using ggplot, I can using the stat_smooth function and compute a linear model for each subject that way.
 
 **Difference between CIs and prediction intervals**
 
@@ -551,12 +582,15 @@ Prediction intervals tell you where you would expect to see the next data point 
 # obtain coefficients and then intercepts from multi level model 
 m5_coefficients <- coef(m5)[["pNum"]]
 heading_intercept_m5 <- m5_coefficients[,1]
+heading_slope_m5 <- m5_coefficients[,2]
 
 # for loop and if statement to input them into modellingdata dataframe
 for (i in c(1:19)){
   if (modellingdata$pNum == i){
     modellingdata$individual_intercept <- heading_intercept[modellingdata$pNum]
     modellingdata$multilevel_intercept <- heading_intercept_m5[modellingdata$pNum]
+    modellingdata$individual_threshold <- heading_coefs[modellingdata$pNum]
+    modellingdata$multilevel_threshold <- heading_slope_m5[modellingdata$pNum]
   }
 }
 

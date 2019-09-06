@@ -37,32 +37,13 @@ magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CS
 
 I need the raw datasets to obtain starting and ending WorldYaw values, and I need the pre-processed data to make a "true responses" tag so that I'm only calculating lane positions for valid trials. 
 
-```{r computing triggered time and threshold (in metres)}
+```{r compute mean lateral error threshold for each heading according to threshold model}
 
-modellingdata <- modellingdata %>%
-  group_by(pNum, heading) %>%
-  mutate(triggered_time = mean(FirstSteeringTime) - individual_intercept) %>%
-  mutate(model_threshold = triggered_time / error_rate)
+modellingdata %>%
+  group_by(heading) %>%
+  summarise(meanLateralPosition = mean(individual_threshold))
 
 ```
-
-Orthogonal/total regression - passing-bablok
-
-**Computing threshold value from threshold model**
-
-We know that: 
-
-RT = latency + threshold * error rate, so therefore
-
-RT - latency = threshold * error rate
-
-Threshold = (RT - latency) / error rate
-
-Error rate = (RT - latency) / threshold
-
-Latency = RT - threshold * error rate.
-
-Subtracting the intercept value (latency) from the RT generates the triggered response time i.e. how long before subjects realised they needed to make a response. Some of these values are negative, suggested that the model is predicting latency values that are longer than what people are actually responding... on a qualitative level, this could indicate the model does not describe the data well.
 
 ```{r creating unique ID tag, selecting only when line is visible and differentiate yaw rate}
 
@@ -211,12 +192,13 @@ This also demonstrates why some subjects were reacting in the apparent "0 headin
 
 ```{r the effect of steering wheel reset on the timecourse data}
 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 timecoursedata <- do.call(rbind.data.frame, myfiles) 
 
-timecoursedata <- unite(timecoursedata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
+timecoursedata <- tidyr::unite(timecoursedata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
 
 timecoursedata <- timecoursedata %>% 
   group_by(ppid_trialn) %>% 

@@ -21,13 +21,17 @@ library(ggplot2)
 # set working directory on office laptop
 
 # unprocessed datasets 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+# set working directory on personal laptop
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
 # pre-processed datasets
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+# set working directory on personal laptop
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
 temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -193,27 +197,48 @@ This also demonstrates why some subjects were reacting in the apparent "0 headin
 ```{r the effect of steering wheel reset on the timecourse data}
 
 # setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 timecoursedata <- do.call(rbind.data.frame, myfiles) 
 
 timecoursedata <- tidyr::unite(timecoursedata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
 
+
+trueresponses <- magnitudedata$ppid_trialn # selects ID tags of true responses
+trueresponses <- as.vector(trueresponses) # creates ID vector for filtering
+
+timecoursedata <- dplyr::filter(timecoursedata, ppid_trialn %in% trueresponses)
+
 timecoursedata <- timecoursedata %>% 
   group_by(ppid_trialn) %>% 
   mutate(timestamp_zero = timestamp - timestamp[1],
+         anchored_timestamp = timestamp - min(timestamp), 
          SWA_mirrored = SWA * sign(heading + 1e-6),
          abs_heading = abs(heading),
-         diff_YR = c(0, diff(YawRate_seconds)))
+         diff_YR = c(0, diff(YawRate_seconds)),
+         frame = row_number())
 
-ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA, group = ppid_trialn, col = ppid_trialn)) +
-  geom_line() + 
+# computes SWA across timecourse for each heading (or participant)
+ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_trialn, col = ppid_trialn)) +
+  geom_line(alpha = 0.3) + 
   guides(colour = FALSE) +
   facet_wrap(~ pNum) +
   facet_wrap(~ abs_heading) +
   ggtitle("SWA across multiple timecourses for each heading")
 
+# computes average SWA across the time course
+avgtimecourse <- timecoursedata %>%
+  group_by(abs_heading, frame) %>%
+  summarise(meanSWA = mean(SWA_mirrored)) %>%
+  mutate(heading_factor = as.factor(abs_heading)) %>%
+  mutate(timestamp = frame / 60)
+
+ggplot(data = avgtimecourse, aes(x = frame, y = meanSWA, colour = heading_factor)) + 
+  geom_line()
+
+
+# computes WorldYaw across timecourse for individual
 ggplot(dplyr::filter(timecoursedata, ppid_trialn == "1_3_88"), aes(x = timestamp_zero, y = WorldYaw)) +
   geom_line() + 
   guides(colour = FALSE) +

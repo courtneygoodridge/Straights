@@ -40,11 +40,13 @@ I need the raw datasets to obtain starting and ending WorldYaw values, and I nee
 ```{r computing triggered time and threshold (in metres)}
 
 modellingdata <- modellingdata %>%
-  group_by(pNum) %>%
-  mutate(triggered_time = FirstSteeringTime - individual_intercept) %>%
+  group_by(pNum, heading) %>%
+  mutate(triggered_time = mean(FirstSteeringTime) - individual_intercept) %>%
   mutate(model_threshold = triggered_time / error_rate)
 
 ```
+
+Orthogonal/total regression - passing-bablok
 
 **Computing threshold value from threshold model**
 
@@ -223,11 +225,12 @@ timecoursedata <- timecoursedata %>%
          abs_heading = abs(heading),
          diff_YR = c(0, diff(YawRate_seconds)))
 
-ggplot(dplyr::filter(timecoursedata, abs_heading == 2.0), aes(x = timestamp_zero, y = SWA, group = ppid_trialn, col = ppid_trialn)) +
+ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA, group = ppid_trialn, col = ppid_trialn)) +
   geom_line() + 
   guides(colour = FALSE) +
   facet_wrap(~ pNum) +
-  ggtitle("plotting SWA across multiple timecourses for each participant for 2.0 degrees of heading offset")
+  facet_wrap(~ abs_heading) +
+  ggtitle("SWA across multiple timecourses for each heading")
 
 ggplot(dplyr::filter(timecoursedata, ppid_trialn == "1_3_88"), aes(x = timestamp_zero, y = WorldYaw)) +
   geom_line() + 
@@ -268,12 +271,13 @@ Finally, you take the sine of the computed heading and multiple by the hypotenus
 # average threshold value for each error rate value according to constructed threshold model
 modellingdata %>%
   group_by(heading) %>%
-  summarise(meanLanePosition = mean(model_threshold))
+  summarise(meanLateralPositionTHRESHOLD = mean(model_threshold))
 
 # average threshold value for each error rate value according to data
 dat %>%
+  filter(heading > 0) %>%
   group_by(heading) %>%
-  summarise(meanLanePosition = mean(lane_position))
+  summarise(meanLateralPositionDATA = mean(lane_position))
 
 ```
 Threshold model predicts very similar lane position thresholds across conditions. This would possibly be expected under the threshold model as it proposes a fixed threhsold across conditions. Once the threshold has been surpassed, a response is initiated. The RTs may differ (i.e. it may take longer to reach the threshold value if error growth is very slow) however the ultimate fixed threshold is still likely to be the same.

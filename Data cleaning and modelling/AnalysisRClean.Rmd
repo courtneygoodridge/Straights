@@ -10,18 +10,18 @@ knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2) # for plots
 library(dplyr) # for manipulating data frames
 library(tidyr) # for tidying data (uniting columns)
-library(TTR) # for smoothing data with mean of observations
+# library(TTR) # for smoothing data with mean of observations
 library(zoo) # package for rolling mean (rollmean function)
-library(skimr) # generates summary of data
+# library(skimr) # generates summary of data
 library(car) # to perform levenes and anova
-library(apaTables) # to create apa table
-library(WRS2) # for non-parametric anova
-library(compute.es) # for ancova type 3 method
-library(multcomp) # post hoc for type 3 method ancova
-library(lmPerm) # non-parametric ancova
-library(e1071) # for calculating skewness
-library(ggpubr) # for interactions plots and boxplots
-library(effsize) # for calculating effect sizes
+# library(apaTables) # to create apa table
+# library(WRS2) # for non-parametric anova
+# library(compute.es) # for ancova type 3 method
+# library(multcomp) # post hoc for type 3 method ancova
+# library(lmPerm) # non-parametric ancova
+# library(e1071) # for calculating skewness
+# library(ggpubr) # for interactions plots and boxplots
+# library(effsize) # for calculating effect sizes
 # library(gganimate) # animate plots
 # library(gifski) # animate plots
 # library(png)
@@ -33,10 +33,10 @@ library(conflicted) # heloful package to show when packages have conflicted func
 
 # full datasets
 # set working directory on pffice laptop
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
 
 # set working directory on personal laptop
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example/Full_Data")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
@@ -136,13 +136,13 @@ workingdata <- workingdata %>%
 library(dplyr)
 library(tidyr)
 library(signal)
-
+ 
 # inverting yaw rate signal and collapsing heading conditions
 
 negativetimecourse <- workingdata %>%
   dplyr::filter(heading < 0) %>%
   mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = abs(YawRateChange))
+  mutate(YawRateChange = -(YawRateChange))
 
 positivetimecourse <- workingdata %>%
   dplyr::filter(heading > 0) %>%
@@ -224,7 +224,7 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 # colnames(magnitudedata)[colnames(magnitudedata) == 'block.x'] <- 'block'
 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights") # set directory for data saving
 write.csv(magnitudedata, file = "magnitudedata.csv")
 
 ```

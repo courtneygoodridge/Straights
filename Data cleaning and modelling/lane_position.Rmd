@@ -212,12 +212,12 @@ timecoursedata <- dplyr::filter(timecoursedata, ppid_trialn %in% trueresponses)
 
 timecoursedata <- timecoursedata %>% 
   group_by(ppid_trialn) %>% 
-  mutate(timestamp_zero = timestamp - timestamp[1],
-         anchored_timestamp = timestamp - min(timestamp), 
+  mutate(timestamp_zero = timestamp - timestamp[1], 
          SWA_mirrored = SWA * sign(heading + 1e-6),
          abs_heading = abs(heading),
          diff_YR = c(0, diff(YawRate_seconds)),
          frame = row_number())
+         
 
 # computes SWA across timecourse for each heading (or participant)
 ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_trialn, col = ppid_trialn)) +
@@ -225,24 +225,26 @@ ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_tr
   guides(colour = FALSE) +
   facet_wrap(~ pNum) +
   facet_wrap(~ abs_heading) +
-  ggtitle("SWA across multiple timecourses for each heading")
+  ggtitle("Plot 1: SWA across multiple timecourses for each heading")
 
 # computes average SWA across the time course
 avgtimecourse <- timecoursedata %>%
+  filter(frame <= 270) %>%
   group_by(abs_heading, frame) %>%
   summarise(meanSWA = mean(SWA_mirrored)) %>%
   mutate(heading_factor = as.factor(abs_heading)) %>%
   mutate(timestamp = frame / 60)
 
-ggplot(data = avgtimecourse, aes(x = frame, y = meanSWA, colour = heading_factor)) + 
-  geom_line()
+ggplot(data = avgtimecourse, aes(x = timestamp, y = meanSWA, colour = heading_factor)) + 
+  geom_line() +
+  ggtitle("Plot 2: average SWA over time for each heading")
 
 
 # computes WorldYaw across timecourse for individual
 ggplot(dplyr::filter(timecoursedata, ppid_trialn == "1_3_88"), aes(x = timestamp_zero, y = WorldYaw)) +
   geom_line() + 
   guides(colour = FALSE) +
-  ggtitle("plotting WorldYaw across timecourses")
+  ggtitle("Plot 3: plotting WorldYaw across timecourses")
 
 
 ```

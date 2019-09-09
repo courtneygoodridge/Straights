@@ -1,0 +1,155 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages}
+library(ggplot2)
+library(dplyr)
+library(car)
+library(MASS)
+library(dplyr)
+library(EnvStats)
+library(lme4)
+library(nlme)
+library(tidyr)
+library(rstanarm)
+library(bayesplot)
+library(loo)
+library(lmtest)
+library(caret)
+library(merTools)
+library(scales)
+library(fitdistrplus)
+library(mcr) # orthogonal regression
+```
+
+
+```{r orthogonal regression}
+
+example <- modellingdata %>%
+  filter(pNum == 4)
+
+# linear regression for least squares method
+
+lin.reg <- lm(FirstSteeringTime ~ error_rate, data = example)
+plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .3), main = "Linear regression") 
+abline(lin.reg, col = "red")
+
+# Deming regression example
+
+dem.reg <- mcreg(example$error_rate, example$FirstSteeringTime, method.reg = "Deming")
+str(dem.reg)
+dem.reg@para
+plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .3), main = "Deming regression")
+abline(dem.reg@para[1:2], col = "red")
+
+# Weighted Deming regression example
+
+w.dem.reg <- mcreg(example$error_rate, example$FirstSteeringTime, method.reg = "WDeming")
+w.dem.reg@para
+
+plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .2), main = "Deming and weighted deming regression") 
+abline(dem.reg@para[1:2], col = "blue")
+abline(w.dem.reg@para[1:2], col = "green")
+legend("topleft", c("Deming","Weighted Deming"), lty=c(1,1), col = c("blue","green"))
+
+# Passing Bablock regression example
+
+PB.reg <- mcreg(example$error_rate, example$FirstSteeringTime, method.reg = "PaBa")
+PB.reg@para
+plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .3), main = "Deming regression")
+abline(PB.reg@para[1:2], col = "red")
+
+# comparing all the regressions
+plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .2), main = "Regression comparison")
+abline(lin.reg, col = "red")
+abline(dem.reg@para[1:2], col = "blue")
+abline(w.dem.reg@para[1:2], col = "green")
+abline(PB.reg@para[1:2], col = "black")
+legend("topleft", c("Linear", "Deming", "Weighted Deming", "Passing"), lty=c(1,1), col = c("red", "blue","green", "black"))
+
+
+
+
+```
+
+**Linear regression - ordinary least squares**
+
+In normal regression we attempt tp reduce the sum of squares residuals. We do this by reducing vertical distance between the observed data points and the regression line. However, this technique assumes that there is no error in the x axis values and heteroscadascity. With my data, both of these assumptions are violated - I have variance in my variances, and I assume my x axis values to be factorial when they are actually a continous variable due to the carry over from the steering wheel reset. 
+
+Because linear regression only reduces vertical residuals, any error in the x axis values is then pushed onto y axis and thus the slope and intercept might not be a true reflection of the data. 
+
+**Deming regression**
+
+Deming regression does not make the assumption that the axis is free of error. Thus residuals are defined as perpendicular to the regression line. In this sense, they compute a regression line for two-dimensional dataset.
+
+**Weighted Deming regression**
+
+If data is heteoscadastic, you can weight the regression. This means that zeroson the axis will be cause the calculation to be compressed. However as I have no zeros on either axis, this will no change regression line.
+
+**Passing Bablok regression**
+
+This form of regression does not minimise residuals per se. Rather, it computes a regression slope every possible pair of points except for pairs that results in a slope of 0 or -1. The final slope values is computed by taking the median of the all point pair slopes. To correct for estimation bias caused by the lack independence of the slopes, the median is shifted by a factor of the number of slopes that result in -1. As a result, this regression is computationally heavy for more than 100 observations, so that it worth bearing in mind.
+
+This method is also more robust to outliers within you data.
+
+**To do**
+
+Look at other outlier resistent linear model regressions and compare fits to what I currently have. Also understand how they work (in my favourites in the browser. 
+
+```{r computing different types of regressions for each subject}
+
+# empty vectors for slope coefficients and intercepts for linear regression
+heading_coefs_lin = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+heading_intercept_lin = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+
+
+# empty vectors for slope coefficients and intercepts for deming regression
+heading_coefs_dem = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+heading_intercept_dem = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+
+# empty vectors for slope coefficients and intercepts for passing-bablok regression
+heading_coefs_PB = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+heading_intercept_PB = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+
+for (i in c(1:19)){
+  # Create temporary data frame:
+heading_tmp <- modellingdata[modellingdata$pNum == i,]
+  # Perform linear regression:
+reg_result <- lm(FirstSteeringTime ~ error_rate, data = heading_tmp)
+  # Get coefficient:
+tmp_coef <- coef(reg_result)
+# Store coefficient and intercept for each subject:
+heading_coefs_lin[i] <- tmp_coef[2] 
+heading_intercept_lin[i] <- tmp_coef[1]
+
+  # Perform Deming regression:
+dem_result <- mcreg(heading_tmp$error_rate, heading_tmp$FirstSteeringTime, method.reg = "Deming")
+  # Store coefficient and intercept for each subject:
+heading_coefs_dem[i] <- dem.reg@para[2]
+heading_intercept_dem[i] <- dem.reg@para[1]
+
+# Perform Passing-Bablok regression:
+PB.reg <- mcreg(heading_tmp$error_rate, heading_tmp$FirstSteeringTime, method.reg = "PaBa")
+  # Store coefficient and intercept for each subject:
+heading_coefs_PB[i] <- PB.reg@para[2]
+heading_intercept_PB[i] <- PB.reg@para[1]
+
+
+# base R plotting
+plot(jitter(heading_tmp$error_rate, 3), heading_tmp$FirstSteeringTime)
+abline(heading_intercept_lin[i], heading_coefs_lin[i], col = "red")
+abline(heading_intercept_dem[i], heading_coefs_dem[i], col = "blue")
+abline(heading_intercept_PB[i], heading_coefs_PB[i], col = "green")
+legend("topleft", c("Linear", "Deming", "Passing-Bablok"), lty=c(1,1), col = c("red", "blue", "green"))
+
+
+}
+
+```
+

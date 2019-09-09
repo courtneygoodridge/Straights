@@ -11,10 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 # rm(list = ls())
 
 # office working directory
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
 
 # working directory for personal laptop
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
 
 temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
@@ -44,6 +44,7 @@ library(caret)
 library(merTools)
 library(scales)
 library(fitdistrplus)
+library(mcr) # orthogonal regression
 
 ```
 
@@ -575,7 +576,7 @@ Prediction intervals tell you where you would expect to see the next data point 
 **Predicition interval output**
 
 **Fit** refers to the centre of the distribution i.e. a predicition of each value based upon the model
-**Upper** and **lower** refer to the upper and lower bounds of the predicition intervals, whereby 95% of subjects would fall witHin these predicition interval bounds for a given error rate value
+**Upper** and **lower** refer to the upper and lower bounds of the predicition intervals, whereby 95% of subjects would fall within these predicition interval bounds for a given error rate value
 
 ```{r inputting individual regression/multi level model intercepts into modelling dataframe}
 

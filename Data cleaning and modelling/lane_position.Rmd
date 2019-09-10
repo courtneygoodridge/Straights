@@ -43,9 +43,17 @@ I need the raw datasets to obtain starting and ending WorldYaw values, and I nee
 
 ```{r compute mean lateral error threshold for each heading according to threshold model}
 
-modellingdata %>%
-  group_by(heading) %>%
-  summarise(meanLateralPosition = mean(individual_threshold))
+
+ggplot(modellingdata %>%
+         group_by(heading) %>%
+         summarise(meanLateralPosition = mean(multilevel_threshold)), aes(x = heading, y = meanLateralPosition)) +
+  geom_bar(colour = "black", stat = "identity") +
+  theme_gray() +
+  guides(fill = FALSE) +
+  xlab("Heading (degs)") +
+  ylab("Lateral position from line (m)") +
+    theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 10)) +
+  ggtitle("Threshold model predictions of lateral position at first steering response trigger") 
 
 ```
 
@@ -196,8 +204,8 @@ This also demonstrates why some subjects were reacting in the apparent "0 headin
 
 ```{r the effect of steering wheel reset on the timecourse data}
 
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 timecoursedata <- do.call(rbind.data.frame, myfiles) 
@@ -216,8 +224,9 @@ timecoursedata <- timecoursedata %>%
          SWA_mirrored = SWA * sign(heading + 1e-6),
          abs_heading = abs(heading),
          diff_YR = c(0, diff(YawRate_seconds)),
-         frame = row_number())
-         
+         diff_YR_mirrored = diff_YR * sign(heading + 1e-6),
+         frame = row_number()) %>%
+  mutate(diff_YR_mirrored = sgolayfilt(diff_YR_mirrored, n = 11)) # golay filter data
 
 # computes SWA across timecourse for each heading (or participant)
 ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_trialn, col = ppid_trialn)) +
@@ -225,26 +234,25 @@ ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_tr
   guides(colour = FALSE) +
   facet_wrap(~ pNum) +
   facet_wrap(~ abs_heading) +
-  ggtitle("Plot 1: SWA across multiple timecourses for each heading")
+  ggtitle("Steering wheel angle across multiple timecourses for each heading")
 
 # computes average SWA across the time course
 avgtimecourse <- timecoursedata %>%
-  filter(frame <= 270) %>%
+  dplyr::filter(frame <= 270) %>%
   group_by(abs_heading, frame) %>%
-  summarise(meanSWA = mean(SWA_mirrored)) %>%
+  summarise(meanSWA = mean(SWA_mirrored), meanDiff_YR = mean(diff_YR_mirrored)) %>%
   mutate(heading_factor = as.factor(abs_heading)) %>%
   mutate(timestamp = frame / 60)
 
+# computes SWA angle average over time for each heading
 ggplot(data = avgtimecourse, aes(x = timestamp, y = meanSWA, colour = heading_factor)) + 
   geom_line() +
-  ggtitle("Plot 2: average SWA over time for each heading")
-
-
-# computes WorldYaw across timecourse for individual
-ggplot(dplyr::filter(timecoursedata, ppid_trialn == "1_3_88"), aes(x = timestamp_zero, y = WorldYaw)) +
-  geom_line() + 
-  guides(colour = FALSE) +
-  ggtitle("Plot 3: plotting WorldYaw across timecourses")
+  theme_gray() +
+  xlab("Time (s)") +
+  ylab("Steering wheel angle (degs)") +
+  guides(color = guide_legend(title = "Heading (degs)")) +
+  theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  ggtitle("Steering wheel angle over time for each heading") 
 
 
 ```
@@ -283,10 +291,24 @@ modellingdata %>%
   summarise(meanLateralPositionTHRESHOLD = mean(model_threshold))
 
 # average threshold value for each error rate value according to data
-dat %>%
-  filter(heading > 0) %>%
+dat_error <- dat %>%
+  dplyr::filter(heading > 0) %>%
   group_by(heading) %>%
   summarise(meanLateralPositionDATA = mean(lane_position))
+
+ggplot(dat %>%
+         dplyr::filter(heading > 0) %>%
+         group_by(heading) %>%
+         summarise(meanLateralPositionDATA = mean(lane_position)), aes(x = heading, y = meanLateralPositionDATA)) +
+  geom_bar(colour = "black", stat = "identity") +
+  theme_gray() +
+  guides(fill = FALSE) +
+  xlab("Heading (degs)") +
+  ylab("Lateral position from line (m)") +
+  theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 10)) +
+  ggtitle("Lateral position from the road-line at first steering response trigger") 
+
+  
 
 ```
 Threshold model predicts very similar lane position thresholds across conditions. This would possibly be expected under the threshold model as it proposes a fixed threhsold across conditions. Once the threshold has been surpassed, a response is initiated. The RTs may differ (i.e. it may take longer to reach the threshold value if error growth is very slow) however the ultimate fixed threshold is still likely to be the same.

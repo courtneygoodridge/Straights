@@ -26,13 +26,14 @@ library(merTools)
 library(scales)
 library(fitdistrplus)
 library(mcr) # orthogonal regression
+library(quantreg) # quantile regression
 ```
 
 
 ```{r orthogonal regression}
 
 example <- modellingdata %>%
-  filter(pNum == 4)
+  filter(pNum == 12)
 
 # linear regression for least squares method
 
@@ -65,13 +66,30 @@ PB.reg@para
 plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .3), main = "Deming regression")
 abline(PB.reg@para[1:2], col = "red")
 
+# Quantile regression
+QR.reg <- rq(example$FirstSteeringTime ~ example$error_rate)
+plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .3), main = "Quantile regression") 
+abline(QR.reg, col = "red")
+
+# Iteratively re-weighted least squares fit
+it.reg <- rlm(example$FirstSteeringTime ~ example$error_rate)
+plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .3), main = "Re-weighted regression") 
+abline(it.reg, col = "red")
+
 # comparing all the regressions
-plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .2), main = "Regression comparison")
+plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .3), main = "Regression comparison")
 abline(lin.reg, col = "red")
 abline(dem.reg@para[1:2], col = "blue")
 abline(w.dem.reg@para[1:2], col = "green")
 abline(PB.reg@para[1:2], col = "black")
-legend("topleft", c("Linear", "Deming", "Weighted Deming", "Passing"), lty=c(1,1), col = c("red", "blue","green", "black"))
+legend("topleft", c("Linear", "Deming", "Weighted Deming", "Passing-Bablok"), lty=c(1,1), col = c("red", "blue","green", "black"))
+
+# comparing quantile, passing-bablok and re-weighted least squares regression
+plot(jitter(example$error_rate, 3), example$FirstSteeringTime, col = adjustcolor("black", alpha = .3), main = "Quantile versus Passing-Bablok") 
+abline(lin.reg, col = "red")
+abline(PB.reg@para[1:2], col = "black")
+abline(it.reg, col = "green")
+legend("topleft", c("Quantile", "Passing-Bablok", "Re-weighted"), lty=c(1,1), col = c("red", "black", "green"))
 
 
 
@@ -98,16 +116,21 @@ This form of regression does not minimise residuals per se. Rather, it computes 
 
 This method is also more robust to outliers within you data.
 
-**To do**
+**Quantile regression**
 
-Look at other outlier resistent linear model regressions and compare fits to what I currently have. Also understand how they work (in my favourites in the browser. 
+The ordinary least squares aims to reduce sum of squared residuals via the vertical distance between the regression line and the obersved data points. This results in estimation of the conditional means of the response variable for a given value of the predicitor.
+
+Conversely, quantile regression aims at estimating the conditional median (or any other quantile you might want). This might be good for my data, as the median is a commonly used central tendency measure for RT data. 
+
+**Iteratively re-weighted least squares regression**
+
+This method down-weights outliers according to how far away from the regression line they are, and iteratively re-fits the model until convergence is achieved. This still does not get away from the fact that error in my x axis gets swallowed up by the y axis.
 
 ```{r computing different types of regressions for each subject}
 
 # empty vectors for slope coefficients and intercepts for linear regression
 heading_coefs_lin = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 heading_intercept_lin = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
-
 
 # empty vectors for slope coefficients and intercepts for deming regression
 heading_coefs_dem = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
@@ -116,6 +139,10 @@ heading_intercept_dem = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA
 # empty vectors for slope coefficients and intercepts for passing-bablok regression
 heading_coefs_PB = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 heading_intercept_PB = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+
+# empty vectors for slope coefficients and intercepts for quantile regression
+heading_coefs_QR = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
+heading_intercept_QR = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 
 for (i in c(1:19)){
   # Create temporary data frame:
@@ -134,21 +161,28 @@ dem_result <- mcreg(heading_tmp$error_rate, heading_tmp$FirstSteeringTime, metho
 heading_coefs_dem[i] <- dem.reg@para[2]
 heading_intercept_dem[i] <- dem.reg@para[1]
 
-# Perform Passing-Bablok regression:
-PB.reg <- mcreg(heading_tmp$error_rate, heading_tmp$FirstSteeringTime, method.reg = "PaBa")
+  # Perform Passing-Bablok regression:
+PB_result <- mcreg(heading_tmp$error_rate, heading_tmp$FirstSteeringTime, method.reg = "PaBa")
   # Store coefficient and intercept for each subject:
-heading_coefs_PB[i] <- PB.reg@para[2]
-heading_intercept_PB[i] <- PB.reg@para[1]
+heading_coefs_PB[i] <- PB_result@para[2]
+heading_intercept_PB[i] <- PB_result@para[1]
+
+  # Perform Quantile regression:
+QR_result <- rq(heading_tmp$FirstSteeringTime ~ heading_tmp$error_rate)
+  # Get coffefficient
+tmp_coef <- coef(QR_result)
+  # Store coefficient and intercept for each subject:
+heading_coefs_QR[i] <- tmp_coef[2]
+heading_intercept_QR[i] <- tmp_coef[1]
 
 
 # base R plotting
-plot(jitter(heading_tmp$error_rate, 3), heading_tmp$FirstSteeringTime)
+plot(jitter(heading_tmp$error_rate, 3), heading_tmp$FirstSteeringTime, col = adjustcolor("black", alpha = .3), main = "Regression method comparison")
 abline(heading_intercept_lin[i], heading_coefs_lin[i], col = "red")
 abline(heading_intercept_dem[i], heading_coefs_dem[i], col = "blue")
 abline(heading_intercept_PB[i], heading_coefs_PB[i], col = "green")
-legend("topleft", c("Linear", "Deming", "Passing-Bablok"), lty=c(1,1), col = c("red", "blue", "green"))
-
-
+abline(heading_intercept_QR[i], heading_coefs_QR[i], col = "black")
+legend("topleft", c("Linear", "Deming", "Passing-Bablok", "Quantile"), lty=c(1,1), col = c("red", "blue", "green", "black"))
 }
 
 ```

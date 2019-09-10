@@ -33,10 +33,10 @@ library(conflicted) # heloful package to show when packages have conflicted func
 
 # full datasets
 # set working directory on pffice laptop
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
 
 # set working directory on personal laptop
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 # setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example/Full_Data")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
@@ -71,8 +71,8 @@ gender <- workingdata %>%
   summarise(count = n()) %>%
   ungroup()
 
-female <- filter(gender, gender == 1) 
-male <- filter(gender, gender == 2)
+female <- dplyr::filter(gender, gender == 1) 
+male <- dplyr::filter(gender, gender == 2)
 
 length(female$gender) / length(gender$gender) * 100 
 length(male$gender) / length(gender$gender) * 100
@@ -97,17 +97,11 @@ mutate(frame = row_number()) # create frame number column
 ```
 
 
-```{r  thresholds, removing trials with dropped frames, calculating yaw rate change}
+```{r  thresholds, removing trials with dropped frames, calculating yaw rate change, filtering yaw rate change}
 library(dplyr)
 library(tidyr)
-# library(TTR)
-# library(hemm)
-# library(searcher)
-# library(skimr)
-# init_hemm()
 
 # change in steering 
-# magnitudethreshold = 0.140
 upperthreshold = 0.13 # 0.105 #  # upper threshold for consistent steering response
 lowerthreshold = 0.05 # 0.001, 0.05 lower threshold for when response initiated - lowest of the IQRs for each mean YawRateChange condition
 
@@ -115,6 +109,9 @@ workingdata <- workingdata %>%
   mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% # difference in yaw rate
   group_by(ppid_trialn) %>%
   mutate(frame = row_number()) %>%
+  mutate(YawRateChange = YawRateChange * sign(heading + 1e-6)) %>%
+  mutate(heading = abs(heading)) %>%
+  mutate(YawRateChange = sgolayfilt(YawRateChange, n = 11)) %>% # golay filter data
   ungroup()
 
 ```
@@ -131,47 +128,6 @@ workingdata <- workingdata %>%
 
 ```
 
-
-```{r golay smoothing and inverting data}
-library(dplyr)
-library(tidyr)
-library(signal)
- 
-# inverting yaw rate signal and collapsing heading conditions
-
-negativetimecourse <- workingdata %>%
-  dplyr::filter(heading < 0) %>%
-  mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = -(YawRateChange))
-
-positivetimecourse <- workingdata %>%
-  dplyr::filter(heading > 0) %>%
-  mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = YawRateChange)
-
-zerotimecourse <- workingdata %>%
-  dplyr::filter(heading == 0) %>%
-  mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = YawRateChange)
-
-workingdata <- rbind(negativetimecourse, positivetimecourse, zerotimecourse)
-
-rm(negativetimecourse, positivetimecourse, zerotimecourse)
-
-# golay filter data
-
-workingdata <- workingdata %>%
-  group_by(ppid_trialn) %>%
-  mutate(YawRateChange = sgolayfilt(YawRateChange, n = 11)) %>%
-  ungroup()
-
-```
-
-**Notes on taking the inverted value over the absolute**
-
-The invertsed value of YawRateChange make them the exact opposite, making negative heading trials identical to positive heading trials.
-
-Taking the absolute of YawRateChange makes all values positive. Thus this is not identical to positive trials, however when I run RT threshold code, I retain more trials than when I invert...
 
 ```{r formulating response start magnitude data}
 library(dplyr)
@@ -224,7 +180,7 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 # colnames(magnitudedata)[colnames(magnitudedata) == 'block.x'] <- 'block'
 
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights") # set directory for data saving
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
 write.csv(magnitudedata, file = "magnitudedata.csv")
 
 ```
@@ -309,10 +265,11 @@ ggplot(data = trueworkingdata, aes(x = anchored_timestamp, y = YawRateChange, co
   geom_vline(data = workingdatathresholdUnsmooth %>%
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime), color = "blue", linetype = "dashed") +
   facet_wrap( ~ heading) +
-  scale_y_continuous(name="Yaw rate change", limits=c(-1, 2.5)) +
-  scale_x_continuous(name="Timestamp (secs)", limits=c(0, 2.5))
+  scale_y_continuous(name="Yaw rate change", limits=c(-1, 1.5)) +
+  scale_x_continuous(name="Timestamp (secs)", limits=c(0, 1.5))
 
 ```
+
 
 ```{r filter NON-responses}
 
@@ -371,14 +328,20 @@ sapply(dat, class)
 library(dplyr)
 library(ggplot2)
 
-avgtimecourse <- trueworkingdata %>%
-  group_by(heading, frame) %>%
-  summarise(meanYaw = mean(YawRateChange)) %>%
-  mutate(heading_factor = as.factor(heading)) %>%
-  mutate(timestamp = frame / 60)
+# differentiated YawRateChange over time when line is visible
+ggplot(trueworkingdata %>%
+         dplyr::filter(frame <= 151) %>%
+         group_by(heading, frame) %>%
+         summarise(meanYawRateChange = mean(YawRateChange)) %>%
+         mutate(heading_factor = as.factor(heading)) %>% 
+         mutate(timestamp = frame / 60), aes(x = timestamp, y = meanYawRateChange, colour = heading_factor)) + 
+  geom_line() +
+  xlab("Time (s)") +
+  ylab("Yaw Rate Change (Yaw Rate/s/s)") +
+  guides(color = guide_legend(title = "Heading (degs)")) +
+  theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  ggtitle("Average yaw rate change over time for each heading") 
 
-ggplot(data = avgtimecourse, aes(x = timestamp, y = meanYaw, colour = heading_factor)) + 
-  geom_line()
 
 ```
 

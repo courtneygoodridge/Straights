@@ -52,10 +52,12 @@ ggplot(modellingdata %>%
   guides(fill = FALSE) +
   xlab("Heading (degs)") +
   ylab("Lateral position from line (m)") +
+  ylim(0, 0.2) +
     theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 10)) +
   ggtitle("Threshold model predictions of lateral position at first steering response trigger") 
 
 ```
+
 
 ```{r creating unique ID tag, selecting only when line is visible and differentiate yaw rate}
 
@@ -91,25 +93,11 @@ workingdata <- workingdata %>%
 
 ```{r collapsing across heading values}
 
-negativetimecourse <- workingdata %>%
-  dplyr::filter(heading < 0) %>%
-  mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = abs(YawRateChange))
-
-positivetimecourse <- workingdata %>%
-  dplyr::filter(heading > 0) %>%
-  mutate(heading = abs(heading)) %>%
-  mutate(YawRateChange = YawRateChange)
+workingdata <- workingdata %>%
+  group_by(ppid_trialn) %>%
+  mutate(YawRateChange = YawRateChange * sign(heading + 1e-6)) 
+  mutate(heading = abs(heading))
   
-zerotimecourse <- workingdata %>%
-  dplyr::filter(heading == 0) %>%
-  mutate(heading = abs(heading)) 
-
-workingdata <- rbind(negativetimecourse, positivetimecourse, zerotimecourse)
-
-rm(negativetimecourse, positivetimecourse, zerotimecourse)
-
-
 ```
 
 Collapsing across heading conditions
@@ -222,11 +210,13 @@ timecoursedata <- timecoursedata %>%
   group_by(ppid_trialn) %>% 
   mutate(timestamp_zero = timestamp - timestamp[1], 
          SWA_mirrored = SWA * sign(heading + 1e-6),
-         abs_heading = abs(heading),
          diff_YR = c(0, diff(YawRate_seconds)),
          diff_YR_mirrored = diff_YR * sign(heading + 1e-6),
+         heading = abs(heading),
          frame = row_number()) %>%
   mutate(diff_YR_mirrored = sgolayfilt(diff_YR_mirrored, n = 11)) # golay filter data
+
+timecoursedata$StraightVisible <- as.numeric(timecoursedata$StraightVisible) # changes factor to numeric, 1 = false, 2 = true
 
 # computes SWA across timecourse for each heading (or participant)
 ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_trialn, col = ppid_trialn)) +
@@ -239,20 +229,43 @@ ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_tr
 # computes average SWA across the time course
 avgtimecourse <- timecoursedata %>%
   dplyr::filter(frame <= 270) %>%
-  group_by(abs_heading, frame) %>%
+  group_by(heading, frame) %>%
   summarise(meanSWA = mean(SWA_mirrored), meanDiff_YR = mean(diff_YR_mirrored)) %>%
-  mutate(heading_factor = as.factor(abs_heading)) %>%
+  mutate(heading_factor = as.factor(heading)) %>%
   mutate(timestamp = frame / 60)
 
 # computes SWA angle average over time for each heading
-ggplot(data = avgtimecourse, aes(x = timestamp, y = meanSWA, colour = heading_factor)) + 
+ggplot(timecoursedata %>%
+         dplyr::filter(frame <= 270) %>%
+         group_by(heading, frame) %>%
+         summarise(meanSWA = mean(SWA_mirrored), meanDiff_YR = mean(diff_YR_mirrored)) %>%
+         mutate(heading_factor = as.factor(heading)) %>%
+         mutate(timestamp = frame / 60), aes(x = timestamp, y = meanSWA, colour = heading_factor)) + 
   geom_line() +
   theme_gray() +
   xlab("Time (s)") +
   ylab("Steering wheel angle (degs)") +
-  guides(color = guide_legend(title = "Heading (degs)")) +
+  guides(color = guide_legend(title = "Heading (degrees)")) +
   theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +
   ggtitle("Steering wheel angle over time for each heading") 
+
+# computes YawRateChange average over time for each heading
+ggplot(timecoursedata %>%
+         dplyr::filter(frame <= 270) %>%
+         group_by(heading, frame) %>%
+         summarise(meanSWA = mean(SWA_mirrored), meanDiff_YR = mean(diff_YR_mirrored)) %>%
+         mutate(heading_factor = as.factor(heading)) %>%
+         mutate(timestamp = frame / 60), aes(x = timestamp, y = meanDiff_YR, colour = heading_factor)) + 
+  geom_line() +
+  theme_gray() +
+  xlab("Time (s)") +
+  ylab("Yaw rate change (yaw rate/s/s)") +
+  guides(color = guide_legend(title = "Heading (degrees)")) +
+  theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +
+  ggtitle("Steering magnitude over time across conditions") 
+
 
 
 ```
@@ -305,6 +318,7 @@ ggplot(dat %>%
   guides(fill = FALSE) +
   xlab("Heading (degs)") +
   ylab("Lateral position from line (m)") +
+  ylim(0, 0.2) +
   theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 10)) +
   ggtitle("Lateral position from the road-line at first steering response trigger") 
 

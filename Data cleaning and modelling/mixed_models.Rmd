@@ -56,7 +56,8 @@ modellingdata <- magnitudedata %>%
   dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
   mutate(heading_radians = heading / 180 * pi) %>% # convert heading to radians 
   mutate(error_rate = 1 / (sin(heading_radians) * 10)) %>%
-  mutate(error_growth = (sin(heading_radians) * 10))
+  mutate(error_growth = (sin(heading_radians) * 10)) %>%
+  mutate(acc_error_rate = 1 / (sqrt(sin(heading)) * 10))
 
 ```
 
@@ -284,7 +285,7 @@ plot(coef(m4)$pNum)
 
 
 # model 5: generalised linear mixed effects model (applying gamma distribution with identity link function)
-m5 <- glmer(FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), family = Gamma(link = "identity"), data = modellingdata)
+m5 <- glmer(FirstSteeringTime ~ error_rate + (1 + acc_error_rate | pNum), family = Gamma(link = "identity"), data = modellingdata)
 
 # plots for model 5
 par(mfrow = c(2, 2))
@@ -499,7 +500,7 @@ heading_tmp <- cbind(heading_tmp, tmp_pred)
 # lines(x = heading_tmp$error_rate, y = heading_tmp$lwr, type = "l", lty = 1, col = "red")
 
 # ggplot plotting
-print(ggplot(heading_tmp, aes(x = error_rate, y = FirstSteeringTime)) +
+print(ggplot(heading_tmp, aes(x = acc_error_rate, y = FirstSteeringTime)) +
   geom_jitter() +
   stat_smooth(method = lm) +
   geom_line(aes(y = lwr), color = "red", linetype = "dashed") +

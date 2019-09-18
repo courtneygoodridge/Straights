@@ -95,7 +95,7 @@ workingdata <- workingdata %>%
 
 workingdata <- workingdata %>%
   group_by(ppid_trialn) %>%
-  mutate(YawRateChange = YawRateChange * sign(heading + 1e-6)) 
+  mutate(YawRateChange = YawRateChange * sign(heading + 1e-6)) %>% 
   mutate(heading = abs(heading))
   
 ```
@@ -236,6 +236,7 @@ avgtimecourse <- timecoursedata %>%
 
 # computes SWA angle average over time for each heading
 ggplot(timecoursedata %>%
+         dplyr::filter(heading > 0) %>%
          dplyr::filter(frame <= 270) %>%
          group_by(heading, frame) %>%
          summarise(meanSWA = mean(SWA_mirrored), meanDiff_YR = mean(diff_YR_mirrored)) %>%
@@ -252,6 +253,7 @@ ggplot(timecoursedata %>%
 
 # computes YawRateChange average over time for each heading
 ggplot(timecoursedata %>%
+         dplyr::filter(heading > 0) %>%
          dplyr::filter(frame <= 270) %>%
          group_by(heading, frame) %>%
          summarise(meanSWA = mean(SWA_mirrored), meanDiff_YR = mean(diff_YR_mirrored)) %>%
@@ -260,7 +262,7 @@ ggplot(timecoursedata %>%
   geom_line() +
   theme_gray() +
   xlab("Time (s)") +
-  ylab("Yaw rate change (yaw rate/s/s)") +
+  ylab("Yaw rate change (degs/s/s)") +
   guides(color = guide_legend(title = "Heading (degrees)")) +
   theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
   geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +

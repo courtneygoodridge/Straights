@@ -56,8 +56,7 @@ modellingdata <- magnitudedata %>%
   dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
   mutate(heading_radians = heading / 180 * pi) %>% # convert heading to radians 
   mutate(error_rate = 1 / (sin(heading_radians) * 10)) %>%
-  mutate(error_growth = (sin(heading_radians) * 10)) %>%
-  mutate(acc_error_rate = 1 / (sqrt(sin(heading)) * 10))
+  mutate(error_growth = (sin(heading_radians) * 10))
 
 ```
 
@@ -285,7 +284,7 @@ plot(coef(m4)$pNum)
 
 
 # model 5: generalised linear mixed effects model (applying gamma distribution with identity link function)
-m5 <- glmer(FirstSteeringTime ~ error_rate + (1 + acc_error_rate | pNum), family = Gamma(link = "identity"), data = modellingdata)
+m5 <- glmer(FirstSteeringTime ~ error_rate + (1 + error_rate | pNum), family = Gamma(link = "identity"), data = modellingdata)
 
 # plots for model 5
 par(mfrow = c(2, 2))
@@ -476,6 +475,7 @@ Blue indicates model 1, red line indicates model 2. The variance is more spread 
 heading_coefs = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 heading_intercept = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 
+
 for (i in c(1:19)){
   # Create temporary data frame:
 heading_tmp <- modellingdata[modellingdata$pNum == i,]
@@ -493,6 +493,7 @@ heading_intercept[i] <- tmp_coef[1]
 # Store prediction intervals
 heading_tmp <- cbind(heading_tmp, tmp_pred)
 
+
 # base R plotting
 # plot(jitter(heading_tmp$error_rate, 3), heading_tmp$FirstSteeringTime)
 # abline(heading_intercept[i], heading_coefs[i])
@@ -500,13 +501,14 @@ heading_tmp <- cbind(heading_tmp, tmp_pred)
 # lines(x = heading_tmp$error_rate, y = heading_tmp$lwr, type = "l", lty = 1, col = "red")
 
 # ggplot plotting
-print(ggplot(heading_tmp, aes(x = acc_error_rate, y = FirstSteeringTime)) +
+print(ggplot(heading_tmp, aes(x = error_rate, y = FirstSteeringTime)) +
   geom_jitter() +
   stat_smooth(method = lm) +
   geom_line(aes(y = lwr), color = "red", linetype = "dashed") +
   geom_line(aes(y = upr), color = "red", linetype = "dashed") +
   geom_line(aes(y = fit), color = "black", linetype = "dashed") +
-  ylim(0, 2.5))
+  ylim(0, 2.5) +
+  theme_gray())
 
 }
 
@@ -592,8 +594,8 @@ for (i in c(1:19)){
   if (modellingdata$pNum == i){
     modellingdata$individual_intercept <- heading_intercept[modellingdata$pNum]
     modellingdata$multilevel_intercept <- heading_intercept_m5[modellingdata$pNum]
-    modellingdata$individual_threshold <- heading_coefs[modellingdata$pNum]
-    modellingdata$multilevel_threshold <- heading_slope_m5[modellingdata$pNum]
+    modellingdata$individual_slope <- heading_coefs[modellingdata$pNum]
+    modellingdata$multilevel_slope <- heading_slope_m5[modellingdata$pNum]
   }
 }
 

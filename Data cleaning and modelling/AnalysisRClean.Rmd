@@ -562,7 +562,7 @@ ggplot(data = workingdatathresholdSmooth, aes(as.factor(heading), FirstSteeringT
 
 ##### BOXPLOTS WHERE RESPONSES ARE GENUINE AND NOT TOO LATE
 
-ggplot(dplyr::filter(workingdatathresholdUnsmooth), aes(as.factor(heading), FirstSteeringTime)) +
+ggplot(dplyr::filter(workingdatathresholdUnsmooth, heading > 0), aes(as.factor(heading), FirstSteeringTime)) +
   geom_boxplot() +
   stat_summary(fun.y = mean, aes(shape = "mean"), colour = "red", geom = "point") +
   scale_shape_manual("", values = c("mean" = "O")) +

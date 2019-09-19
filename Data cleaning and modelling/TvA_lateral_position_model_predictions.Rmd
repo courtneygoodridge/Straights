@@ -1,0 +1,173 @@
+---
+title: "TvA lateral position model predictions"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages}
+library(ggplot2)
+library(dplyr)
+library(car)
+library(MASS)
+library(dplyr)
+library(EnvStats)
+library(lme4)
+library(nlme)
+library(tidyr)
+library(rstanarm)
+library(bayesplot)
+library(loo)
+library(lmtest)
+library(caret)
+library(merTools)
+library(scales)
+library(fitdistrplus)
+library(mcr) # orthogonal regression
+library(quantreg) # quantile regressions
+
+```
+
+```{r load data}
+
+# rm(list = ls())
+
+# office working directory
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+
+temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
+
+```
+
+```{r computing error rate for threshold and accumulator}
+
+# compute metrics
+modellingdata <- magnitudedata %>%
+  dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
+  # group_by(heading) %>%
+  mutate(heading_radians = heading / 180 * pi) %>% # convert heading to radians 
+  mutate(acc_error_rate = 1 / (sqrt(sin(heading_radians)) * 10)) %>%
+  mutate(thresh_error_rate = 1 / (sin(heading_radians) * 10))
+
+```
+
+Here we compute the error rate for Threshold and Accumulator model. The difference being that the Accumulator requires a square root of the sine of heading (still unsure why mathematically).
+
+```{r computing multi-level model for threshold and accumulator}
+
+# model 5: generalised linear mixed effects model (applying gamma distribution with identity link function)
+
+# Threshold model
+thresh <- glmer(FirstSteeringTime ~ thresh_error_rate + (1 + thresh_error_rate | pNum), family = Gamma(link = "identity"), data = modellingdata)
+
+# Accumulator model
+
+acc <- glmer(FirstSteeringTime ~ acc_error_rate + (1 + acc_error_rate | pNum), family = Gamma(link = "identity"), data = modellingdata)
+
+```
+
+Computing the model for Threshold and Accumulators in order to generate parameters.
+
+```{r extracting slope and intercept parameters for modelling dataframe}
+
+
+# obtain coefficients and then intercepts from multi level model - THRESHOLD
+thresh_coefficients <- coef(thresh)[["pNum"]]
+thresh_intercept <- thresh_coefficients[,1]
+thresh_slope <- thresh_coefficients[,2]
+
+# obtain coefficients and then intercepts from multi level model - ACCUMULATOR
+acc_coefficients <- coef(acc)[["pNum"]]
+acc_intercept <- acc_coefficients[,1]
+acc_slope <- acc_coefficients[,2]
+
+# for loop and if statement to input them into modellingdata dataframe
+for (i in c(1:19)){
+  if (modellingdata$pNum == i){
+    modellingdata$thresh_intercept <- thresh_intercept[modellingdata$pNum]
+    modellingdata$thresh_slope <- thresh_slope[modellingdata$pNum]
+    modellingdata$acc_intercept <- acc_intercept[modellingdata$pNum]
+    modellingdata$acc_slope <- acc_slope[modellingdata$pNum]
+  }
+}
+
+```
+
+Extracting the slope and intercept for each participant from Threshold and Accumulator models.
+
+```{r computing steering onset time for threshold and accumulator}
+
+modellingdata <- modellingdata %>%
+  group_by(heading) %>%
+  mutate(ACC_steeringonset = (1 / sqrt(sin(heading_radians))) * acc_slope + acc_intercept) %>%
+  mutate(THRESH_steeringonset = (1 / sin(heading_radians)) * thresh_slope + thresh_intercept)
+
+```
+
+The slope in our linear model corresponds to the "threshold" value. However, we need to compute the threshold value for heading condition for the Threshold and Accumulator model.
+
+Thus for each heading value, we compute the error rate of each model and multiple by out slope threshold and add out non-decision time (intercept). This generates (per heading) the time at steering onset.
+
+```{r computed lateral position for threshold and accumulator}
+
+latpos <- modellingdata %>%
+  group_by(heading) %>%
+  mutate(ACC_lateralposition = (sin(heading_radians) * 10) * ACC_steeringonset) %>%
+  mutate(THRESH_lateralposition = (sin(heading_radians) * 10) * THRESH_steeringonset) %>%
+  summarise(acc = mean(ACC_lateralposition), thresh = mean(THRESH_lateralposition)) %>%
+  gather(key = "modeltype", value = "latpos", acc, thresh)
+
+```
+
+Now we have the time at steering onset, we can calculate out the lateral position at this point. 
+
+For each heading, multiple the rate at which we are moving away from the road-line (sin(heading) * Speed) by the time we are applying the steering onset (calculated at the previous step). The result of this is a lateral position away from the line at steering onset for eaching heading, as predicted by each model.
+
+```{r graphing lateral position predictions and data values}
+
+ggplot(latpos, aes(x = heading, y = latpos, color = modeltype)) +
+  geom_line() +
+  geom_line(data = dat_latpos, aes(x = heading, y = latpos)) +
+  theme_gray() +
+  ggtitle("Plot 1: Comparing Threshold and Accumulator model predictions to data")
+
+ggplot(latpos, aes(x = heading, y = log(latpos), color = modeltype)) +
+  geom_line() +
+  geom_line(data = dat_latpos, aes(x = heading, y = log(latpos))) +
+  theme_gray() +
+  ggtitle("Plot 2: Comparing Threshold and Accumulator model predictions to data - log scale")
+
+ggplot(filter(latpos, modeltype == "acc"), aes(x = heading, y = log(latpos), color = modeltype)) +
+  geom_line() +
+  geom_line(data = dat_latpos, aes(x = heading, y = log(latpos))) +
+  theme_gray() +
+  ggtitle("Plot 3: Comparing Accumulator model predictions to data - log scale")
+
+ggplot(filter(latpos, modeltype == "thresh"), aes(x = heading, y = log(latpos), color = modeltype)) +
+  geom_line() +
+  geom_line(data = dat_latpos, aes(x = heading, y = log(latpos))) +
+  theme_gray() +
+  ggtitle("Plot 4: Comparing Threshold model predictions to data - log scale")
+
+```
+**Plot 1**
+Plot 1 plots Threshold and Accumulator lateral position predictions at steering onset, alongside actual lateral position at steering onset from the data. The Accumulator shows large increase in lateral position as heading value increase whereas the Threshold model is not as large. 
+
+The Threshold model shows a slight increase in lateral position as heading increases, however it is much less obvious than the Acccumulator (as would be expected). Under a real Threshold model, a lack of a flat line could be to do with slower control error development increasing the likelihood that a random noise fluncutation will exceed the threshold. This means a control action could be initiated sooner (and thus at a smaller lateral position from the line) which explain the Threshold model predicitions here.
+
+The data also shows an increase in lateral position as heading increases. However because of the size the predicted values for the Accumulator model, it is hard to compare these value.
+
+**Plot 2**
+Plotting lateral position on a log scale makes it easier to interpret the pattern of the data where different conditions have vastly increased data point values. On a log scale, it seems as if the data is now more of similar pattern to the Accumulator predictions versus the Threshold predicitions. The Threshold model's flatline now become easier to visualise in comparison to the other data.
+
+**Plot 3**
+Plotting (again on a log scale) Accumulator predictions versus the data. Here the comparison is easier to make. The two lines show very similar patterns, even if their actual values differ.
+
+**Plot 4** 
+Plotting the data with the Threshold model predictions demonstrates how they might be slightly different. The data definitely has more of an increase in lateral position as heading increases, whereas the Threshold model is definitely more flat line.
+
+Hence visually at least, the data seems to be more in line with the Accumulator predictions.

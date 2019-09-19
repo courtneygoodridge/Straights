@@ -54,8 +54,9 @@ library(quantreg) # quantile regression
 # compute metrics
 modellingdata <- magnitudedata %>%
   dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
+  # group_by(heading) %>%
   mutate(heading_radians = heading / 180 * pi) %>% # convert heading to radians 
-  mutate(error_rate = 1 / (sqrt(sin(heading_radians))) * 10) %>%
+  mutate(error_rate = 1 / (sqrt(sin(heading_radians)) * 10)) %>%
   mutate(error_growth = (sin(heading_radians) * 10))
 
 ```

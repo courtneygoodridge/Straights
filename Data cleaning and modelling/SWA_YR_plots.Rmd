@@ -1,0 +1,122 @@
+---
+title: "SWA_YR_plots"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load packages}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(signal)
+
+```
+
+```{r load data}
+
+# ful raw datasets
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+timecoursedata <- do.call(rbind.data.frame, myfiles) 
+
+# pre-processed datasets
+# set working directory on personal laptop
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
+
+timecoursedata <- tidyr::unite(timecoursedata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
+
+trueresponses <- magnitudedata$ppid_trialn # selects ID tags of true responses
+trueresponses <- as.vector(trueresponses) # creates ID vector for filtering
+
+timecoursedata <- dplyr::filter(timecoursedata, ppid_trialn %in% trueresponses)
+
+```
+
+
+```{r the effect of steering wheel reset on the timecourse data/average heading SWA and YR over time}
+
+timecoursedata <- timecoursedata %>% 
+  group_by(ppid_trialn) %>% 
+  mutate(timestamp_zero = timestamp - timestamp[1], 
+         SWA_mirrored = SWA * sign(heading + 1e-6),
+         diff_YR = c(0, diff(YawRate_seconds)),
+         diff_YR_mirrored = diff_YR * sign(heading + 1e-6),
+         heading = abs(heading),
+         frame = row_number()) %>%
+  mutate(diff_YR_mirrored = sgolayfilt(diff_YR_mirrored, n = 11)) # golay filter data
+
+timecoursedata$StraightVisible <- as.numeric(timecoursedata$StraightVisible) # changes factor to numeric, 1 = false, 2 = true
+
+# computes SWA across timecourse for each participant
+ggplot(timecoursedata, aes(x = timestamp_zero, y = SWA_mirrored, group = ppid_trialn, col = ppid_trialn)) +
+  geom_line(alpha = 0.2) + 
+  guides(colour = FALSE) +
+  facet_wrap(~ pNum) + # or can facet wrap by heading to see if heading interacted with SWA reset
+  theme_gray() +
+  ggtitle("Plot 1: Steering wheel angle across multiple timecourses for each heading")
+
+# computes SWA angle average over time for each heading
+ggplot(timecoursedata %>%
+         dplyr::filter(heading > 0) %>%
+         dplyr::filter(frame <= 270) %>%
+         group_by(heading, frame) %>%
+         summarise(meanSWA = mean(SWA_mirrored), meanDiff_YR = mean(diff_YR_mirrored)) %>%
+         mutate(heading_factor = as.factor(heading)) %>%
+         mutate(timestamp = frame / 60), aes(x = timestamp, y = meanSWA, colour = heading_factor)) + 
+  geom_line() +
+  theme_gray() +
+  xlab("Time (s)") +
+  ylab("Steering wheel angle (degs)") +
+  guides(color = guide_legend(title = "Heading (degrees)")) +
+  theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +
+  ggtitle("Plot 2: Steering wheel angle over time for each heading") 
+
+# computes YawRateChange average over time for each heading
+ggplot(timecoursedata %>%
+         dplyr::filter(heading > 0) %>%
+         dplyr::filter(frame <= 270) %>%
+         group_by(heading, frame) %>%
+         summarise(meanSWA = mean(SWA_mirrored), meanDiff_YR = mean(diff_YR_mirrored)) %>%
+         mutate(heading_factor = as.factor(heading)) %>%
+         mutate(timestamp = frame / 60), aes(x = timestamp, y = meanDiff_YR, colour = heading_factor)) + 
+  geom_line() +
+  theme_gray() +
+  xlab("Time (s)") +
+  ylab("Yaw rate change (degs/s/s)") +
+  guides(color = guide_legend(title = "Heading (degrees)")) +
+  theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +
+  ggtitle("Plot 3: Steering magnitude over time across conditions") 
+
+```
+**Plot 1**
+The first plot shows the moment that the steering wheel angle is reset before the visible line is presented (at around 2 seconds). If subjects are moving the wheel just before or during the reset and then move it back just after, their trajectory will change and thus subjects will respond by correcting for this. This is what is meant by the "reset" carry over. 
+
+There should be a straight line inbetween the first part of the trial before the reset and the second part of the trial after the reset. For a lot of subjects this is the case however a few seem to have heavy carry over from the reset (subject 1, 2, 16).
+
+**Plot 2**
+Averaging steering wheel angle metric across participants for each heading condition.
+
+**Plot 3**
+Averaging yaw rate change metric across participants for each heading conditon to visualise steering magnitude.
+
+```{r plotting lane position across the timecourse}
+
+ggplot(dplyr::filter(timecoursedata, ppid_trialn == "1_1_4"), aes(x = World_x, y = World_z)) +
+  geom_point()
+
+```
+
+**TO DO** 
+
+See if I can visualise lane positions (or average lane positions) for each heading and thus time this to steering magnitude and steering wheel angle...

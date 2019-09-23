@@ -266,7 +266,8 @@ ggplot(data = trueworkingdata, aes(x = anchored_timestamp, y = YawRateChange, co
                summarise(meanFirstSteeringTime = mean(FirstSteeringTime, na.rm = TRUE)), aes(xintercept = meanFirstSteeringTime), color = "blue", linetype = "dashed") +
   facet_wrap( ~ heading) +
   scale_y_continuous(name="Yaw rate change", limits=c(-1, 1.5)) +
-  scale_x_continuous(name="Timestamp (secs)", limits=c(0, 1.5))
+  scale_x_continuous(name="Timestamp (secs)", limits=c(0, 1.5)) +
+  theme_gray()
 
 ```
 
@@ -337,10 +338,11 @@ ggplot(trueworkingdata %>%
          mutate(timestamp = frame / 60), aes(x = timestamp, y = meanYawRateChange, colour = heading_factor)) + 
   geom_line() +
   xlab("Time (s)") +
-  ylab("Yaw Rate Change (Yaw Rate/s/s)") +
-  guides(color = guide_legend(title = "Heading (degs)")) +
+  ylab("Yaw Rate Change (degree/s/s)") +
+  guides(color = guide_legend(title = "Heading (degrees)")) +
   theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
-  ggtitle("Average yaw rate change over time for each heading") 
+  ggtitle("Average yaw rate change over time for each heading") +
+  theme_gray()
 
 
 ```

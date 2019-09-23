@@ -194,6 +194,7 @@ The data also shows an increase in lateral position as heading increases. Howeve
 
 prediction_thresh <- predict(thresh)
 prediction_acc <- predict(acc)
+heading <- modellingdata$heading
 
 modellingdata$prediction_thresh <- prediction_thresh
 modellingdata$prediction_acc <- prediction_acc

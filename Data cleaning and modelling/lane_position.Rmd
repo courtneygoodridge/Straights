@@ -218,7 +218,7 @@ ggplot(dat %>%
   xlab("Heading (degrees)") +
   ylab("Lateral position from line (m)") +
   ylim(0, 0.2) +
-  theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 15)) +
+  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 16), axis.title.y = element_text(size = 17), axis.text.y = element_text(size = 16), title = element_text(size = 16)) +
   ggtitle("Lateral position from the road-line at steering onset") 
 
 ```

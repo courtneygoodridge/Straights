@@ -50,15 +50,18 @@ magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CS
 modellingdata <- magnitudedata %>%
   group_by(heading) %>% # group by each heading value
   dplyr::filter(heading > 0) %>% # remove 0 heading trials for modelling data
-  mutate(heading_radians = heading / 180 * pi) %>% # convert heading to radians 
-  mutate(acc_error_rate = 1 / (sqrt(sin(heading_radians)) * 10)) %>% 
-  mutate(thresh_error_rate = 1 / (sin(heading_radians) * 10))
+  mutate(heading_radians = heading / 180 * pi) %>% # convert heading to radians
+  mutate(acc_error_rate = 1 / (sqrt(sin(heading_radians)) * 10)) %>% # 10
+  mutate(thresh_error_rate = 1 / (sin(heading_radians) * 10)) # 10
 
+  
+  
 
 # Jami's calculations 
 # mutate(acc_error_rate = sqrt(2) / (sqrt(sin(heading_radians)) * 10)) %>%
 # mutate(thresh_error_rate = 1 / (sin(heading_radians) * 10))
 
+  
 ```
 
 Here we compute the error rate for Threshold and Accumulator model. The difference being that the Accumulator requires a square root of the sine of heading (still unsure why mathematically).
@@ -109,6 +112,8 @@ modellingdata <- modellingdata %>%
   group_by(heading) %>% # group by heading condition
   mutate(ACC_steeringonset = 1 / (sqrt(sin(heading_radians))) * acc_slope + acc_intercept) %>%
   mutate(THRESH_steeringonset = 1 / (sin(heading_radians)) * thresh_slope + thresh_intercept)
+  
+  
 
 
 # Jami's parametisation  

@@ -572,7 +572,7 @@ ggplot(dplyr::filter(workingdatathresholdUnsmooth, heading > 0), aes(as.factor(h
   ylab("First steering reacton time (s)") +
   theme_gray() +
   ggtitle("First steering response RTs across conditions") +
-  theme(axis.title.x = element_text(size = 15), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 15), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15))
+  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 16), title = element_text(size = 16), legend.title = element_text(size = 15), legend.text = element_text(size = 15))
 
 ggplot(data = filter(workingdatathresholdSmooth, Genuine_Response == TRUE & EarlyResponses == FALSE), aes(as.factor(heading), FirstSteeringTime)) +
   geom_boxplot() +

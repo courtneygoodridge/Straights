@@ -97,9 +97,9 @@ ggplot(timecoursedata %>%
   xlab("Time (s)") +
   ylab("Yaw rate change (degrees/s/s)") +
   guides(color = guide_legend(title = "Heading (degrees)")) +
-  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 16), title = element_text(size = 15), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 16), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
   geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +
-  ggtitle("Steering magnitude over time across conditions") 
+  ggtitle("Steering magnitude over time for each heading") 
 
 ```
 **Plot 1**

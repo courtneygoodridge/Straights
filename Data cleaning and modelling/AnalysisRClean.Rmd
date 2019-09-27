@@ -568,7 +568,7 @@ ggplot(dplyr::filter(workingdatathresholdUnsmooth, heading > 0), aes(as.factor(h
   geom_boxplot() +
   stat_summary(fun.y = mean, aes(shape = "mean"), colour = "red", geom = "point") +
   scale_shape_manual("", values = c("mean" = "O")) +
-  xlab("Heading angle (degrees)") +
+  xlab("Heading (degrees)") +
   ylab("First steering reacton time (s)") +
   theme_gray() +
   ggtitle("First steering response RTs across conditions") +

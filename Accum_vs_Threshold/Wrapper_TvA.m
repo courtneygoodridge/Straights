@@ -75,6 +75,8 @@ MStarts
 figure(55);
 clf
 subplot(2,1,1)
+set(gca, 'FontName', 'Arial')
+set(gca, 'FontSize', 15)
 thresh_ls = 'b-'; % 'c-o'
 accum_ls = 'r-'; % 'm-o'
 for r = 1:NRuns
@@ -90,20 +92,22 @@ for m=1:2
  modelstarts = squeeze(MStarts(:,:,m));
  modelstart_avg = mean(modelstarts,1);
  if m==1
-   plot(Vangles,modelstart_avg,'b-','LineWidth',2);
+   plot(Vangles,modelstart_avg,'--b','LineWidth',2);
  elseif m==2  
-   plot(Vangles,modelstart_avg,'r-','LineWidth',2);
+   plot(Vangles,modelstart_avg,'--r','LineWidth',2);
  end
 end   
 
-ylabel('First Steering RT(secs)')
-xlabel('Angles (degrees)')
+ylabel('First Steering RT(secs)', 'fontweight','bold', 'FontName', 'Arial', 'fontsize',16)
+xlabel('Angles (degrees)', 'fontweight','bold', 'FontName', 'Arial', 'fontsize',16)
 % legendstr = {'Thr','Acc'};
-legend('Threshold', 'Accumulator') %Threshold, Accumulator, Threshold average, Accumulator average
+%%%% legend('Threshold', 'Accumulator') %Threshold, Accumulator, Threshold average, Accumulator average
 % legend(legendstr,'Orientation','horizontal')
 
 MAmps
 subplot(2,1,2)
+% set(gca, 'FontName', 'Arial')
+% set(gca, 'FontSize', 15)
 for r = 1:NRuns
   hold on
   plot(Vangles,log(squeeze(MAmps(r,:,1))),thresh_ls, 'LineWidth',1); 
@@ -121,9 +125,9 @@ for m=1:2
    plot(Vangles,log(modelamps_avg),'r-','LineWidth',2); % log(modelamps_avg)
  end
 end   
-ylabel('First Adjustment Amplitude')
-xlabel('Angles (degrees)')
-legend('Threshold', 'Accumulator') % , 'Threshold average', 'Accumulator average')
+ylabel('First Adjustment Amplitude', 'fontweight','bold', 'FontName', 'Arial', 'fontsize',16)
+xlabel('Angles (degrees)', 'fontweight','bold', 'FontName', 'Arial', 'fontsize',16)
+%%%% legend('Threshold', 'Accumulator') % , 'Threshold average', 'Accumulator average')
 % legend(legendstr,'Orientation','horizontal')
 
 % csvwrite('ModelMagnitudeValues.csv', MAmps)

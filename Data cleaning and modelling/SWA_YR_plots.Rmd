@@ -76,13 +76,15 @@ ggplot(timecoursedata %>%
          mutate(heading_factor = as.factor(heading)) %>%
          mutate(timestamp = frame / 60), aes(x = timestamp, y = meanSWA, colour = heading_factor)) + 
   geom_line() +
-  theme_gray() +
+  #theme_gray() +
   xlab("Time (s)") +
-  ylab("Steering wheel angle (degrees)") +
+  ylab("Steering wheel angle (degrees/s)") +
   guides(color = guide_legend(title = "Heading (degrees)")) +
-  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 16), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  theme(axis.title.x = element_text(size = 20), axis.text.x = element_text(size = 20), axis.title.y = element_text(size = 20), axis.text.y = element_text(size = 20), title = element_text(size = 20), legend.title = element_text(size = 20), legend.text = element_text(size = 20),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +
-  ggtitle("Steering wheel angle over time for each heading") 
+  ggtitle("Steering wheel angle over time for each heading") +
+  ggsave('SWA.png', plot = last_plot(), width = 35, height = 16, units = 'cm', dpi = 300, type = 'cairo')
 
 # computes YawRateChange average over time for each heading
 ggplot(timecoursedata %>%
@@ -93,11 +95,12 @@ ggplot(timecoursedata %>%
          mutate(heading_factor = as.factor(heading)) %>%
          mutate(timestamp = frame / 60), aes(x = timestamp, y = meanDiff_YR, colour = heading_factor)) + 
   geom_line() +
-  theme_gray() +
+  #theme_gray() +
   xlab("Time (s)") +
   ylab("Yaw rate change (degrees/s/s)") +
   guides(color = guide_legend(title = "Heading (degrees)")) +
-  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 16), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15)) +
+  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 15), axis.title.y = element_text(size = 15), axis.text.y = element_text(size = 16), title = element_text(size = 12), legend.title = element_text(size = 15), legend.text = element_text(size = 15), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
   geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +
   ggtitle("Steering magnitude over time for each heading") 
 

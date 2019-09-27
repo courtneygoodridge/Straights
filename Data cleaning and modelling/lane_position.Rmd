@@ -218,8 +218,11 @@ ggplot(dat %>%
   xlab("Heading (degrees)") +
   ylab("Lateral position from line (m)") +
   ylim(0, 0.2) +
-  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 16), axis.title.y = element_text(size = 17), axis.text.y = element_text(size = 16), title = element_text(size = 16)) +
-  ggtitle("Lateral position from the road-line at steering onset") 
+  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 16), axis.title.y = element_text(size = 17), axis.text.y = element_text(size = 16), title = element_text(size = 16), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  ggtitle("Lateral position from the road-line at steering onset") +
+  ggsave('latpos.png', plot = last_plot(), width = 22, height = 13, units = 'cm', dpi = 300, type = 'cairo')
+
 
 ```
 Threshold model predicts very similar lane position thresholds across conditions. This would possibly be expected under the threshold model as it proposes a fixed threhsold across conditions. Once the threshold has been surpassed, a response is initiated. The RTs may differ (i.e. it may take longer to reach the threshold value if error growth is very slow) however the ultimate fixed threshold is still likely to be the same.

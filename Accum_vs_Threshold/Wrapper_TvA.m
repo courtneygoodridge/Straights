@@ -125,7 +125,7 @@ for m=1:2
    plot(Vangles,log(modelamps_avg),'r-','LineWidth',2); % log(modelamps_avg)
  end
 end   
-ylabel('First Adjustment Amplitude', 'fontweight','bold', 'FontName', 'Arial', 'fontsize',16)
+ylabel('Steering Magnitude (degrees)', 'fontweight','bold', 'FontName', 'Arial', 'fontsize',16)
 xlabel('Angles (degrees)', 'fontweight','bold', 'FontName', 'Arial', 'fontsize',16)
 %%%% legend('Threshold', 'Accumulator') % , 'Threshold average', 'Accumulator average')
 % legend(legendstr,'Orientation','horizontal')

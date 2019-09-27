@@ -78,13 +78,13 @@ ggplot(timecoursedata %>%
   geom_line() +
   #theme_gray() +
   xlab("Time (s)") +
-  ylab("Steering wheel angle (degrees/s)") +
+  ylab("Steering wheel angle (degreess)") +
   guides(color = guide_legend(title = "Heading (degrees)")) +
   theme(axis.title.x = element_text(size = 20), axis.text.x = element_text(size = 20), axis.title.y = element_text(size = 20), axis.text.y = element_text(size = 20), title = element_text(size = 20), legend.title = element_text(size = 20), legend.text = element_text(size = 20),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black")) +
-  geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +
-  ggtitle("Steering wheel angle over time for each heading") +
-  ggsave('SWA.png', plot = last_plot(), width = 35, height = 16, units = 'cm', dpi = 300, type = 'cairo')
+  # geom_vline(aes(xintercept = 2.2, linetype = "Road-line appears")) +
+  # ggtitle("Steering wheel angle over time for each heading") +
+  ggsave('SWA.png', plot = last_plot(), width = 38, height = 16, units = 'cm', dpi = 300, type = 'cairo')
 
 # computes YawRateChange average over time for each heading
 ggplot(timecoursedata %>%

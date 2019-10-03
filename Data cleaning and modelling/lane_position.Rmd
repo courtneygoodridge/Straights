@@ -22,16 +22,16 @@ library(ggplot2)
 
 # unprocessed datasets 
 # set working directory on personal laptop
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
 # pre-processed datasets
 # set working directory on personal laptop
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
 temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -54,19 +54,19 @@ workingdata$StraightVisible <- as.numeric(workingdata$StraightVisible) # changes
 workingdata <- workingdata %>%
   group_by(ppid_trialn) %>%
   dplyr::filter(StraightVisible == 2) %>% # filter for only data where central line is visible
-  mutate(frame = row_number()) # create frame number column
+  dplyr::mutate(frame = row_number()) # create frame number column
 
 # differentiate yaw rate metric
 workingdata <- workingdata %>%
   mutate(YawRateChange = YawRate_seconds - c(0, YawRate_seconds[-length(YawRate_seconds)])) %>% # difference in yaw rate
   group_by(ppid_trialn) %>%
-  mutate(frame = row_number()) %>%
+  dplyr::mutate(frame = row_number()) %>%
   ungroup()
 
 # compute 2.5 second anchored timestamp
 workingdata <- workingdata %>%
   group_by(ppid_trialn) %>%
-  mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
+  dplyr::mutate(anchored_timestamp = timestamp - min(timestamp)) %>%
   dplyr::filter(anchored_timestamp <= min(anchored_timestamp) + 2.5) %>% # add for seconds fro the original data 
   ungroup() 
 
@@ -108,7 +108,7 @@ trueresponses <- as.vector(trueresponses) # creates ID vector for filtering
 # filters starting and ending coordinates so only valid trials are selected
 dat <- dplyr::filter(dat, ppid_trialn %in% trueresponses) # filter the IDs in the ID vector
 
-# obtains coordinates at the moment the first steering response wa triggered
+# obtains coordinates at the moment the first steering response was triggered
 threshcoords <- workingdata %>% 
   group_by(ppid_trialn) %>%
   dplyr::filter(max(YawRateChange) > upperthreshold, min(YawRateChange) < lowerthreshold) %>% # filter lowest yaw rate change smaller than the lower theshold, # filter largest yaw rate change greater than the upper threshold
@@ -194,12 +194,7 @@ dat <- dat %>%
 
 Finally, you take the sine of the computed heading and multiple by the hypotenuse to calculate the lane position in metres. Make sure that you're taking the sine of the computed heading in radians.
 
-```{r comparing threshold model lane position values to data}
-
-# average threshold value for each error rate value according to constructed threshold model
-modellingdata %>%
-  group_by(heading) %>%
-  summarise(meanLateralPositionTHRESHOLD = mean(model_threshold))
+```{r computing lateral position error and visualsing}
 
 # average threshold value for each error rate value according to data
 dat_latpos <- dat %>%
@@ -208,6 +203,7 @@ dat_latpos <- dat %>%
   summarise(data = mean(lane_position)) %>%
   gather(key = "modeltype", value = "latpos", data)
 
+# original bar plots for lateral position error
 ggplot(dat %>%
          dplyr::filter(heading > 0) %>%
          group_by(heading) %>%
@@ -223,7 +219,32 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
   ggtitle("Lateral position from the road-line at steering onset") +
   ggsave('latpos.png', plot = last_plot(), width = 22, height = 13, units = 'cm', dpi = 300, type = 'cairo')
 
-# first half of theme functionchanges text size (titles, axis markers etc) second half changes background information.
+# bar plots with 95 CIs erro bars to show variability of lateral position erro across condition
+
+latpos <- dat %>%
+  select(heading, lane_position)
+
+latpos <- summarySE(latpos, measurevar = "lane_position", groupvars = c("heading"))
+
+ggplot(latpos, aes(x = heading, y = lane_position)) + 
+    geom_bar(colour = "black", stat = "identity") +
+    geom_errorbar(aes(ymin = lane_position - se, ymax = lane_position + se), width = .1) +
+    geom_point() +
+    guides(fill = FALSE) +
+  xlab("Heading (degrees)") +
+  ylab("Lateral position from line (m)") +
+  ylim(0, 0.2) +
+  theme(axis.title.x = element_text(size = 16), axis.text.x = element_text(size = 16), axis.title.y = element_text(size = 17), axis.text.y = element_text(size = 16), title = element_text(size = 16), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+  ggtitle("Lateral position from the road-line at steering onset") +
+  ggsave('latpos.png', plot = last_plot(), width = 22, height = 13, units = 'cm', dpi = 300, type = 'cairo')
+
+# geom_path version of plotting lateral position error
+
+ggplot(dplyr::filter(workingdata, heading == 2), aes(x =  World_z, y = World_x)) + 
+  geom_path()
+
+
 
 
 ```

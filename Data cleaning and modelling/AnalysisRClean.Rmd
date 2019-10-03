@@ -33,11 +33,10 @@ library(conflicted) # heloful package to show when packages have conflicted func
 
 # full datasets
 # set working directory on pffice laptop
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
 
 # set working directory on personal laptop
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/test_example/Full_Data")
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -180,7 +179,7 @@ colnames(magnitudedata)[colnames(magnitudedata) == 'heading.x'] <- 'heading'
 colnames(magnitudedata)[colnames(magnitudedata) == 'pNum.x'] <- 'pNum'
 # colnames(magnitudedata)[colnames(magnitudedata) == 'block.x'] <- 'block'
 
-setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights") # set directory for data saving
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights") # set directory for data saving
 write.csv(magnitudedata, file = "magnitudedata.csv")
 
 ```

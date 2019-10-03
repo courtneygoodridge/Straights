@@ -78,6 +78,7 @@ workingdata <- workingdata %>%
 workingdata <- workingdata %>%
   group_by(ppid_trialn) %>%
   mutate(YawRateChange = YawRateChange * sign(heading + 1e-6)) %>% 
+  mutate(World_x = World_x * sign(heading + 1e-6)) %>% 
   mutate(heading = abs(heading))
   
 ```
@@ -239,14 +240,6 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
   ggtitle("Lateral position from the road-line at steering onset") +
   ggsave('latpos.png', plot = last_plot(), width = 22, height = 13, units = 'cm', dpi = 300, type = 'cairo')
 
-# geom_path version of plotting lateral position error
-
-ggplot(dplyr::filter(workingdata, heading == 2), aes(x =  World_z, y = World_x)) + 
-  geom_path()
-
-
-
-
 ```
 Threshold model predicts very similar lane position thresholds across conditions. This would possibly be expected under the threshold model as it proposes a fixed threhsold across conditions. Once the threshold has been surpassed, a response is initiated. The RTs may differ (i.e. it may take longer to reach the threshold value if error growth is very slow) however the ultimate fixed threshold is still likely to be the same.
 
@@ -257,4 +250,71 @@ In contrast, the collected data proposes that there are different threshold valu
 **ggsave**
 
 ggsave allows for better figure saving. Get size of the figure you want from powerpoint and then input dimensions into the function so they are not too distorted when resizing in your powerpoint.
+
+```{r load data}
+
+# full raw datasets
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+timecoursedata <- do.call(rbind.data.frame, myfiles) 
+
+# pre-processed datasets
+# set working directory on personal laptop
+setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
+myfiles = lapply(temp, read.csv) # read these CSV in the directory
+magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
+
+timecoursedata <- tidyr::unite(timecoursedata, ppid_trialn, ppid, trialn, sep = "_") # create unique ppid_trialn ID
+
+trueresponses <- magnitudedata$ppid_trialn # selects ID tags of true responses
+trueresponses <- as.vector(trueresponses) # creates ID vector for filtering
+
+timecoursedata <- dplyr::filter(timecoursedata, ppid_trialn %in% trueresponses)
+
+```
+
+
+```{r mirroring position coords and yaw rate values}
+
+timecoursedata <- timecoursedata %>% 
+  group_by(ppid_trialn) %>% 
+  mutate(timestamp_zero = timestamp - timestamp[1], 
+         SWA_mirrored = SWA * sign(heading + 1e-6),
+         World_x_mirrored = World_x * sign(heading + 1e-6),
+         diff_YR = c(0, diff(YawRate_seconds)),
+         diff_YR_mirrored = diff_YR * sign(heading + 1e-6),
+         heading = abs(heading),
+         frame = row_number()) %>%
+  mutate(diff_YR_mirrored = sgolayfilt(diff_YR_mirrored, n = 11)) # golay filter data
+  
+```
+
+
+```{r computing lateral position per frame}
+
+
+notproblem <- timecoursedata %>%
+  dplyr::filter(WorldYaw < 315)
+
+problem <- timecoursedata %>%
+  dplyr::filter(WorldYaw >= 315) %>%
+  mutate(WorldYaw = 360 - WorldYaw)
+
+timecoursedata <- rbind(notproblem, problem)
+
+timecoursedata <- timecoursedata %>%
+  mutate(WorldYaw_rads = WorldYaw / 180 * pi)
+
+# computes hypotenuse
+timecoursedata <- timecoursedata %>%
+  group_by(frame) %>%
+  mutate(a = (World_x)^2 + (World_z)^2) %>%
+  mutate(hypo = sqrt(a)) %>%
+  mutate(steeringbias = sin(WorldYaw_rads) * hypo)
+
+```
 

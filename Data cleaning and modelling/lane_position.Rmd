@@ -223,6 +223,8 @@ panel.background = element_blank(), axis.line = element_line(colour = "black")) 
   ggtitle("Lateral position from the road-line at steering onset") +
   ggsave('latpos.png', plot = last_plot(), width = 22, height = 13, units = 'cm', dpi = 300, type = 'cairo')
 
+# first half of theme functionchanges text size (titles, axis markers etc) second half changes background information.
+
 
 ```
 Threshold model predicts very similar lane position thresholds across conditions. This would possibly be expected under the threshold model as it proposes a fixed threhsold across conditions. Once the threshold has been surpassed, a response is initiated. The RTs may differ (i.e. it may take longer to reach the threshold value if error growth is very slow) however the ultimate fixed threshold is still likely to be the same.
@@ -230,4 +232,8 @@ Threshold model predicts very similar lane position thresholds across conditions
 One thing to take into account for the threshold model is that intercepts (latencies) for some subjects was slower than some of the trial  RTs for that participant... suggests that the model might not be good at predicting that. Thus when I then going to calculate the overall threshold model, the triggered response time is negative i.e. subjects know when to respond before they have even processed the visual information...
 
 In contrast, the collected data proposes that there are different threshold values for increased heading. More specifically, for increased heading values the mean lane position also increases. Intuitively, this might make sense for the accumulator as this model predicts that subjects will respond to to lower absolute errors when there is more time over which to intergrate the evidence. 
+
+**ggsave**
+
+ggsave allows for better figure saving. Get size of the figure you want from powerpoint and then input dimensions into the function so they are not too distorted when resizing in your powerpoint.
 

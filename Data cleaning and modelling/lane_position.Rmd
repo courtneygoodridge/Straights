@@ -305,7 +305,13 @@ timecoursedata <- timecoursedata %>%
   mutate(lane_deviation = sin(diff_WorldYaw) * diff_hypotenuse) %>% # difference in lane position between frames
   mutate(steeringbias = cumsum(lane_deviation)) # cumulative total of lane deviation across trials
 
-ggplot(data = dplyr::filter(timecoursedata, ppid_trialn == "6_2_4"), aes(x = timestamp_zero, y = steeringbias)) +
-  geom_point()
+ggplot(timecoursedata %>%
+         dplyr::filter(heading > 0) %>%
+         dplyr::filter(frame <= 270) %>%
+         group_by(heading, frame) %>%
+         summarise(meanSteeringbias = mean(steeringbias)) %>%
+         mutate(heading_factor = as.factor(heading)) %>%
+         mutate(timestamp = frame / 60), aes(x = timestamp, y = meanSteeringbias, colour = heading_factor)) + 
+  geom_line() 
 
 ```

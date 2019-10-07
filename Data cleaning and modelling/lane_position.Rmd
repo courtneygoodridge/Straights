@@ -307,11 +307,27 @@ timecoursedata <- timecoursedata %>%
 
 ggplot(timecoursedata %>%
          dplyr::filter(heading > 0) %>%
-         dplyr::filter(frame <= 270) %>%
+         dplyr::filter(frame <= 279) %>%
          group_by(heading, frame) %>%
          summarise(meanSteeringbias = mean(steeringbias)) %>%
          mutate(heading_factor = as.factor(heading)) %>%
          mutate(timestamp = frame / 60), aes(x = timestamp, y = meanSteeringbias, colour = heading_factor)) + 
-  geom_line() 
+  geom_line() +
+  ylim(-0.45, 0.45)
+
+
+
+### Example of geom_path use from Will's report ###
+
+#plot steering bias, exclude the oversteering SAB
+p_sb <- ggplot(data = filter(steergaze_manual, f < 500, yawrate_offset != .15), aes(x = f / 60, y= SB_mirrored, col = factor(failure_type))) +
+  geom_path(aes(group = trialid), alpha = .1) +
+  geom_smooth(se= F, size = 1.5, method = "loess", span = .1) +
+  scale_colour_manual(values = rev(wes_palette("BottleRocket2",n=3)), name = "Failure Type") +
+  geom_hline(yintercept = c(-1.5, 1.5), col = "grey", size = 1.5, linetype = "dashed") +
+  ylim(c(-2,1.6)) +
+  geom_hline(yintercept = 0, col = "black", linetype = "dashed") +
+  ylab("Lane Position (m)") + xlab("Time (s)") +
+  theme_transition_report
 
 ```

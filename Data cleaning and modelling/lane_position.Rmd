@@ -22,16 +22,16 @@ library(ggplot2)
 
 # unprocessed datasets 
 # set working directory on personal laptop
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 workingdata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
 
 # pre-processed datasets
 # set working directory on personal laptop
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
 temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -254,16 +254,16 @@ ggsave allows for better figure saving. Get size of the figure you want from pow
 ```{r load data}
 
 # full raw datasets
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights/Full_Data") 
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights/Full_Data")
 temp = list.files(pattern = c("BenLui17_")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 timecoursedata <- do.call(rbind.data.frame, myfiles) 
 
 # pre-processed datasets
 # set working directory on personal laptop
-setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
-# setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
+# setwd("C:/Users/Courtney/Documents/PhD/Project/Experiment_code/Straights")
+setwd("C:/Users/pscmgo/OneDrive for Business/PhD/Project/Experiment_Code/Straights")
 temp = list.files(pattern = c("magnitudedata", "*.csv")) # list all CSV files in the directory
 myfiles = lapply(temp, read.csv) # read these CSV in the directory
 magnitudedata <- do.call(rbind.data.frame, myfiles) # convert and combine the CSV files into dataframe
@@ -284,7 +284,8 @@ timecoursedata <- timecoursedata %>%
   group_by(ppid_trialn) %>% 
   mutate(timestamp_zero = timestamp - timestamp[1], 
          SWA_mirrored = SWA * sign(heading + 1e-6),
-         World_x_mirrored = World_x * sign(heading + 1e-6),
+         WorldYaw = WorldYaw * sign(heading + 1e-6),
+         World_x = World_x * sign(heading + 1e-6),
          diff_YR = c(0, diff(YawRate_seconds)),
          diff_YR_mirrored = diff_YR * sign(heading + 1e-6),
          heading = abs(heading),
@@ -293,28 +294,18 @@ timecoursedata <- timecoursedata %>%
   
 ```
 
-
-```{r computing lateral position per frame}
-
-
-notproblem <- timecoursedata %>%
-  dplyr::filter(WorldYaw < 315)
-
-problem <- timecoursedata %>%
-  dplyr::filter(WorldYaw >= 315) %>%
-  mutate(WorldYaw = 360 - WorldYaw)
-
-timecoursedata <- rbind(notproblem, problem)
+```{r computing steering bias}
+# example dataframe for stack overflow
+# dput(head(modellingdata, n = 5))
 
 timecoursedata <- timecoursedata %>%
-  mutate(WorldYaw_rads = WorldYaw / 180 * pi)
+  group_by(ppid_trialn) %>%
+  mutate(diff_WorldYaw = c(0, diff(WorldYaw))) %>% # diff in world yaw between frames 
+  mutate(diff_hypotenuse = sqrt((c(0, diff(World_x))^2 + c(0, diff(World_z))^2))) %>% # diff in hypotenuse between frames
+  mutate(lane_deviation = sin(diff_WorldYaw) * diff_hypotenuse) %>% # difference in lane position between frames
+  mutate(steeringbias = cumsum(lane_deviation)) # cumulative total of lane deviation across trials
 
-# computes hypotenuse
-timecoursedata <- timecoursedata %>%
-  group_by(frame) %>%
-  mutate(a = (World_x)^2 + (World_z)^2) %>%
-  mutate(hypo = sqrt(a)) %>%
-  mutate(steeringbias = sin(WorldYaw_rads) * hypo)
+ggplot(data = dplyr::filter(timecoursedata, ppid_trialn == "6_2_4"), aes(x = timestamp_zero, y = steeringbias)) +
+  geom_point()
 
 ```
-
